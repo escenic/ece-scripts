@@ -516,11 +516,6 @@ function sanity_check() {
     fi
 }
 
-function run() {
-  $@ >> $log 2>> $log
-  exit_on_error "$@"
-}
-
 # Returns the file (can be a directory) passed to the function only
 # if it's the actual file/directory and not a link to it. If the
 # passed file is a link, the link target is returned instead.
@@ -836,6 +831,9 @@ for el in $command; do
             ;;
         deploy)
             deploy
+            ;;
+        repackage)
+            repackage "${file}"
             ;;
         assemble)
             assemble

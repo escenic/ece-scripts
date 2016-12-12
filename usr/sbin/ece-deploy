@@ -11,6 +11,10 @@
 ece_deploy_data_dir=/var/lib/escenic/$(basename $0)
 ece_deploy_download_dir=/var/cache/escenic
 log=/var/log/escenic/$(basename $0).log
+proxy_settings=""
+engine1_dir=/opt/tomcat-engine1
+search1_dir=/opt/tomcat-search1
+escenic_conf_dir=/etc/escenic
 
 function ece_deploy_cancel_hook() {
   local the_dir=$ece_deploy_data_dir/$deployment_id
@@ -70,33 +74,51 @@ function bootstrap_thyself() {
 
 bootstrap_thyself
 
-function deploy_ear() {
-  local proxy_setings=""
-  if [ -n "$http_proxy" ]; then
-    proxy_settings="http_proxy=$http_proxy"
-  fi
-
+function deploy_engine() {
   for el in $engine_instance_list; do
-    su - $ece_unix_user -c \
-      "${proxy_settings} ece -i $el stop deploy clean start --uri $ear_uri"
+    if [ "$USER" != "$ece_unix_user" ]; then
+        su - $ece_unix_user -c \
+        "${proxy_settings} ece -i $el stop deploy clean start --uri $ear_uri"
+    else
+        ${proxy_settings} ece -i $el stop deploy clean start --uri $ear_uri
+    fi
     if [ ${PIPESTATUS[@]} -gt 0 ]; then
       exit 1
     fi
   done
-  
+}
+
+function deploy_search() {
   for el in $search_instance_list; do
-    su - $ece_unix_user -c \
-      "${proxy_settings} ece -i $el -t search stop deploy clean start --uri $ear_uri"
+     if [ "$USER" != "$ece_unix_user" ]; then
+        su - $ece_unix_user -c \
+        "${proxy_settings} ece -i $el -t search stop deploy clean start --uri $ear_uri"
+     else
+        ${proxy_settings} ece -i $el -t search stop deploy clean start --uri $ear_uri
+     fi
     exit_on_error "Running ece deploy as $ece_unix_user"
   done
 }
 
+function deploy_ear() {
+  if [ -n "$http_proxy" ]; then
+    proxy_settings="http_proxy=$http_proxy"
+    print_and_log "HTTP proxy found setting proxy settings to $proxy_settings"
+  fi
+  deploy_engine
+  deploy_search
+}
+
 function start_all_content_engine_instances() {
   for el in $engine_instance_list; do
-    su - $ece_unix_user -c \
+    if [ "$USER" != "$ece_unix_user" ]; then
+      su - $ece_unix_user -c \
       "${proxy_settings} ece -i $el restart"
+    else
+      ${proxy_settings} ece -i $el restart
+    fi
   done
-}  
+}
 
 function set_builder_user_and_password() {
   run source /etc/escenic/ece.conf
@@ -129,19 +151,24 @@ function deploy_conf() {
   if [ ${make_deployment-1} -eq 0 ]; then
     return
   fi
-
-  make_dir $ece_deploy_download_dir
-
-  set_builder_user_and_password
-
-  print "Downloading" $conf_package_uri "..."
-  
-  # common-ece::download_uri_target_to_dir honors wget_auth
-  wget_auth="
-    --http-user $builder_http_user
-    --http-password $builder_http_password
-  "
-  download_uri_target_to_dir $conf_package_uri $ece_deploy_download_dir
+  if [ -n $conf_package_uri ]; then
+    conf_file=$ece_deploy_download_dir/$(basename $conf_package_uri)
+    make_dir $ece_deploy_download_dir
+    if [ -e $conf_file ]; then
+     print_and_log "We found an exact deb file $(basename $conf_package_uri) in our cache so we will not download it again"
+     elif [ -f $conf_package_uri ]; then
+     print_and_log "So, you want to install a local configuration package file. Creating a symlink in our cache directory"
+     ln -s $conf_package_uri $conf_file
+    else
+       set_builder_user_and_password
+       print "Downloading" $conf_package_uri "..."
+      # common-ece::download_uri_target_to_dir honors wget_auth
+      wget_auth="
+      --http-user $builder_http_user
+      --http-password $builder_http_password "
+     download_uri_target_to_dir $conf_package_uri $ece_deploy_download_dir
+    fi
+  fi
 
   print "Installing" $(basename $conf_package_uri) "..."
   if [ ${force_everything-0} -eq 1 ]; then
@@ -151,9 +178,13 @@ function deploy_conf() {
       $dpkg_opts
   fi
 
-  dpkg \
+  sudo dpkg \
     $dpkg_opts \
     --install $ece_deploy_download_dir/$(basename $conf_package_uri)
+  print_and_log "Changing ownership for engine1 and search1 to $ece_unix_user"
+  sudo chown -R $ece_unix_user:$ece_unix_user $engine1_dir
+  sudo chown -R $ece_unix_user:$ece_unix_user $search1_dir
+  sudo chown -R $ece_unix_user:$ece_unix_user $escenic_conf_dir
 }
 
 function read_user_input() {

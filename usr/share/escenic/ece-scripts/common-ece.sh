@@ -71,6 +71,7 @@ function get_instance_type() {
 
 webapps_in_standard_webapps_list="
   dashboard
+  ece-extension
   escenic
   escenic-admin
   indexer-webapp
@@ -88,6 +89,11 @@ webapps_in_standard_webapps_list="
   note-webservice
   preview-editor-ws
   mobile-studio
+  mobile-webservice
+  live-center-editorial
+  live-center
+  live-center-presentation-webservice
+  revision-history
 "
 
 ### is_webapp_a_publication

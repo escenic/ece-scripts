@@ -58,7 +58,7 @@ db_vendor=percona
 download_dir=${escenic_cache_dir}/$(basename $0)
 log=${escenic_log_dir}/$(basename $0).log
 conf_file=$HOME/ece-install.conf
-ece_scripts_git_source=https://github.com/vizrt/ece-scripts.git
+ece_scripts_git_source=https://github.com/escenic/ece-scripts.git
 maven_opts="--batch-mode"
 wget_opts="--continue --inet4-only --quiet"
 apt_opts="--no-install-recommends"
@@ -83,25 +83,15 @@ force_packages=0
 ece_software_setup_completed=0
 
 ############################################################################
-# For ECE 5.5
+# For ECE 5.7
 ############################################################################
 technet_download_list="
-  http://technet.escenic.com/downloads/release/55/analysis-engine-2.5.0.131590.zip
-  http://technet.escenic.com/downloads/release/55/assemblytool-2.0.4.jar
-  http://technet.escenic.com/downloads/release/55/community-engine-3.8.1.132399.zip
-  http://technet.escenic.com/downloads/release/55/engine-5.5.0.131978.zip
-  http://technet.escenic.com/downloads/release/55/forum-3.2.1.132293.zip
-  http://technet.escenic.com/downloads/release/55/geocode-2.4.1.130693.zip
-  http://technet.escenic.com/downloads/release/55/lucy-4.2.1.129603.zip
-  http://technet.escenic.com/downloads/release/55/menu-editor-2.1.1.128528.zip
-  http://technet.escenic.com/downloads/release/55/online-graphics-1.0.1.133123.zip
-  http://technet.escenic.com/downloads/release/55/poll-2.3.0.128547.zip
-  http://technet.escenic.com/downloads/release/55/vcpeditor-1.0.0.132434.zip
-  http://technet.escenic.com/downloads/release/55/video-1.2.1.132710.zip
+http://maven.escenic.com/com/escenic/engine-dist/5.7.71.178665/engine-dist-5.7.71.178665-bin.zip
+https://maven.escenic.com/com/escenic/tools/assemblytool/2.0.7/assemblytool-2.0.7.zip
 "
+
 wf_download_list="
-  http://technet.escenic.com/downloads/release/55/framework-dist-2.0.2.131581.zip
-  http://technet.escenic.com/downloads/release/55/framework-community-dist-2.0.2.131581.zip
+https://maven.escenic.com/com/escenic/widget-framework/framework-dist/3.5.1.174428/framework-dist-3.5.1.174428.zip
 "
 ############################################################################
 
@@ -287,10 +277,10 @@ function install_common_os_packages()
         apt-key add - 1>> $log 2>> $log
       local package_pool=${fai_apt_vizrt_pool-unstable}
       add_apt_source "deb http://apt.vizrt.com ${package_pool} main"
+      run apt-get update
     fi
     install_packages_if_missing escenic-common-scripts
   fi
-
 }
 
 # don't quote values when setting conf file values with
@@ -417,8 +407,8 @@ function print_status_and_next_steps()
     if [ $install_profile_number -ne $PROFILE_RESTORE_FROM_BACKUP -a \
         $install_profile_number -ne $PROFILE_CACHE_SERVER -a \
         $install_profile_number -ne $PROFILE_WIDGET_FRAMEWORK ]; then
-        add_next_step "Install info: "\ "/usr/share/doc/escenic/ece-install-guide.txt"
-        add_next_step "Guide books: http://documentation.vizrt.com/ece-5.5.html"
+        add_next_step "UNIX man pages: $(man -k escenic | awk '{print $1;}')"
+        add_next_step "Guide books: http://docs.escenic.com/ece-5.7.html"
     fi
 
     print_next_step_list
@@ -564,7 +554,7 @@ function check_software_credentials() {
 
   print_and_log "Verifying that Technet credentials are OK ..."
 
-  local url=http://technet.escenic.com
+  local url=http://maven.escenic.com
   local notok=$(
     is_unauthorized_to_access_url \
       ${technet_user} \
@@ -815,7 +805,7 @@ function install_all_in_one_environment()
     install_ece_instance $default_ece_intance_name 0
     install_cache_server
     install_web_server 2
-    set_up_solr
+    multicore_solr_setup
 
     install_widget_framework
     create_publication

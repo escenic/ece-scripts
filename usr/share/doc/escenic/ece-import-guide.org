@@ -1,5 +1,5 @@
 #+TITLE: The ece-import Guide
-#+AUTHOR: Vizrt Online / The SaaS Team
+#+AUTHOR: Escenic Cloud Team
 #+OPTIONS: H:6 num:5 toc:2
 
 * NAME
@@ -403,10 +403,10 @@ or
 then wait a while for the import to happen again. or trigger it with the ece-import command.
 
 * COPYRIGHT
-Copyright 2012-2013 Vizrt
+Copyright 2012-2015 Escenic
 
 Licensed under the Apache License, Version 2.0, see
-https://github.com/vizrt/ece-scripts/COPYING for further details.
+https://github.com/escenic/ece-scripts/COPYING for further details.
 
 * AUTHOR
 Torstein Krause Johansen

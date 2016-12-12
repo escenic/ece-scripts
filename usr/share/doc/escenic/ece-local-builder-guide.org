@@ -1,0 +1,109 @@
+#+TITLE: The ece-local-builder Guide
+#+AUTHOR: Escenic Cloud Team
+
+* NAME
+ece-local-builder
+
+* SYNOPSIS
+ece-local-builder [[[-c builder-conf-file]]] [[[-s]]] [[[-a]]] [[[-b]]] [[[-V]]]
+
+* DESCRIPTION
+ece-local-builder is a command to create a single project builder in a standalone machine or
+setting up local builder with in a Escenic Installation. This command requires an configuration
+file to setup the builder.
+
+** -c builder-conf-file
+Setup builder under customer_name user provided in the builder.conf file .
+The user creation can be skipped using -s option.
+
+** -a
+Add builder under all the existing user.
+
+** -s
+Skip creation of the user.
+
+** -b
+Executes a ece-build operation on given branch in builder.conf file
+
+** -V
+Shows the version of ece-local-builder
+
+** Initialize builder configuration
+To setup builder requires a builder.conf file. A sample builder.conf file can be generated
+under /etc/escenic directory by running the following command
+#+BEGIN_SRC sh
+$ ece-local-builder initialize
+#+END_SRC
+
+** Setting up builder
+Setting up builder is running the ece-local-builder command with the configuration file.
+The sample /etc/escenic/builder.conf file looks like following
+#+BEGIN_SRC sh
+customer_name=customer-name
+technet_user=technet-username
+technet_password=technet-password
+maven_user=maven-username
+maven_password=maven-password
+git_url=ssh://git@git-ip-address/mycloud.git
+assemblytool_url=http://technet.escenic.com/downloads/release/57/assemblytool-2.0.7.zip
+local_mode=false
+auto_deploy=false
+ear_base_url=http://builder-ip-address:81
+package_for_machine=all
+branch_name=master
+maven_download_url=http://www.eu.apache.org/dist/maven/maven-3/3.3.3/binaries/apache-maven-3.3.3-bin.zip
+#+END_SRC
+
+The properties of builder.conf file are described here
+* customer_name
+The name of the customer
+* technet_user
+Username for escenic technet to download the distribution
+* technet_password
+Password for the technet user
+*maven_user
+Username for Escenic maven repository
+* maven_password
+Password for Escenic maven repository
+* git_url
+Customer git project url
+* assemblytool_url
+Download url for Escenic Assembly Tool
+* local_mode
+Sets the builder in local mode if value is set to true. Defaule is false
+* auto_deploy
+Sets the builder to automatic deploy of the created ear and configuration package if set to true.
+Default value is false
+* ear_base_url
+The base url for the ear and configuration packages to be exposed to external systems.
+* package_for_machine
+Machine name, for which the configuration will be created and deployed if auto_deploy is set to ture.
+* branch_name
+Customer git project branch name from where the build will be made
+* maven_download_url
+Maven download url. Default value is set to
+http://www.eu.apache.org/dist/maven/maven-3/3.3.3/binaries/apache-maven-3.3.3-bin.zip
+
+Now after preparing the configuration file with valid values for the properties. We can run the following commands
+
+* Examples
+* To setup a builder under the customer_name user
+#+BEGIN_SRC sh
+$ ece-local-builder -c /etc/escenic/builder.conf
+#+END_SRC
+
+* To skip the user creation but setup builder under the existing user
+
+#+BEGIN_SRC sh
+$ ece-local-builder -c /etc/escenic/builder.conf -s
+#+END_SRC
+
+
+* COPYRIGHT
+Copyright 2011-2015 Escenic
+
+Licensed under the Apache License, Version 2.0, see
+https://github.com/escenic/ece-scripts/COPYING for further details.
+
+* AUTHOR
+Sk Mohd Anwarul Islam

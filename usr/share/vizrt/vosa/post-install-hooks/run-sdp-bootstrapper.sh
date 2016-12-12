@@ -33,14 +33,18 @@ guest="ssh -F $2/ssh.conf root@guest"
 
 if $guest [ -d /etc/apt/sources.list.d ] ; then
   $guest tee /etc/apt/sources.list.d/vizrt.list <<EOF
-deb http://apt.vizrt.com/ unstable main non-free
-deb http://apt.vizrt.com/ lean main non-free
+deb http://apt.vizrt.com/ akita main non-free
 EOF
 
-  $guest tee /etc/apt/preferences.d/30prefer-vizrt-lean-packages <<EOF
+  $guest tee /etc/apt/preferences.d/30prefer-vizrt-akita-packages <<EOF
 Package: *
 Pin-Priority: 600
-Pin: release a=lean
+Pin: release a=unstable
+EOF
+ $guest tee /etc/apt/preferences.d/40ubuntu-unzip-package <<EOF
+Package: unzip
+Pin-Priority: 600
+Pin: release v=12.04,o=Ubuntu,a=precise,n=precise,l=Ubuntu,c=main
 EOF
 
   $guest apt-key add - <<EOF

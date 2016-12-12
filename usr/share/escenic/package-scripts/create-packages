@@ -116,10 +116,17 @@ function set_up_escenic-content-engine-installer() {
 }
 
 function set_up_escenic-build-scripts() {
+  local doc_dir=$target_dir/usr/share/doc/escenic-build-scripts
   make_dir $target_dir/usr/bin
+  make_dir $doc_dir
   run cp ../build-scripts/ece-build $target_dir/usr/bin/ece-build
   run cp ../build-scripts/ece-builder $target_dir/usr/bin/ece-builder
+  run cp ../build-scripts/ece-local-builder $target_dir/usr/bin/ece-local-builder
   run cp ../build-scripts/ece-build-guide $target_dir/usr/bin/ece-build-guide
+
+  run cp -r ../../doc/escenic/ece-build-guide.org $doc_dir
+  run cp -r ../../doc/escenic/ece-builder-guide.org $doc_dir
+  run cp -r ../../doc/escenic/ece-local-builder-guide.org $doc_dir
 }
 
 function set_up_escenic-content-engine-scripts() {
@@ -258,14 +265,14 @@ function set_up_escenic-munin-plugins() {
   local dir=$(mktemp -d)
   (
     run cp -r ../../../../etc/munin/plugins/* $target_dir/etc/munin/plugins
-    run download_uri_target_to_dir \
-      https://github.com/mogsie/escenic-munin/tarball/master \
-      $dir
     cd $dir
-    tar xzf master
-    run cp $dir/mogsie-escenic-munin*/*_ $target_dir/usr/share/munin/plugins
-    run cp $dir/mogsie-escenic-munin*/README.md $doc_dir
-    run cp $dir/mogsie-escenic-munin*/site/* $doc_dir
+    run git archive --format=tar.gz \
+    --remote=ssh://git@cci-jira-stash.ccieurope.com:7999/vosa/escenic-munin.git master \
+    --output="master.tar.gz"
+    tar xzf master.tar.gz
+    run cp $dir/*_ $target_dir/usr/share/munin/plugins
+    run cp $dir/README.md $doc_dir
+    run cp $dir/site/* $doc_dir
 
     chmod 755 $file $target_dir/usr/share/munin/plugins
   )
@@ -307,15 +314,15 @@ function set_up_spore() {
 
   local dir=$(mktemp -d)
   (
-    download_uri_target_to_dir \
-      https://github.com/vizrt/spore/archive/master.tar.gz \
-      $dir
     cd $dir
+    run git archive --format=tar.gz \
+    --remote=ssh://git@cci-jira-stash.ccieurope.com:7999/vosa/spore.git master \
+    --output="master.tar.gz"
     run tar xzf master.tar.gz
-    run cp $dir/spore-master/bin/* $target_dir/usr/bin
-    run cp $dir/spore-master/sbin/* $target_dir/usr/sbin
-    run cp $dir/spore-master/README.md $target_dir/usr/share/doc/spore
-    run cp -r $dir/spore-master/examples $target_dir/usr/share/doc/spore/examples
+    run cp $dir/bin/* $target_dir/usr/bin
+    run cp $dir/sbin/* $target_dir/usr/sbin
+    run cp $dir/README.md $target_dir/usr/share/doc/spore
+    run cp -r $dir/examples $target_dir/usr/share/doc/spore/examples
   )
   run rm -rf $dir
 }

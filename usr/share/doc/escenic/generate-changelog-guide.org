@@ -1,5 +1,5 @@
 #+TITLE: User Guide for the generate-changelog Command
-#+AUTHOR: Vizrt Online / The SaaS Team
+#+AUTHOR: Escenic Cloud Team
 #+OPTIONS: H:6 num:5 toc:2
 
 * Introduction

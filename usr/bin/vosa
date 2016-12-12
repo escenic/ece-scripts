@@ -239,6 +239,249 @@ processor_affinity 0,1,2,3
 vnc_port none
 EOF
   fi
+
+  if [ ! -r /etc/vizrt/vosa/skeleton-kvm/ova.conf ] ; then
+    cat > /etc/vizrt/vosa/skeleton-kvm/ova.conf <<EOF
+## This is a sample configuration file needed to create a development
+## image of VMDK or OVA format. The properties looks like below
+
+################################################################
+
+## The is the output directory where the VMDK or the OVA file will be
+## generated in a directory created with the instance name.
+output_directory /var/www/html/dev
+
+## Passphrase to create an enrypted VMDK or OVA file. The encrypted file
+## have an extension vmdk.gpg or ova.gpg. Anyone with the passphrase can
+## decrypt the file and use it.
+#passphrase
+
+## A user to use the top command in the development image
+top_user top
+
+## The memory of the development image.
+## The value should not be less then 1028 and a valid positive integer.
+vm_memory 2048
+
+## The password for the ubuntu user in the development image.
+#vm_ubuntu_pass
+
+## Operating system type to be used.
+## Default value is Ubuntu_64
+#ostype Ubuntu_64
+
+## Number of cpus to be used by the virtual machine
+## Default value is 2
+#cpus 2
+
+## Maximum heap size for engine1 tomcat
+## Default is 512
+#engine_max_heap 512
+
+## Minimum heap size for engine1 tomcat
+## Default is 256
+#engine_min_heap 256
+
+## Maximum heap size for search1 tomcat
+## Default is 256
+#search_max_heap 256
+
+## Minimum heap size for search1 tomcat
+## Default value is 128
+#search_min_heap 128
+
+## Vendor name
+#vendor Escenic A/S
+
+## Vendor url for the the vm
+#vendorurl http://www.escenic.com/
+
+## the agreement messasge shown while importing the ova file.
+#agreement You solemnly swear that you have a license agreement with Escenic, or that you are an Escenic Employee.
+EOF
+  fi
+    if [ ! -r /etc/vizrt/vosa/skeleton-kvm/sdp.xml ] ; then
+    cat > /etc/vizrt/vosa/skeleton-kvm/sdp.xml <<EOF
+<?xml version="1.0"?>
+<sdp xmlns="http://www.vizrt.com/types/service-design-package">
+    <global-variables>
+        <!-- Fill in all the following parameters -->
+        <param name="name">NAME</param>
+        <param name="timezone">TIMEZONE</param>
+        <param name="location">LOCATION</param>
+        <param name="shortname">SHORTNAME</param>
+        <param name="realm">REALM</param>
+        <param name="domain">DOMAIN</param>
+    </global-variables>
+
+    <feature type="authentication" revision="1" id="technet-login">
+        <param name="url">http://technet.escenic.com/</param>
+        <!-- Enter your Technet username and password -->
+        <param name="userid">USERNAME</param>
+        <param name="password">PASSWORD</param>
+    </feature>
+
+    <!-- Uncomment following feature to install a Development Builder -->
+    <!--
+    <feature type="authentication" revision="1" id="technet-login">
+        <param name="url">http://technet.escenic.com/</param>
+        <param name="userid">TECHNET-USERNAME</param>
+        <param name="password">TECHNET-PASSWORD</param>
+    </feature>
+    -->
+
+    <feature type="escenic-publication" revision="1" id="nightly">
+        <param name="name">demopub</param>
+        <param name="webapp">demopub</param>
+        <param name="primary-host">demopub.\${domain}</param>
+    </feature>
+
+    <module type="unix-user" revision="1" id="root-user">
+        <param name="username">root</param>
+        <!-- Choose and enter a root password -->
+        <param name="password" scopes="platform">PASSWORD</param>
+    </module>
+
+    <module type="unix-user" revision="1" id="escenic-user">
+        <param name="username">escenic</param>
+        <param name="group" scopes="platform">adm</param>
+        <!-- Choose and enter a password for the escenic user -->
+        <param name="password" scopes="platform">PASSWORD</param>
+    </module>
+
+    <module type="security-policy" revision="1"/>
+
+    <module type="ubuntu-mirror" revision="1">
+        <param name="url">http://no.archive.ubuntu.com/ubuntu/</param>
+    </module>
+
+    <module type="additional-packages" revision="1" id="jdk8">
+        <param name="deb-package">unixodbc</param>
+        <param name="deb-package">defoma</param>
+        <param name="deb-package">java-common</param>
+        <param name="deb-package">xsltproc</param>
+        <param name="deb-package-list">http://secrets.vizrtsaas.com/static/packages/java/8/server.urilist</param>
+        <!-- Enter the Escenic Debian repository passphrase -->
+        <param name="passphrase">PASSPHRASE</param>
+    </module>
+
+    <module type="additional-packages" revision="1" id="python">
+        <param name="deb-package">python-dev</param>
+        <param name="deb-package">libxml2-dev</param>
+        <param name="deb-package">libxslt1-dev</param>
+        <param name="pip-package">lxml</param>
+    </module>
+
+    <!-- Uncomment following module to install a Development Builder -->
+    <!--
+    <module type="additional-packages" revision="1" id="builder-pack">
+      <param name="deb-package">escenic-build-scripts</param>
+      <param name="deb-package">subversion</param>
+      <param name="deb-package">zip</param>
+      <param name="deb-package">alien</param>
+      <param name="deb-package">fakeroot</param>
+    </module>
+    -->
+
+    <!-- Uncomment following module to install a Development Builder -->
+    <!--
+    <module type="escenic-builder" revision="1">
+      <use-feature refid="escenic-repo"/>
+      <use-feature refid="technet-login"/>
+      <param name="customer">CUSTOMER-NAME</param>
+      <param name="builder-user">escenic</param>
+      <param name="git-url">ssh://GIT-IP-ADDRESS/mycloud.git</param>
+      <param name="assemblytool-url">http://technet.escenic.com/downloads/release/57/assemblytool-2.0.7.zip</param>
+      <param name="ear-base-url">http://LOCAL-IP-ADDRESS:81</param>
+      <param name="machine">MACHINE-NAME</param>
+      <param name="branch">BRANCH-NAME</param>
+      <param name="maven-url">http://www.us.apache.org/dist/maven/maven-3/3.3.3/binaries/apache-maven-3.3.3-bin.zip</param>
+      <param name="private-key" src="/etc/escenic/private-key"/>
+    </module>
+    -->
+
+    <module type="branding" revision="1">
+        <param name="name">\${name}</param>
+        <param name="timezone">\${timezone}</param>
+        <param name="realm">\${realm}</param>
+    </module>
+
+    <feature type="escenic-mysql" revision="1" id="escenic-db"/>
+
+    <feature type="escenic-ear" revision="1">
+        <!-- Replace with a correct download URL (see Escenic Cloud Installation Guide) -->
+        <param name="url">http://BUILDER-IP:PORT/escenic/CUSTOMER/releases/CUSTOMER-branch-master-latest.ear</param>
+    </feature>
+
+<!-- This feature is to deploy nursery configuration changes,in the Escenic installation. -->
+<!-- <feature type="escenic-conf" revision="1">
+        <!-- Replace with a correct download URL (see Escenic Cloud Installation Guide) -->
+        <param name="url">
+            http://BUILDER-IP:PORT/escenic/CUSTOMER/releases/vosa-conf-CUSTOMER-1-CUSTOMER-branch-master-latest.deb
+        </param>
+    </feature>
+-->
+    <feature type="maven-repository" revision="1" id="escenic-repo">
+        <param name="url">http://maven.escenic.com</param>
+        <!-- Enter your Escenic Maven repo username and password -->
+        <param name="userid">MAVEN-USER</param>
+        <param name="password">MAVEN-PASSWORD</param>
+    </feature>
+
+    <feature type="maven-repository" revision="1">
+        <param name="url">http://maven.escenic.com/unstable</param>
+        <!-- Enter your Escenic Maven repo username and password -->
+        <param name="userid">MAVEN-USER</param>
+        <param name="password">MAVEN-PASSWORD</param>
+    </feature>
+
+    <module type="escenic-database" revision="1">
+        <use-feature refid="escenic-db"/>
+        <use-feature type="escenic-ear"/>
+        <use-feature type="maven-repository"/>
+    </module>
+
+    <module type="ece-install" revision="4">
+        <use-feature refid="escenic-db"/>
+        <use-feature type="escenic-ear"/>
+        <!-- Enable escenic-conf feature
+        <!--<use-feature type="escenic-conf"/>-->
+        <use-feature type="maven-repository"/>
+        <param name="tomcat-base-uri" override="tomcat-base-uri">
+            http://ftp.heanet.ie/mirrors/www.apache.org/dist/tomcat/tomcat-7/
+        </param>
+    </module>
+
+    <feature-group name="everything">
+        <ref-feature refid="technet-login"/>
+        <ref-feature refid="escenic-db"/>
+        <ref-feature refid="nightly"/>
+    </feature-group>
+
+    <!-- Enter environment/cluster/machine names and ids (see Escenic Cloud Installation Guide) -->
+    <environment name="ENVIRONMENT-NAME" id="ENVIRONMENT-ID">
+        <cluster name="CLUSTER-NAME">
+            <machine name="MACHINE-NAME">
+                <ref-feature-group name="everything"/>
+                <ref-module refid="root-user"/>
+                <ref-module refid="escenic-user"/>
+                <ref-module type="ece-install"/>
+                <ref-module type="escenic-database"/>
+                <ref-module type="security-policy"/>
+                <ref-module refid="jdk8"/>
+                <ref-module refid="python"/>
+                <ref-module type="branding"/>
+
+                <!-- Uncomment following lines to install a Development Builder -->
+                <!--
+                <ref-module refid="builder-pack"/>
+                <ref-module type="escenic-builder"/>
+            </machine>
+        </cluster>
+    </environment>
+</sdp>
+EOF
+  fi
   # TODO:
   # Include common configuration items.
   #include /etc/vizrt/vosa/common.conf
@@ -611,7 +854,7 @@ function really_do_status () {
         if [ $done -eq 0 ] ; then
           # Parse the statefile and find its instance ID
           if [ -r $bootstatefile ] ; then
-            aws_instance=$(awk < "$bootstatefile" -F '\t' '/^INSTANCE/ { print $2 }')
+            aws_instance=$(awk < "$bootstatefile" -F '\t' '/^INSTANCE/ { print $8 }')
           fi
           if [ -z $aws_instance ] && [ -r $bootstatefile ] ; then
             aws_instance=$(cut < "$bootstatefile" -f 6 | grep 'i-')
@@ -851,10 +1094,9 @@ function do_create() {
       read_amazon_config $instance_dir/amazon.conf
       # TODO: sanitize "required" variables
       if $USE_AWS_CLI ; then
-        json="[{\"device_name\":\"/dev/sda1\", \"ebs\":{\"volume_size\":$amazon_config_initial_disk_size} } ]"
+	json="[{\"DeviceName\":\"/dev/sda1\", \"Ebs\":{\"VolumeSize\":$amazon_config_initial_disk_size} } ]"
         opts=( "--image-id" ${amazon_config_image}
-               "--min-count" "1"
-               "--max-count" "1"
+               "count" "1:1"
         ${amazon_config_availability_zone/#/--placement availability_zone=}  \
         ${amazon_config_type/#/--instance-type }  \
         ${amazon_config_ssh_keypair/#/--key-name }  \
@@ -1118,10 +1360,37 @@ function shutdown() {
   fi
 }
 
+## Makes vmdk image from the virtual machine disk image.
+function do_make() {
+  if [[ $aws -eq 1 ]]; then
+    echo "The make commad is only for kvm use. Exiting ...."
+    exit 1
+  else
+    make_kvm "${@}"
+  fi
+}
+
+function make_kvm() {
+  ${commands}/make-dev-image.sh "$instance_dir" "$(dirname $0)/../../var/lib/vizrt/vosa/images/$instance_name" "$instance_name"|| exit $?
+}
 
 function unknown-argument() {
   echo "Unknown argument $@"
   usage=1
+}
+
+## Creates ova file from vmdk image.
+function do_ova() {
+  if [[ $aws -eq 1 ]]; then
+    echo "The ova command is only for kvm use. Exiting ... "
+    exit 1
+  else
+    ova_for_kvm "${@}"
+  fi
+}
+
+function ova_for_kvm() {
+${commands}/make-ova.sh "$instance_dir" "$(dirname $0)/../../var/lib/vizrt/vosa/images/$instance_name" "$instance_name"|| exit $?
 }
 
 LASTOPTIND=0

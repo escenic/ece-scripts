@@ -63,9 +63,13 @@ for a in 1 2 3 4 5 6 7 8 9 10 ; do
   if $USE_AWS_CLI ; then
     if [ "$amazon_config_ssh_access" == "public" ] ; then
       ip_address=$(grep $'\ti-' $statefile | cut -f 5)
-      if [[ $ip_address == 172.* ]] || [[ $ip_address == 10.* ]] || [ $ip_address == None ] ; then
+      if [[ $ip_address == 172.* ]] || [[ $ip_address == 10.* ]] || [ $ip_address == None ] || [ "$ip_address" == "False" ] ; then
         ip_address=
       fi
+      if [[ $a == 10 ]] && [ -z "$ip_address" ]; then
+        ip_address=$(grep $'\ti-' $statefile | cut -f 16)
+      fi
+
     else
       ip_address=$(grep $'\ti-' $statefile | cut -f 6)
     fi

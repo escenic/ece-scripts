@@ -161,12 +161,13 @@ backend ${appserver_id}${i} {
 
 EOF
   done
-
+print_and_log "Found anaysis engine host : $fai_analysis_host"
   if [ -n "${fai_analysis_host}" ]; then
     cat >> $file <<EOF
 backend analysis {
   .host = "${fai_analysis_host}";
   .port = "${fai_analysis_port-${default_app_server_port}}";
+  .max_connections = 50;
 }
 
 EOF
@@ -204,8 +205,9 @@ EOF
 
   if [ -n "${fai_analysis_host}" ]; then
     cat >> $file <<EOF
-  if (req.url ~ "^/analysis-logger/") {
+  if (req.url ~ "^/analysis-logger/Logger" || req.url == "/analysis-logger/") {
     set req.backend = analysis;
+    return(pass);
   }
 EOF
   fi

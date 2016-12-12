@@ -135,7 +135,7 @@ EOF
 function get_aws_instance() {
   bootstatefile=$image/amazon.initialstate
   if [ -r $bootstatefile ] ; then
-    aws_instance=$(awk < "$bootstatefile" -F '\t' '/^INSTANCE/ { print $2 }')
+    aws_instance=$(awk < "$bootstatefile" -F '\t' '/^INSTANCE/ { print $8 }')
   fi
   if [ -z "$aws_instance" ] && [ -r $bootstatefile ] ; then
     # Hope that the 6th field continues to provide "i-"...

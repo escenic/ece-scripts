@@ -56,7 +56,7 @@ function create_publication() {
         # the entries in the fai_publication_domain_mapping_list are on
         # the form: <publication[,pub.war]>#<domain>[#<alias1>[,<alias2>]]
         IFS='#' read publication domain aliases <<< "$el"
-        IFS=',' read publication_name publication_war <<< "$publication"
+        IFS=',' read publication_name publication_war publication_type <<< "$publication"
         IFS=$old_ifs
 
         # this is the default case were the WAR is called the same as
@@ -65,7 +65,7 @@ function create_publication() {
           publication_war=${publication_name}.war
         fi
 
-        create_the_publication $publication_name $the_tmp_dir/$publication_war
+        create_the_publication $publication_name $the_tmp_dir/$publication_war $publication_type
       done
 
       log "Cleaing up $the_tmp_dir ..."
@@ -73,6 +73,7 @@ function create_publication() {
     else
       ensure_that_instance_is_running ${fai_publication_use_instance-$default_ece_intance_name}
       local publication_name=${fai_publication_name-mypub}
+      local publication_type=${fai_publication_type-default}
 
       if [ -z "${fai_publication_war}" ]; then
         # if the user hasn't set the fai_publication_war, see if the
@@ -90,7 +91,7 @@ function create_publication() {
         publication_war=$fai_publication_war
       fi
 
-      create_the_publication $publication_name $publication_war
+      create_the_publication $publication_name $publication_war $publication_type
     fi
   fi
 }
@@ -100,13 +101,14 @@ function create_publication() {
 function create_the_publication() {
   local publication_name=$1
   local publication_war=$2
+  local publication_type=$3
 
-  print_and_log "Creating a publication with name" $publication_name \
+  print_and_log "Creating a publication with name" $publication_name of $publication_type type \
     "using the publication resources from" $(basename $publication_war)
 
   create_publication_prepare_war_file $publication_war
   local the_instance=${fai_publication_use_instance-$default_ece_intance_name}
-  create_publication_in_db $publication_name $publication_war $the_instance
+  create_publication_in_db $publication_name $publication_war $publication_type $the_instance
   add_publication_to_deployment_lists $(basename $publication_war .war)
 
   add_next_step "A publication with name" $publication_name \
@@ -169,7 +171,8 @@ function ensure_that_instance_is_running() {
 function create_publication_in_db() {
   local publication_name=$1
   local publication_war=$2
-  local instance_name=$3
+  local publication_type=$3
+  local instance_name=$4
 
   print_and_log "Creating publication" ${publication_name} \
     "using instance" $instance_name "..."
@@ -198,6 +201,7 @@ function create_publication_in_db() {
   run curl ${curl_opts}  \
     -F "name=${publication_name}" \
     -F "publisherName=Escenic" \
+    -F "publicationType=${publication_type}" \
     -F "adminPassword=admin" \
     -F "adminPasswordConfirm=admin" \
     --cookie JSESSIONID="$cookie" \

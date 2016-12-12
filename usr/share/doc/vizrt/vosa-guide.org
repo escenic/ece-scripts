@@ -39,6 +39,10 @@ Removes the disk image etc.
 Starts (boots) the VM.
 ** status
 Tells you about the VM, if it's enabled, running, alive, its uptime.
+** make
+Makes a vmdk image of the vm
+** ova
+Creates a ova file from the vmdk image.
 
 * What is VOSA?
 
@@ -324,6 +328,25 @@ When it's done you can SSH into the system:
    : ssh -F /var/lib/vizrt/vosa/my-first-vm/ssh.conf guest
 
 Not that you should need to do that, of course.
+
+** Making a development image
+
+Making a development image from the virtual machine is also possible using
+vosa. The main purpose of the development image is to boost the development
+time with in an production like environment. We can create VMDK (Virtual Machine Disk)
+files from the UEC images used to create the virtual machine. It is also possible
+to create a OVA (Open Virtual Archive) file from the generated VMDK image to use
+it out of the box in VirtualBox.
+
+To make a VMDK image we have to run
+#+BEGIN_SRC sh
+vosa -i my-first-vm make
+#+END_SRC
+
+We can create a VMDK and ova file with a single command like
+#+BEGIN_SRC sh
+vosa -i my-first-vm make ova
+#+END_SRC
 
 * Puppet Master
 

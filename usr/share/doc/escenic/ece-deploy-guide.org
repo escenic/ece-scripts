@@ -1,5 +1,5 @@
 #+TITLE: ece-deploy
-#+AUTHOR: Vizrt Online / The SaaS Team
+#+AUTHOR: Escenic Cloud Team
 #+MAN_CLASS_OPTIONS: section-id:8
 #+OPTIONS: H:6 num:5 toc:2
 
@@ -27,7 +27,8 @@ will be a file on a build server.
 
 ** --conf uri-to-conf
 The URI to the configuration package to use for the deployment on this
-machine, typically, this will be a file on a build server.
+machine, typically, this will be a file on a build server. This also can
+be a configuration package file location, which is in this machine.
 
 ** --force
 Use force whenever necessary to get an automatic deployment. This is
@@ -96,9 +97,14 @@ and database of its deployments to make everything reproduce-able.
 # ece-deploy --ear http://my.builder.com/snow-2.3.ear
 #+END_SRC
 
-** Deploying a new configuration package
+** Deploying a new configuration package using uri
 #+BEGIN_SRC sh
 # ece-deploy --conf http://my.builder.com/vosa-conf-pres1-2.3.deb
+#+END_SRC
+
+** Deploying a new configuration package file
+#+BEGIN_SRC sh
+# ece-deploy --conf /path/to/vosa-conf-pres1-2.3.deb
 #+END_SRC
 
 ** Updating publication resources
@@ -162,10 +168,10 @@ servers is present in /etc/escenic/ece.conf and
 
 
 * COPYRIGHT
-Copyright 2011-2013 Vizrt
+Copyright 2011-2015 Escenic
 
 Licensed under the Apache License, Version 2.0, see
-https://github.com/vizrt/ece-scripts/COPYING for further details.
+https://github.com/escenic/ece-scripts/COPYING for further details.
 
 * AUTHOR
 Torstein Krause Johansen

@@ -1,6 +1,6 @@
 #+TITLE: BASH all you want: ece-install 
 #+AUTHOR: Torstein Krause Johansen 
-#+EMAIL: tkj@vizrt.com
+#+EMAIL: tkj@escenic.com
 #+DATE: 2012-03-30
 
 * Agenda
@@ -91,7 +91,7 @@ Yes, that's it.
 - QA
 - R & D
 - SaaS / VOSA
-- Escenic/Vizrt Online partners
+- Escenic partners
 - Experienced customers
 
 * Show Me!
@@ -103,7 +103,7 @@ Yes, that's it.
 
 * How?
 
-- git clone https://github.com/vizrt/ece-scripts/ (or zip download)
+- git clone https://github.com/escenic/ece-scripts/ (or zip download)
 - Daily builds of DEB and RPM packages from
   http://hudson.dev.escenic.com
 

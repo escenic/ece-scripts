@@ -1,0 +1,90 @@
+#+TITLE: The ece-build Guide
+#+AUTHOR: Escenic Cloud Team
+
+* NAME
+ece-build
+
+* SYNOPSIS
+ece-build [[[-b branch-name]]] [[[-t release-tag]]] [[[-m package-for-machine]]] [[[-u]]] [[[-r]]] [[[-f]]]  [[[-o]]] [[[-c]]] [[[-V]]]
+
+* DESCRIPTION
+ece-build is a command to build the ear distribution, that is used to setup Escenic Installation. This command also creates
+Debian and RPM packages with the configuration changes needed for the Installation. Both the ear and configuration (deb or rpm)
+packages are exposed via http server. This ece-build command can be used as a local builder by turning on the local builder mode,
+where it is possible to make local changes in to source code directly without pushing it to remote repository and build an ear
+and configuration package with it. Typical use of the ece-build script as local builder is in the dev images, where this can be
+used with in an Escenic Installation to make changes and deploy it immediately for test purposes.
+
+** -b
+Git project branch name, from where we want to build the ear and configuration package.
+
+** -t
+Release tag to which will be added to the final distributions both ear and
+configuration package name as tag-{release-tag}
+
+** -m
+The machine name for which we want to build the configuration package. This is
+The directory name under ~/server-admin module in git project,which is
+typically a machine name like (dev, test, uat, production). If not set then
+It will build configuration packages for all the machines found under ~/server-admin
+module. For auto deploy we must specify a machine name, for which it will create
+the configuration package and deploy that in to the machine.
+
+** -u
+Used to update of the source code from remote repository, when running
+on local builder builder mode.
+
+** -r
+Used to update the publication resource, when running on local mode
+and auto deploy is on.
+
+** -f
+Use force whenever necessary to get an deployment and it requires
+local mode and auto deploy mode turned on. This is typically for
+forcing various parts of the configuration package when
+the package manager would choose a more cautious solution (typically to
+keep the local version of configuration files that differ).
+
+** -o
+Used to build in offline mode.
+
+** -c
+Clean up local source code changes.
+
+** -V
+Shows the version of ece-build
+
+* Examples
+** Building ear and configuration package from master branch
+#+BEGIN_SRC sh
+# ece-build -b master
+#+END_SRC
+
+** Updating the source code and building ear and configuration package in local mode.
+#+BEGIN_SRC sh
+# ece-build -b master -u
+#+END_SRC
+
+** Cleaning up local source code changes, taking update from remote and building distribution.
+#+BEGIN_SRC sh
+# ece-build -b master -u -c
+#+END_SRC
+
+** Running ece-build in offline mode
+#+BEGIN_SRC sh
+# ece-build -b master -o
+#+END_SRC
+
+** Updating publication resources
+#+BEGIN_SRC sh
+# ece-build -b master -r
+#+END_SRC
+
+* COPYRIGHT
+Copyright 2011-2015 Escenic
+
+Licensed under the Apache License, Version 2.0, see
+https://github.com/escenic/ece-scripts/COPYING for further details.
+
+* AUTHOR
+Sk Mohd Anwarul Islam

@@ -22,6 +22,14 @@ project_pom_versions=""
 ear_base_url=http://builder.vizrtsaas.com
 #Mode to use keep git local changes
 local_mode=false
+auto_deploy=false
+deploy_ear=false
+deploy_conf=""
+package_for_machine="all"
+generate_changelog=0
+do_force=0
+deploy_resources=0
+
 # standard java locations
 #TODO:take java home location dynamically
 java_6_sun=/usr/lib/jvm/java-6-sun
@@ -59,6 +67,7 @@ newsgate
 vcpeditor
 online-graphics
 widget-framework-core
+widget-framework
 widget-framework-common
 widget-framework-mobile
 widget-framework-community
@@ -70,7 +79,9 @@ changelog
 note
 seo
 mobile-studio
-preview-editor"
+preview-editor
+live-center
+revision-history"
 
 declare -A project_distributions=()
 
@@ -78,7 +89,8 @@ project_maven_coordinates=""
 
 declare -A maven_snapshot_coordinates=(
 ["assemblytool"]="com.escenic.tools:assemblytool:jar"
-["engine"]="com.escenic:engine-dist:zip:bin"
+["engine"]="com.escenic:engine-dist:zip:bin
+com.escenic:engine:zip"
 ["analysis-engine"]="com.escenic.plugins.analysis-engine:analysis-engine:zip"
 ["changelog"]="com.escenic.changelog:changelog:zip"
 ["dashboard"]="com.escenic.plugins.dashboard:dashboard:zip"
@@ -101,16 +113,20 @@ declare -A maven_snapshot_coordinates=(
 ["xml-editor"]="com.escenic.plugins.xml-editor:xml-editor:zip"
 ["vcpeditor"]="com.escenic.plugins.vcpeditor:vcpeditor:zip"
 ["widget-framework-core"]="com.escenic.widget-framework:framework-dist:zip"
+["widget-framework"]="com.escenic.widget-framework:widget-framework:zip"
 ["widget-framework-community"]="com.escenic.widget-framework:framework-community-dist:zip"
 ["widget-framework-mobile"]="com.escenic.widget-framework:framework-mobile-dist:zip"
 ["seo"]="com.escenic.plugins.seo:seo:zip"
 ["mobile-studio"]="com.escenic.plugins.mobile-studio:mobile-studio:zip"
 ["preview-editor"]="com.escenic.plugins.preview-editor:preview-editor:zip"
+["live-center"]="com.escenic.plugins.live-center:live-center:zip"
+["revision-history"]="com.escenic.plugins.revision-history:revision-history:zip"
 )
 
 declare -A maven_coordinates=(
 ["assemblytool"]="com.escenic.tools:assemblytool:jar"
-["engine"]="com.escenic:engine-dist:zip:bin"
+["engine"]="com.escenic:engine-dist:zip:bin
+com.escenic:engine:zip"
 ["analysis-engine"]="com.escenic.plugins.analysis:analysis-engine:zip
 com.escenic.plugins.analysis-engine:analysis-engine:zip"
 ["changelog"]="com.escenic.changelog:changelog:zip"
@@ -143,11 +159,14 @@ com.escenic.plugins.xml-editor:xml-editor:zip"
 ["vcpeditor"]="com.escenic.plugins.vcpeditor:vcpeditor-dist:zip
 com.escenic.plugins.vcpeditor:vcpeditor:zip"
 ["widget-framework-core"]="com.escenic.widget-framework:framework-dist:zip"
+["widget-framework"]="com.escenic.widget-framework:widget-framework:zip"
 ["widget-framework-community"]="com.escenic.widget-framework:framework-community-dist:zip"
 ["widget-framework-mobile"]="com.escenic.widget-framework:framework-mobile-dist:zip"
 ["seo"]="com.escenic.plugins.seo:seo:zip"
 ["mobile-studio"]="com.escenic.plugins.mobile-studio:mobile-studio:zip"
 ["preview-editor"]="com.escenic.plugins.preview-editor:preview-editor:zip"
+["live-center"]="com.escenic.plugins.live-center:live-center:zip"
+["revision-history"]="com.escenic.plugins.revision-history:revision-history:zip"
 )
 
 # root folders for engine and plugin distributions
@@ -351,16 +370,19 @@ function verify_java
 ##
 function get_user_options
 {
-  while getopts ":b:t:oscuV" opt; do
+  while getopts ":b:t:m:osrfcuV" opt; do
     case $opt in
       b)
         svn_path=branches/${OPTARG}
-        git_path="${OPTARG}"
+        branch_name="${OPTARG}"
         release_label=branch-${OPTARG}
         ;;
       t)
         svn_path=tags/${OPTARG}
         release_label=tag-${OPTARG}
+        ;;
+      m)
+        package_for_machine=${OPTARG}
         ;;
       o)
         maven_build_offline=1
@@ -374,6 +396,14 @@ function get_user_options
       u)
         update_repo=1
         print_and_log "Git repository update  mode in effect!"
+        ;;
+      f)
+        do_force=1
+        print_and_log "Will use force to deploy configuration package for local deployment as requested"
+        ;;
+      r)
+        deploy_resources=1
+        print_and_log "Will update pulbication resources as requested"
         ;;
       V)
         echo "Version:" $ece_scripts_version
@@ -489,7 +519,8 @@ function clean_customer_home
   fi
 
   # drop and recreate project src directory if it exists
-  if [ -d "$project_src_dir" ]; then
+  if [ -d $project_src_dir  ] && ([ $clean_repo -eq 1 ] || [ $local_mode == false ]); then
+    print_and_log "Cleaning up project source directory $project_src_dir"
     run_wrapper rm -rf $project_src_dir
   fi
 }
@@ -511,7 +542,7 @@ local engine_version
  engine_major_version=`echo $project_engine_version | cut -d'-' -f2 | cut -d'.' -f1`
  engine_minor_version=`echo $project_engine_version | cut -d'-' -f2 | cut -d'.' -f2`
  engine_version=$engine_major_version$engine_minor_version
- if [ ! $engine_version -ge 57 ] ; then
+ if [[  "$engine_version" -lt "57" ]] ; then
   if [ -e $builder_root_dir/lib/java_memcached-release_2.0.1.jar ]; then
     run_wrapper ln -s $builder_root_dir/lib/java_memcached-release_2.0.1.jar $assemblytool_lib_dir/
   else
@@ -546,16 +577,15 @@ function git_checkout
     print_and_log "The chosen protocol $git_protocol for git is NOT supported, exiting!"
     exit 1
   fi
-
-  if [[ "$git_path" != "" ]]; then
-    local exists=$(git ls-remote --heads $git_repo_uri | grep $git_path)
-    if [[ "${exists}" = "" ]]; then
-      print_and_log "The request branch $git_path does NOT exist, exiting!"
+  # Check the remote branch exists for not
+  if [ -n "$branch_name" ]; then
+    local exists=$(git ls-remote --heads $git_repo_uri | grep $branch_name)
+    if [ -z "$exists" ]; then
+      print_and_log "The request branch $branch_name does NOT exist, exiting!"
       exit 1
     fi
-    release_label=branch-$git_path
-    branch_name=$git_path
-    git_path="-b $git_path"
+    release_label=branch-$branch_name
+    git_path="-b $branch_name"
   fi
 
   
@@ -571,41 +601,43 @@ function git_checkout
     run_wrapper git clone $git_repo_uri $project_src_master_dir
   fi
   cd $project_src_master_dir
-  if [ $local_mode == false ]; then
   clean_up
   run_wrapper git checkout master
-  udpate_repository
+  update_repository
   clean_up
   # git checkout
-  run_wrapper git clone $git_path $project_src_master_dir $project_src_dir
-  else
+  if [ ! -d $project_src_dir ]; then
+    run_wrapper git clone $git_path $project_src_master_dir $project_src_dir
+  fi
+  if [ $local_mode == true ]; then
     print_and_log "Switching to local mode. You can use -u to update and -c to clean your local git repo"
     if [ $clean_repo -eq 1 ]; then
       clean_up
     fi
-    if [[ "$git_path" == "" ]]; then
+    if [ -z "$branch_name" ]; then
         branch_name=master
-        git_path="-b master"
+        git_path="-b $branch_name"
     fi
+    cd $project_src_dir
+    run_wrapper git remote update
+    run_wrapper git fetch
+    checkout_repo
     if [ $update_repo -eq 1 ]; then
-      udpate_repository
+      update_repository
     fi
-    checkout_repo 
-    run_wrapper cp -rf $project_src_master_dir $project_src_dir
- fi
-  cd $project_src_dir
+  fi
   revision=`git describe --always`
   if [[ $revision = "" ]]; then
     print_and_log "Failed to fetch current revision number, exiting!"
     exit 1
   fi
 
-  if [[ "$git_path" == "" ]]; then
-    git_path="-b master"
+  if [ -z "$branch_name" ]; then
+    git_path="-b $branch_name"
   fi
 }
 ## Git update repository 
-function udpate_repository
+function update_repository
 {
   run_wrapper git remote update
   run_wrapper git fetch
@@ -615,9 +647,10 @@ function udpate_repository
 
 function checkout_repo
 {
-  if [[ "$git_path" != "" ]]; then
+  if [ -n "$branch_name" ]; then
     git show-ref --quiet --verify "refs/heads/$branch_name"
     if [ $? = 0 ]; then
+    print_and_log "Checkout src directory to $branch_name"
       run_wrapper git checkout $branch_name
     else
       run_wrapper git checkout -b $branch_name origin/$branch_name
@@ -819,7 +852,7 @@ function fetch_distributions
     if [[ ! $dist_version = "" ]]; then
 
       # remove old trunk-SNAPSHOT if present
-      if [[ $dist_version = "trunk-SNAPSHOT" ]]; then
+      if [ "$dist_version" == "trunk-SNAPSHOT" ] || [ "$dist_version" = "develop-SNAPSHOT" ]; then
         if [ -d $dists_root_dir/$f-$dist_version ]; then
           rm -rf $dists_root_dir/$f-$dist_version
         fi
@@ -833,7 +866,7 @@ function fetch_distributions
         local artifact_version=$dist_version
         local target_path=$dists_root_dir
        
-        if [[ $dist_version = "trunk-SNAPSHOT" ]]; then
+         if [ "$dist_version" == "trunk-SNAPSHOT" ] || [ "$dist_version" = "develop-SNAPSHOT" ]; then
           for h in ${maven_snapshot_coordinates["$f"]};
           do
             local dist_path=`mvn_coordinate_to_rest_call ${h}:$dist_version`
@@ -961,7 +994,7 @@ function print_unstable_distributions
 {
   for f in ${!project_distributions[@]}; do
     local coordinate=
-    if [[ ${project_distributions["$f"]} = "trunk-SNAPSHOT" ]]; then
+    if [ "${project_distributions["$f"]}" == "trunk-SNAPSHOT" ] || [ "${project_distributions["$f"]}" == "develop-SNAPSHOT" ]; then
       for g in ${maven_snapshot_coordinates["$f"]}
       do
         local dist_path=`mvn_coordinate_to_rest_call ${g}:${project_distributions["$f"]}`
@@ -1200,37 +1233,15 @@ function publish_ear
   fi
 }
 
-## creates DEB and RPM packages with the server configuration for all
-## of the machines available in <project>/server-admin/<machine
-## instance>
+## Creates deb and rpm package for machines specified in 
+## <project>/server-admin directory.
 ##
-## Common files are taken from <project>/server-admin/common.
-##
-## If <project>/server-admin doesn't exist, the method simply returns.
-function create_machine_conf_packages() {
-  local conf_dir=$project_src_dir/server-admin
-  
-  if [ ! -d $conf_dir ]; then
-    return
-  fi
-
- # As both control run same function
- #if [[ "$src_control" = svn ]]; then
-    #generate_new_changelog
- #elif [[ "$src_control" = git ]]; then
-    #generate_new_changelog
- #fi
-  generate_new_changelog
-
-  local machine_list=$(
-    find $conf_dir -maxdepth 1 -type d | \
-      egrep -v "common|.svn" | \
-      sed -e "s#$conf_dir##g" -e "s#^/##g" | \
-      sort | \
-      grep [a-z]
-  )
-
-  for machine in $machine_list; do
+## This function takes two parameters. It can be called like below
+## make_conf_package <machine> <project_configuration_directory>
+##  
+function make_conf_package() {
+   local machine=$1
+   local conf_dir=$2
     # work dir
     local target_dir=$(mktemp -d)
 
@@ -1259,7 +1270,7 @@ function create_machine_conf_packages() {
       run_wrapper mkdir -p $dir
       run_wrapper cp $file $dir/truth.conf
     fi
-    
+
     # mark all files as conf files
     local conffiles_file=$target_dir/DEBIAN/conffiles
     run_wrapper mkdir -p $(dirname $conffiles_file)
@@ -1268,7 +1279,7 @@ function create_machine_conf_packages() {
       egrep -v DEBIAN | \
       sed "s#$target_dir##" \
       > $conffiles_file
-    
+
     # debian control file
     local control_file=$target_dir/DEBIAN/control
     local package_name=vosa-conf-${machine}
@@ -1289,17 +1300,17 @@ EOF
     # changelogs
     local package_changelog_dir=${target_dir}/usr/share/doc/vizrt/$package_name
     make_dir $package_changelog_dir
-    if [[ "$src_control" = "svn" ]]; then 
-    	 local svn_base_dir=$(lowercase $(basename $svn_base))
-   	 local change_log_dir=$HOME/.generate-changelog/${svn_base_dir}/${svn_path}
+    if [[ "$src_control" = "svn" ]]; then
+         local svn_base_dir=$(lowercase $(basename $svn_base))
+         local change_log_dir=$HOME/.generate-changelog/${svn_base_dir}/${svn_path}
     elif [[ "$src_control" = "git" ]]; then
          # get git repo's name
-   	 local git_base_dir=$(lowercase $(basename $git_base))
-	 # get git repo's branch name
-         local git_path_dir=$(echo $git_path | sed 's/-b //g')
-   	 local change_log_dir=$HOME/.generate-git-changelog/${git_base_dir}/${git_path_dir}
-    fi  
-    
+         local git_base_dir=$(lowercase $(basename $git_base))
+         # get git repo's branch name
+         local git_path_dir=$branch_name
+         local change_log_dir=$HOME/.generate-git-changelog/${git_base_dir}/${git_path_dir}
+    fi
+
     if [ -d  $change_log_dir ]; then
       run_wrapper cp ${change_log_dir}/* $package_changelog_dir
     fi
@@ -1309,10 +1320,10 @@ EOF
       print_and_log "You must have dpkg-deb installed to create packages :-("
       return
     fi
-    
+
     run_wrapper dpkg-deb --build $target_dir
     mv ${target_dir}.deb $target_dir/${package_name}-${package_version}.deb
-    
+
     if [[ -x /usr/bin/alien && -x /usr/bin/fakeroot ]]; then
       (
         run_wrapper cd $target_dir
@@ -1325,26 +1336,84 @@ EOF
 
     # move the machine's DEB and RPM packges to the release directory
     run_wrapper mv $target_dir/*.{deb,rpm} $release_dir/
-   
+    local release_version=${package_name}-${package_version}
     # adding latest links for conf packages
-    run_wrapper ln -sf $release_dir/vosa-conf-${machine}-${package_version}.deb $release_dir/vosa-conf-${machine}-1-${customer}-${release_label}-latest.deb
-    run_wrapper ln -sf $release_dir/vosa-conf-${machine}-1_${customer}_${release_label}-r${revision}.noarch.rpm $release_dir/vosa-conf-${machine}-1_${customer}_${release_label}-latest.noarch.rpm
- 
+    run_wrapper ln -sf $release_dir/$release_version.deb $release_dir/vosa-conf-${machine}-1-${customer}-${release_label}-latest.deb
+    run_wrapper ln -sf $release_dir/vosa-conf-${machine}-1_${customer//-/_}_${release_label//-/_}-r${revision}.noarch.rpm \
+                       $release_dir/vosa-conf-${machine}-1_${customer//-/_}_${release_label//-/_}-latest.noarch.rpm
+
     # remove work directory
     run_wrapper rm -rf $target_dir
-  done
+    
+    #Let´s print the package links 
+}
+## This function prints the debian package links for the given machine
+## Call print_deb_package_link <machine>
+function print_deb_package_link() {
+  local machine=$1
+  print_and_log "--- .deb configuration package for $machine machine  ---"
+  print_and_log "$ear_base_url/$customer/releases/vosa-conf-${machine}-1-${customer}-${release_label}-r${revision}.deb"
+}
+## This function prints the rpm package links for the given machine
+## Call print_rpm_package_link <machine>
+function print_rpm_package_link() {
+  local machine=$1
+  print_and_log "--- .rpm configuration package for $machine machine  ---"
+  print_and_log "$ear_base_url/$customer/releases/vosa-conf-${machine}-1_${customer//-/_}_${release_label//-/_}-r${revision}.noarch.rpm"
+}
 
-  if [ -z "$machine_list" ]; then 
+## creates DEB and RPM packages with the server configuration for all
+## of the machines available in <project>/server-admin/<machine
+## instance>
+##
+## Common files are taken from <project>/server-admin/common.
+##
+## If <project>/server-admin doesn't exist, the method simply returns.
+function create_machine_conf_packages() {
+  local conf_dir=$project_src_dir/server-admin
+  
+  if [ ! -d $conf_dir ]; then
+    return
+  fi
+  
+ # As both control run same function
+ #if [[ "$src_control" = svn ]]; then
+    #generate_new_changelog
+ #elif [[ "$src_control" = git ]]; then
+    #generate_new_changelog
+ #fi
+ if [ $generate_changelog -eq 1 ]; then
+    generate_new_changelog
+ fi
+  local machine_list=$(
+    find $conf_dir -maxdepth 1 -type d | \
+      egrep -v "common|.svn" | \
+      sed -e "s#$conf_dir##g" -e "s#^/##g" | \
+      sort | \
+      grep [a-z]
+  )
+  if [ -z "$machine_list" ]; then
     print_and_log "Your project does not have any folders, except maybe common, under server-admin so no configuration packages will be generated."
-  else
-    print_and_log "--- .deb configuration packages ---"  
-    for machine in $machine_list; do 
-      print_and_log "$ear_base_url/$customer/releases/vosa-conf-${machine}-${package_version}.deb"
+    return
+  fi
+  if [ -z "$package_for_machine" ] || [ "$package_for_machine" == "all" ]; then
+    print_and_log "The configuration package_for_machine is Empty or set to all!"
+    print_and_log "I will build configuration packages for all the machines."
+   for machine in $machine_list; do
+      #create the package for machine
+      make_conf_package $machine $conf_dir
+      #first print the deb package link for machine
+      print_deb_package_link $machine
+      #second print the rpm package link for the machine
+      print_rpm_package_link $machine
     done
-    print_and_log "--- .rpm configuration packages ---"
-    for machine in $machine_list; do
-      print_and_log "$ear_base_url/$customer/releases/vosa-conf-${machine}-1_${customer}_${release_label}-r${revision}.noarch.rpm"
-    done
+  elif [[ "$machine_list" =~ "$package_for_machine" ]];then
+    make_conf_package $package_for_machine $conf_dir
+    print_deb_package_link $package_for_machine
+    print_rpm_package_link $package_for_machine
+  else 
+    print_and_log "We have not found any conf directory for the desired machine `$package_for_machine` under $conf_dir ! Please check the machine name is correct"
+    print_and_log "I will not generate any configuration packages then! Please set the package_for_machine correclty!"
   fi
 }
 
@@ -1393,7 +1462,7 @@ function generate_new_changelog() {
         # --project git repo name and branch
 	if [[ ! -z $jira_base_url ]]; then 
     	run_wrapper generate-git-changelog \
-    	  --project $(basename $git_base)/$(echo $git_path | sed 's/-b //g') \
+    	  --project $(basename $git_base)/$branch_name \
     	  --user $jira_user \
           --password $jira_password \
     	  ${from_option} \
@@ -1401,7 +1470,7 @@ function generate_new_changelog() {
           --jirabaseurl $jira_base_url
 	else
     	run_wrapper generate-git-changelog \
-    	  --project $(basename $git_base)/$(echo $git_path | sed 's/-b //g') \
+    	  --project $(basename $git_base)/$branch_name \
     	  ${from_option} \
     	  --to $revision 
 	fi
@@ -1539,6 +1608,34 @@ function phase_release
   create_machine_conf_packages
   print_result
 }
+## Used to deploy ear and conf packages after built
+function automatic_deploy(){
+local ear_deploy_opts="--ear"
+local conf_deploy_opts="--conf"
+  if [ $do_force -eq 1 ]; then
+     conf_deploy_opts="--force $conf_deploy_opts"
+  fi
+  if [ $deploy_resources -eq 1 ]; then
+     ear_deploy_opts="--update-publication-resources $ear_deploy_opts"
+  fi
+  if [ $deploy_ear == true ]; then
+    ece-deploy $ear_deploy_opts ~/releases/$resulting_ear
+  fi
+
+  if [ "$deploy_conf" == "deb" ]; then
+    ece-deploy $conf_deploy_opts ~/releases/vosa-conf-${package_for_machine}-1-${customer}-${release_label}-latest.deb
+  fi
+
+  if [ "$deploy_conf" == "rpm" ]; then
+    ece-deploy $conf_deploy_opts ~/releases/vosa-conf-${package_for_machine}-1_${customer}_${release_label}-latest.noarch.rpm
+  fi
+}
+
+function phase_deploy() {
+  if [ "$local_mode" == "true" ] && [ "$auto_deploy" == "true" ]; then
+    automatic_deploy
+  fi
+}
 
 ##
 function phase_shutdown
@@ -1553,4 +1650,5 @@ phase_verify_user
 phase_clean_up
 phase_verify_project
 phase_release
+phase_deploy
 phase_shutdown

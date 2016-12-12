@@ -1,5 +1,5 @@
 #+TITLE: ece
-#+AUTHOR: Vizrt Online / The SaaS Team
+#+AUTHOR: Escenic Cloud Team
 #+OPTIONS: H:6 num:5 toc:2
 
 * NAME
@@ -190,10 +190,10 @@ $ ece -i engine1 \\
 
 
 * COPYRIGHT
-Copyright 2011-2013 Vizrt
+Copyright 2011-2015 Escenic
 
 Licensed under the Apache License, Version 2.0, see
-https://github.com/vizrt/ece-scripts/COPYING for further details.
+https://github.com/escenic/ece-scripts/COPYING for further details.
 
 * AUTHOR
 Torstein Krause Johansen

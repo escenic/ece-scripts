@@ -24,6 +24,7 @@ _ece_commands()
       outlog
       package
       remove-old-log-files
+      repackage
       restart start
       status
       stop
@@ -55,7 +56,7 @@ _ece_commands()
             "
             completions="$exclude_list $commands"
             ;;
-        deploy)
+        deploy|repackage)
             completions="--file --uri $commands"
             ;;
         -t|--type)

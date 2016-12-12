@@ -30,6 +30,20 @@ function get_deploy_white_list() {
   echo ${deploy_white_list}
 }
 
+function get_publications_webapps_list() {
+
+  local publication_webapps=""
+  # Publication service webapp mappping
+  if [ $fai_enabled -eq 1 ]; then
+    if [ $install_profile_number -eq $PROFILE_PRESENTATION_SERVER ] || [ $install_profile_number -eq $PROFILE_ALL_IN_ONE ]; then
+      publication_webapps=${fai_publications_webapps-""}
+    else
+      publication_webapps=""
+    fi
+  fi
+  echo ${publication_webapps}
+}
+
 function get_publication_short_name_list() {
   local deploy_white_list=""
 
@@ -42,7 +56,7 @@ function get_publication_short_name_list() {
   elif [ $install_profile_number -eq $PROFILE_ALL_IN_ONE ]; then
     deploy_white_list=${fai_all_deploy_white_list}
   fi
-
+	
   if [[ -z "$deploy_white_list" && \
     -n "${fai_publication_domain_mapping_list}" ]]; then
     for el in $fai_publication_domain_mapping_list; do
@@ -70,6 +84,56 @@ function get_publication_short_name_list() {
   done
 
   echo ${short_name_list}
+}
+
+function deploy_conf_package() {
+  if [ -z $fai_conf_url ]; then
+     return;
+  fi
+  local conf_file_url=$fai_conf_url
+
+  if [ ! -d $escenic_cache_dir ] ; then
+    mkdir -p $escenic_cache_dir
+  fi 
+
+  if [[ -n "${fai_conf_builder_http_user}" && \
+      -n "${fai_conf_builder_http_password}" ]]; then
+      local wget_auth="
+          --http-user $fai_conf_builder_http_user
+          --http-password $fai_conf_builder_http_password
+        "
+  fi
+
+  local conf_file=$escenic_cache_dir/$(basename $conf_file_url)
+
+  if [ -s $conf_file ] ; then
+    print_and_log "Using previously downloaded conf file $conf_file"
+  else
+    print_and_log "Downloading $conf_file_url to $conf_file"
+    run wget $wget_auth $wget_opts $conf_file_url \
+      -O $conf_file
+  fi
+
+  if [ ! -s $conf_file ] ; then
+    rm $conf_file
+    print_and_log "Unable to download conf file $conf_file_url," \
+      "aborting."
+    remove_pid_and_exit_in_error
+  fi
+
+  print_and_log "Installing $(basename $conf_file_url) ..."
+  local dpkg_opts=" --force-overwrite --force-confnew "
+  run dpkg \
+    $dpkg_opts \
+    --install $conf_file
+}
+
+function set_search_host_and_ports() {
+  if [ ${fai_enabled-0} -eq 1 ]; then
+    search_host=${fai_search_host-$HOSTNAME}
+    search_port=${fai_search_port-$default_app_server_port}
+    solr_port=${fai_solr_port-8983}
+  fi
 }
 
 ## $1=<default instance name>
@@ -100,7 +164,20 @@ function install_ece_instance() {
       $ece_instance_conf_archive
   fi
 
-  if [ $install_profile_number -ne $PROFILE_ANALYSIS_SERVER ]; then
+  if [[ $install_profile_number -eq $PROFILE_PRESENTATION_SERVER ||
+        $install_profile_number -eq $PROFILE_EDITORIAL_SERVER ||
+        $install_profile_number -eq $PROFILE_ALL_IN_ONE
+      ]]; then
+
+    ## Since 2013-09-05 (e6958fb9) we've had a a chicken and the egg
+    ## problem, set_up_app_server is dependent on Nursery
+    ## configuration to be there, but
+    ## set_up_basic_nursery_configuration (which again calls
+    ## set_up_search_client_nursery_conf) is dependent on values set
+    ## in set_up_app_server. Without these, the search related Nursery
+    ## components get faulty entries.
+    set_search_host_and_ports
+
     set_up_basic_nursery_configuration
     set_up_instance_specific_nursery_configuration
   fi
@@ -122,12 +199,21 @@ function install_ece_instance() {
         $file
     fi
   fi
-
+  if [ $install_profile_number -eq $PROFILE_PRESENTATION_SERVER ] || [ $install_profile_number -eq $PROFILE_ALL_IN_ONE ]; then
+    local file=$escenic_conf_dir/ece-${instance_name}.conf
+    print_and_log "Added publications service webapps in $file ..."
+    set_conf_file_value \
+      publications_webapps \
+      $(get_publications_webapps_list) \
+      $file
+  fi
   if [ $install_profile_number -ne $PROFILE_ANALYSIS_SERVER -a \
     $install_profile_number -ne $PROFILE_SEARCH_SERVER ]; then
     set_up_content_engine_cron_jobs
     install_memory_cache
     assemble_deploy_and_restart_type
+    configure_special_plugins
+    deploy_conf_package
   fi
 
   update_type_instances_to_start_up
@@ -277,7 +363,7 @@ function set_up_engine_and_plugins() {
     verify_that_archive_is_ok $download_dir/$file
 
     if [ $(echo $file | \
-      grep -E "^engine-[0-9]|^engine-trunk-SNAPSHOT|^engine-dist" | \
+      grep -E "^engine-[0-9]|^engine-trunk-SNAPSHOT|^engine-develop-SNAPSHOT|^engine-dist" | \
       wc -l) -gt 0 ]; then
       engine_dir=$(get_base_dir_from_bundle $download_dir/$file)
       engine_file=$file
@@ -674,7 +760,7 @@ function install_ece_third_party_packages
       local version=$(lsb_release -s -r | sed "s#\.##g")
     fi
 
-    if [ $(has_oracle_java_installed) -eq 0 ]; then
+    if [ "$(has_oracle_java_installed)" -eq 0 ]; then
       install_oracle_java
     fi
 
@@ -836,25 +922,50 @@ function stop_and_clear_instance_if_requested() {
 
 ## called for presentation & editorial profiles
 function set_up_search_client_nursery_conf() {
-  local dir=$common_nursery_dir/com/escenic/framework/search/solr
+  local solr_base_url=http://${search_host}:${solr_port}/solr
+  # Need to fix this hardcoded editoral search url, when we haved 
+  # machine installation profile
+  local solr_search_url=${solr_base_url}/editorial/select
+  local  dir=$common_nursery_dir/com/escenic/webservice/search
   make_dir $dir
-  echo "solrServerURI=http://${search_host}:${search_port}/solr" \
-    >>  $dir/SolrSearchEngine.properties
 
-  dir=$common_nursery_dir/com/escenic/webservice/search
-  make_dir $dir
-  echo "solrURI=http://${search_host}:${search_port}/solr/select" \
+  if [ ${fai_search_legacy-0} -eq 1 ]; then
+      solr_base_url=http://${search_host}:${search_port}/solr
+      solr_search_url=${solr_base_url}/select
+  fi
+
+  echo "solrURI=${solr_search_url}" \
     >> $dir/DelegatingSearchEngine.properties
+
+  dir=$common_nursery_dir/com/escenic/framework/search/solr
+  make_dir $dir
+  
+  # We need to get rid of this legacy search checking every
+  # time. TODO: Rename the legacy solr editorial core from collection1
+  # to editorial so that it syncs together with the new Solr 6
+  # implementation.
+  if [ ${fai_search_legacy-0} -eq 1 ]; then
+    solr_search_url=${solr_base_url}/presentation/select
+  else
+    if [ $install_profile_number -eq $PROFILE_EDITORIAL_SERVER ]; then
+      solr_search_url=${solr_base_url}/editorial/select
+    else
+      solr_search_url=${solr_base_url}/presentation/select
+    fi
+  fi
+  echo "solrServerURI=${solr_search_url}" \
+    >>  $dir/SolrSearchEngine.properties
 
   dir=$common_nursery_dir/com/escenic/lucy
   make_dir $dir
-  echo "solrURI=http://${search_host}:${search_port}/solr" \
+  echo "solrURI=http://${solr_search_url}" \
     >> $dir/LucySearchEngine.properties
 
   dir=$common_nursery_dir/com/escenic/forum/search/lucy
   make_dir $dir
-  echo "solrURI=http://${search_host}:${search_port}/solr" \
+  echo "solrURI=${solr_search_url}" \
     >> $dir/SearchEngine.properties
+
 }
 
 function set_up_content_engine_cron_jobs() {

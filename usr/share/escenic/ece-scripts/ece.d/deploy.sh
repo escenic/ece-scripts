@@ -17,7 +17,7 @@ function get_version_from_ear_file() {
   if [[ -z "$version" || "$version" == "engine" ]]; then
     version=$(date +%Y%m%d.%H%M)
   fi
-  
+
   echo $version
 }
 
@@ -55,7 +55,7 @@ EOF
     $(basename ${ear_used}) \
     ${ear_md5_sum} \
     >> $(get_deployment_log_file)
-  
+
   print_and_log "Deployment log file updated:" $(get_deployment_log_file)
 }
 
@@ -64,13 +64,20 @@ function deploy() {
 
   if [ -n "$file" ]; then
     print_and_log "Deploying $file on $instance ..."
-    
-    # wget_auth is needed for download_uri_target_to_dir
-    wget_auth=$wget_builder_auth
+
+    #Check if the file is a cached file, then will just install the file.
+    # If it is not cached and a local file then create a symlink of that file in cache directory otherwise
+    #We we wil consider it is a url and will try to download the file.
     ear=$cache_dir/$(basename $file)
     if [ -e "$ear" ] && [ $(is_archive_healthy $ear) -eq 1 ]; then
       print_and_log "If found a healthy $ear locally so I will not fetch it again."
+    elif [ -f "$file" ]; then
+      print_and_log " Found a local ear file $file"
+      log "Copying it to to $cache_dir"
+      run cp "${file}" "${cache_dir}"
     else
+      # wget_auth is needed for download_uri_target_to_dir
+      wget_auth=$wget_builder_auth
       download_uri_target_to_dir $file $cache_dir
     fi
 
@@ -80,7 +87,7 @@ function deploy() {
       exit 1
     fi
   fi
-  
+
   if [ ! -e "$ear" ]; then
     print_and_log "$ear does not exist. " \
       "Did you run '"`basename $0`" -i" $instance "assemble'?"
@@ -91,7 +98,7 @@ function deploy() {
     print_and_log "$ear is faulty, I cannot deploy it :-("
     exit 1
   fi
-  
+
   # extract EAR to a temporary area
   local dir=$(mktemp -d)
   (
@@ -101,7 +108,7 @@ function deploy() {
   )
 
   print "Deploying $ear on $appserver ..."
-  
+
   case $appserver in
     tomcat)
       # We do not want the Escenic jars to share the same classloader
@@ -122,14 +129,8 @@ function deploy() {
         print "  contrib/appserver/tomcat/catalina-sample.properties"
         exit 1
       fi
-      
-      run rm -rf $tomcat_base/work/*
 
-      for war in $dir/*.war ; do
-        if [ -d $tomcat_base/$(get_app_base $war)/$(basename $war .war) ] ; then
-          run rm -rf $tomcat_base/$(get_app_base $war)/$(basename $war .war)
-        fi
-      done
+      run rm -rf $tomcat_base/work/*
 
       # this scenario is likely when running many minimal instances of
       # tomcat and some of these are not properly initialised.
@@ -137,18 +138,33 @@ function deploy() {
         print $tomcat_base/webapps "doesn't exist, exiting."
         exit 1
       fi
-      
+
       if [ -n "$deploy_webapp_white_list" ]; then
         deploy_this_war=0
         print_and_log "Deployment white list active, only deploying: " \
           $deploy_webapp_white_list
       fi
-      
+
       for war in $dir/*.war ; do
         local app_base=$(get_app_base $war)
         local name=$(basename $war .war)
 
         local deploy_this_war=1
+        if [ -n "$publications_webapps" ]; then
+         for el in $publications_webapps; do
+           OIFS=$IFS
+           IFS=':' read publication webapps <<< "$el"
+           IFS=','
+           for webapp in $webapps; do
+              if [ "$webapp" == "$name" ]; then
+                deploy_this_war=0
+                deploy_war $tomcat_base/webapps-${publication}/$name $war
+                break
+              fi
+           done
+           IFS=$OIFS
+        done
+      fi
         if [ -n "$deploy_webapp_white_list" ]; then
           local deploy_this_war=0
 
@@ -164,16 +180,23 @@ function deploy() {
           continue
         fi
 
-        make_dir $tomcat_base/$app_base/$name
-        run cd $tomcat_base/$app_base/$name
-        run unzip -q $war < /dev/null
-
+        deploy_war $tomcat_base/$app_base/$name $war
         if [ ${enable_memcached_support-1} -eq 1 ]; then
           add_memcached_support $tomcat_base/$app_base/$name
         fi
       done
+
+      if [ $type == "search" ]; then
+        if [[ -L $tomcat_base/webapps/indexer-webapp-presentation && \
+              -d $tomcat_base/webapps/indexer-webapp-presentation ]]; then
+            print_and_log "Found $tomcat_base/webapps/indexer-webapp-presentation so deleting it"
+            run rm -rf $tomcat_base/webapps/indexer-webapp-presentation
+        fi
+        run cd $tomcat_base/webapps/
+        run ln -s indexer-webapp indexer-webapp-presentation
+      fi
       ;;
-    
+
     resin)
       if [ ! -d $resin_home/deploy ]; then
         mkdir -p $resin_home/deploy \
@@ -192,8 +215,20 @@ function deploy() {
   run rm -rf ${dir}
   update_deployment_state_and_log_files $ear
 }
+## $1: webapp directory
+## $2: war file name
+function deploy_war() {
+  local app_dir=$1
+  local war_file=$2
+  if [ -d $app_dir ] ; then
+    run rm -rf $app_dir
+  fi
+  make_dir $app_dir
+  run cd $app_dir
+  run unzip -q $war_file < /dev/null
+}
 
-## $1 : dir of the webapp 
+## $1 : dir of the webapp
 function add_memcached_support() {
   if [[ "$do_not_add_memcached_support" == "1" ]]; then
     return
@@ -244,7 +279,7 @@ function remove_unwanted_libraries() {
   elif [ $type != "search" ]; then
     return
   fi
-  
+
   log "Removing $1/engine-config-*.jar since this is a search instance"
   run rm $1/engine-config-*.jar
 }

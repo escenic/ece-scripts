@@ -176,6 +176,7 @@ function run() {
     }
   fi
 
+  debug "${FUNCNAME}()" → "$@"
   "${@}" 1>>$log 2>>$log
   exit_on_error $@
 }
@@ -310,8 +311,6 @@ function get_base_dir_from_bundle() {
         done
     fi
 
-    debug "get_base_dir_from_bundle file_name="$file_name $1
-
     echo $file_name
 }
 
@@ -374,12 +373,15 @@ function extract_archive() {
     else
       run tar xjf $1
     fi
-  elif [[ "$1" == *".zip" ]]; then
+  elif [[ "$1" == *".zip" || "$1" == *".ear" ]]; then
     if [[ -n "$2" && -d "$2" ]]; then
       run unzip -q $1 -d $2
     else
       run unzip -q $1
     fi
+  else
+    print_and_log "Don't know how to extract $1"
+    exit 1
   fi
 }
 
@@ -586,4 +588,17 @@ function common_bashing_user_cancelled_hook() {
 ## $@ :: as many strings as you like.
 function lowercase() {
   echo "$@" | tr [A-Z] [a-z]
+}
+
+### pretty_print_xml
+## Pretty prints the passed XML file
+##
+## $1 :: xml file
+function pretty_print_xml() {
+  local file=$1
+  local tmp_file=
+  tmp_file=$(mktemp)
+
+  xmllint --format "${file}" > "${tmp_file}"
+  run mv "${tmp_file}" "${file}"
 }

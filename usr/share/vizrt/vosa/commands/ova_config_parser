@@ -1,0 +1,91 @@
+# bash functions common to the vosa commands
+# specifically functions to aid parsing ova.conf files
+
+ova_config_output_directory=
+ova_config_passphrase=
+ova_config_top_user=
+ova_config_vm_memory=
+ova_config_vm_ubuntu_pass=
+ova_config_vendor="Escenic A/S"
+ova_config_vendorurl="http://www.escenic.com/"
+ova_config_agreement="You solemnly swear that you have a license agreement with Escenic, or that you are an Escenic Employee."
+ova_config_ostype=Ubuntu_64
+ova_config_cpus=2
+ova_config_engine_max_heap=512
+ova_config_engine_min_heap=256
+ova_config_search_max_heap=256
+ova_config_search_min_heap=128
+
+function ova_config_output_directory() {
+  ova_config_output_directory=$1
+}
+
+function ova_config_passphrase() {
+  ova_config_passphrase=$1
+}
+
+function ova_config_top_user() {
+  ova_config_top_user=$1
+}
+
+function ova_config_vm_memory() {
+validate_number $1 vm_memory
+if [ $1 -lt 1028 ]; then
+   echo "Value of vm_memory should be at least 1028. We found $1. Exiting ..."
+   exit 1
+fi
+  ova_config_vm_memory=$1
+}
+
+function ova_config_vm_ubuntu_pass() {
+ ova_config_vm_ubuntu_pass=$1
+}
+
+function ova_config_vendor() {
+  ova_config_vendor=${@}
+}
+
+function ova_config_vendorurl() {
+  ova_config_vendorurl=$1
+}
+
+function ova_config_agreement() {
+  ova_config_agreement=${@}
+}
+
+function ova_config_ostype() {
+  ova_config_ostype=$1
+}
+
+function ova_config_cpus() {
+  validate_number $1 cpus
+  ova_config_cpus=$1
+}
+
+function ova_config_engine_max_heap() {
+  validate_number $1 engine_max_heap
+  ova_config_engine_max_heap=$1
+}
+
+function ova_config_engine_min_heap() {
+  validate_number $1 engine_min_heap
+  ova_config_engine_min_heap=$1
+}
+
+function ova_config_search_max_heap() {
+  validate_number $1 search_max_heap
+  ova_config_search_max_heap=$1
+}
+
+function ova_config_search_min_heap() {
+  validate_number $1 search_min_heap
+  ova_config_search_min_heap=$1
+}
+
+function validate_number() {
+local regx='^[0-9]+$'
+if ! [[ $1 =~ $regx ]] ; then
+   echo "Value of $2 should be an integer. We found $1. Exiting ..."
+   exit 1
+fi
+}

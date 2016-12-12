@@ -1,0 +1,107 @@
+#+TITLE: The ece-builder Guide
+#+AUTHOR: Escenic Cloud Team
+
+* NAME
+ece-builder
+
+* SYNOPSIS
+ece-builder [[[-i builder-conf-file]]] [[[-u user-conf-file]]] [[[-a artifact-path]]] [[[-l list-of-artifacts]]]  [[[-V]]]
+
+* DESCRIPTION
+The ece-builder is a command the creates Enterprise Archive file (ear)  and configuration packages(deb,rpm)
+to install for Escenic Installation. This command creates an builder user in to the system,
+under which the basic skeleton of the builder is generated. Then for each project or customer it
+creates a separate user, under which ear and configuration packages for that project or customer is built.
+It can also add an artifact or list of artifacts to be used by all the projects or customers.
+
+** -i builder-conf-file
+Creates builder user and setup builder skeleton under it.
+
+** -u user-conf-file
+Creates customer user to build an specific project.
+
+** -a  artifact-path
+Adds an artifact to the builder.
+
+** -l list-of-artifacts
+Adds a list of artifacts to the builder.
+
+** -V
+Shows the version of ece-builder
+
+** Initialize the builder
+To initialize the builder we need to run the following command
+#+BEGIN_SRC sh
+$ ece-builder initialize
+#+END_SRC
+After running this command two configuration files builder.conf and user.conf will be
+generated under /etc/escenic directory. The builder.conf file is needed to setup the builder
+and user.conf file is used to setup customer project builder.
+
+** Setting up builder
+The first task for creating a builder is to setup the builder.
+The ece-builder script require a builder.conf file to setup builder under a user called builder.
+This configuration file is generated with the initialize command and look like following
+
+#+BEGIN_SRC sh
+technet_user=technet-user
+technet_password=technet-pass
+maven_vizrt_user=maven-user
+maven_vizrt_password=maven-pass
+
+# Unsupported plugins
+unsupported_plugin_indentifiers="inpage"
+
+# Supported Plugins
+escenic_plugin_indentifiers="forum
+geocode
+analysis-engine
+xml-editor
+menu-editor
+dashboard
+poll
+reporter
+lucy
+video
+newsroom
+vcpeditor
+online-graphics
+framework-dist
+framework-community-dist
+framework-mobile-dist
+widget-framework-core
+widget-framework-community
+widget-framework-mobile
+community-engine
+newsgate
+live-center
+section-feed
+mobile-expansion
+snapshot"
+#+END_SRC
+
+Here we need to change the credentials for technet to valid one. Also for maven_user and maven_password need to be
+changed to a valid one. Now running the following command will setup the builder.
+#+BEGIN_SRC sh
+$ ece-builder -i /etc/escenic/builder.conf
+#+END_SRC
+
+** Setup up customer project builder
+
+Once when we are done with setting up the builder. Now we can create customer project
+builder by supplying a user.conf file, which is created when the ece-builder initialize command
+was run under /etc/escenic/.
+#+BEGIN_SRC sh
+$ ece-builder -i /etc/escenic/user.conf
+#+END_SRC
+
+Running the above command will create a system user and setup the environment to build customer project
+under that user.
+
+* COPYRIGHT
+Copyright 2011-2015 Escenic
+Licensed under the Apache License, Version 2.0, see
+https://github.com/vizrt/ece-scripts/COPYING for further details.
+
+* AUTHOR
+Sk Mohd Anwarul Islam

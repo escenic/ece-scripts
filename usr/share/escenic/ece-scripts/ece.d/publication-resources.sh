@@ -10,19 +10,19 @@ function update_publication_resources() {
   fi
 
   local found=0
-  local publication_list=$(get_publication_list)
+  local publication_list=$(get_publication_list ${appserver_port-8080})
   for el in $publication_list; do
     if [[ "$publication" == "$el" ]]; then
       found=1
     fi
   done
-  
+
   if [ $found -eq 0 ]; then
     print "There is no publication called" \
       $publication "(only $publication_list)"
     exit 1
   fi
-  
+
   local url=$(get_escenic_admin_url)/publication-resources
 
   case "$(basename $resource)" in
@@ -58,16 +58,16 @@ function update_publication_resources() {
     *)
       print "Invalid resource: $(basename $resource) :-("
       exit 1
-  esac        
+  esac
 
   local tmp_dir=$(mktemp -d)
-  
+
   if [ $1 ]; then
     if [[ -z "$EDITOR" || ! -x $(which $EDITOR) ]]; then
       print "You must have a valid editor defined in your EDITOR variable"
       exit 1
     fi
-    
+
     run cd $tmp_dir;
 
     # adding auth credentials for the appserver (if set)
@@ -84,10 +84,10 @@ function update_publication_resources() {
       exit 1
     fi
   fi
-  
+
   print "Updating the $(basename $resource) resource for the $publication" \
     "publication ..."
-  
+
   log POSTing $resource to $url
   if [[ -n "$do_put" && "$do_put" == "true" ]]; then
     run curl -T ${resource} \
