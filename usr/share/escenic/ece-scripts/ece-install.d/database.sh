@@ -11,21 +11,14 @@ fi
 percona_ubuntu_gpg_key=1C4CBDCDCD2EFD2A
 mariadb_ubuntu_gpg_key=CBCB082A1BB943DB
 
-function get_ubuntu_supported_list() {
-  local url=$1
-  curl -s $url | \
-      html2 | \
-      sed -n '/\/a\/@href=[A-Za-z0-9]*\/$/s/.*=//p' | \
-      sed -n '/\/$/s/\/$//p'
+
+function get_percona_repo_url() {
+  echo  "http://repo.percona.com/apt/dists/"
 }
 
-function get_percona_supported_list() {
-  get_ubuntu_supported_list "http://repo.percona.com/apt/dists/"
-}
-
-function get_mariadb_supported_list() {
+function get_mariadb_repo_url() {
   local distributor=$(lsb_release -i -s | tr '[A-Z]' '[a-z]')
-  get_ubuntu_supported_list "http://ftp.heanet.ie/mirrors/mariadb/repo/5.5/$distributor/dists/"
+  echo "http://ftp.heanet.ie/mirrors/mariadb/repo/5.5/${distributor}/dists/"
 }
 
 function set_up_mariadb_yum_repo() {
@@ -39,7 +32,7 @@ function set_up_mariadb_yum_repo() {
       arch=x86
     fi
     if [ $distributor = "redhatenterpriseserver" ]; then
-      $distributor=rhel
+      distributor=rhel
     fi
     local yum_url=http://yum.mariadb.org/5.5/${distributor}${release}-${arch}
     cat > $maria_db_repo <<EOF
@@ -71,22 +64,28 @@ function set_up_redhat_repository_if_possible() {
 }
 
 function is_supported() {
-  local code_name=$1
-  local supported_code_name=1
-  local supported_list=""
-
-  if [ $db_vendor = "mariadb" ]; then
-    supported_list=$(get_mariadb_supported_list)
-  else
-    supported_list=$(get_percona_supported_list)
-  fi
-
-  for el in $supported_list; do
-    if [[ $code_name == $el ]]; then
-      supported_code_name=0
+    local code_name=$1
+    local supported_code_name=1
+    local repo_url=""
+    if [[ $db_vendor == "mariadb" ]]; then
+        repo_url=$(get_mariadb_repo_url)
+    else
+        repo_url=$(get_percona_repo_url)
     fi
-  done
-  return $supported_code_name
+    if [ "$(get_http_response_code "${repo_url}${code_name}/")" == "200" ]; then
+        supported_code_name=0
+    fi
+    return $supported_code_name
+}
+
+# This function will curl the repo url and follow if there is any redirect
+# Then take the last occurance of HTTP and find the status code 
+function get_http_response_code() {
+    local url=$1
+    curl -I -L -s ${url} | \
+        grep HTTP | \
+        tail -1 | \
+        cut -d ' ' -f2        
 }
 
 function add_gpg_key() {

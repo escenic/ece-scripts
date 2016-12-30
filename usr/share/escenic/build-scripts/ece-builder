@@ -606,7 +606,7 @@ function process_artifact
   fi
 
   # fetch and unpack resource
-  if [[ "${artifact_path}" == *maven.vizrt.com* ]] || [[ "$artifact_path" =~ "maven.escenic.com" ]] ; then
+  if [[ "${artifact_path}" == *maven.escenic.com* ]] || [[ "$artifact_path" =~ "maven.escenic.com" ]] ; then
     local http_user=$maven_vizrt_user
     local http_password=$maven_vizrt_password
   elif [[ "${artifact_path}" == *technet* ]]; then

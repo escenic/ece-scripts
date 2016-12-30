@@ -33,6 +33,11 @@ get_installed_packages_webservice_list() {
        -name "webservice" -type d
 }
 
+get_installed_packages_studio_list() {
+  find "${USR_SHARE_DIR}/escenic-"* -maxdepth 1 \
+       -name "studio" -type d
+}
+
 ## $1 :: tmp dir with EAR contents
 remove_webapps_that_are_included_in_installed_packages() {
   local tmp_dir=$1
@@ -317,6 +322,46 @@ merge_all_dirs_to_war() {
   done
 }
 
+## Updates studio.war with available studio plugins
+##
+## $1 : studio WAR to update
+## $2 : studio plugin directories
+merge_all_plugins_with_studio_war() {
+  local war=$1
+  local dir_list=${*:2}
+
+  if [ ! -e "${war}" ]; then
+    print_and_log "${war} doesn't exist 💀
+      (perhaps you need to install the escenic-content-engine package ?)"
+    remove_pid_and_exit_in_error
+  fi
+
+  for dir in ${dir_list}; do
+    log "Adding studio plugin in ${dir} ..."
+    local plugin_name=
+    plugin_name=$(basename $(dirname "${dir}"))
+
+    local tmp_dir=
+    tmp_dir=$(mktemp -d)
+    local plugin_dir_in_war="${tmp_dir}/studio/plugin/${plugin_name}"
+    run mkdir -p "${plugin_dir_in_war}"
+    run cp -r "${dir}"/* "${plugin_dir_in_war}"
+
+    (
+      cd "${tmp_dir}" || exit 1
+      zip -q -r -u "${war}" . || {
+        # see 'man zip' for more details
+        if [ $? -eq 12 ]; then
+          log "${war} already contained the contents of ${dir}"
+        else
+          remove_pid_and_exit_in_error
+        fi
+      }
+    )
+    rm -r "${tmp_dir}"
+  done
+}
+
 ## $1 :: tmp dir with EAR contents
 merge_all_webservice_extension_webapps() {
   local tmp_dir=$1
@@ -333,6 +378,15 @@ merge_all_webservice_webapps() {
   merge_all_dirs_to_war \
     "${war}" \
     "$(get_installed_packages_webservice_list)"
+}
+
+## $1 :: tmp dir with EAR contents
+merge_all_studio_plugins() {
+  local tmp_dir=$1
+  local war=${tmp_dir}/studio.war
+  merge_all_plugins_with_studio_war \
+    "${war}" \
+    "$(get_installed_packages_studio_list)"
 }
 
 exit_if_no_os_packages_are_installed() {
@@ -372,6 +426,7 @@ repackage() {
   overwrite_publication_webapp_libs "${tmp_dir}"
   merge_all_webservice_extension_webapps "${tmp_dir}"
   merge_all_webservice_webapps "${tmp_dir}"
+  merge_all_studio_plugins "${tmp_dir}"
 
   # The ${file} variable is used by deploy.sh::deploy()
   export file=$(

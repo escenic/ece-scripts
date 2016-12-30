@@ -273,10 +273,10 @@ function install_common_os_packages()
   # ther systems through git.
   if [ $on_debian_or_derivative -eq 1 ]; then
     if [ ${fai_offline_mode-0} -eq 0 ]; then
-      curl -s http://apt.vizrt.com/archive.key 2>> $log | \
+      curl -s http://apt.escenic.com/archive.key 2>> $log | \
         apt-key add - 1>> $log 2>> $log
       local package_pool=${fai_apt_vizrt_pool-unstable}
-      add_apt_source "deb http://apt.vizrt.com ${package_pool} main"
+      add_apt_source "deb http://apt.escenic.com ${package_pool} main"
       run apt-get update
     fi
     install_packages_if_missing escenic-common-scripts
@@ -575,7 +575,7 @@ function check_software_credentials() {
   # if the WF credentials are set, we check to see if they're OK
   if [ -n "${wf_user}" -a -n "${wf_password}" ]; then
     print_and_log "Verifying that Widget Framework credentials are OK ..."
-    local url=http://maven.vizrt.com
+    local url=http://maven.escenic.com
     local notok=$(
       is_unauthorized_to_access_url \
         ${wf_user} \

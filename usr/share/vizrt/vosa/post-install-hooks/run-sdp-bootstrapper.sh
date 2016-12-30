@@ -32,8 +32,8 @@ fi
 guest="ssh -F $2/ssh.conf root@guest"
 
 if $guest [ -d /etc/apt/sources.list.d ] ; then
-  $guest tee /etc/apt/sources.list.d/vizrt.list <<EOF
-deb http://apt.vizrt.com/ akita main non-free
+  $guest tee /etc/apt/sources.list.d/escenic.list <<EOF
+deb http://apt.escenic.com/ unstable main non-free
 EOF
 
   $guest tee /etc/apt/preferences.d/30prefer-vizrt-akita-packages <<EOF

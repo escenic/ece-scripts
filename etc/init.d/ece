@@ -79,9 +79,9 @@ function ensure_dirs_are_ok()
         fi
 
         if [[ ${el} == "/var/cache"* || ${el} == "/var/lib"* ]]; then
-            chown --changes $ece_unix_user:$ece_unix_group $el
+            chown --changes "${ece_unix_user-escenic}:${ece_unix_group-escenic}" $el
         else
-            chown --recursive --changes $ece_unix_user:$ece_unix_group $el
+            chown --recursive --changes "${ece_unix_user-escenic}:${ece_unix_group-escenic}" $el
         fi
     done
 }
@@ -100,20 +100,20 @@ function ensure_ece_script_is_ok()
 
 function execute_command()
 {
-    if [ $enable_rmi_hub -eq 1 ]; then
-        su - $ece_unix_user -c "$ece_script -t rmi-hub $1"
+    if [ "${enable_rmi_hub-0}" -eq 1 ]; then
+        su - ${ece_unix_user-escenic} -c "$ece_script -t rmi-hub $1"
     fi
 
     for el in $engine_instance_list; do
-        su - $ece_unix_user -c "$ece_script -t engine -i $el $1"
+        su - "${ece_unix_user-escenic}" -c "$ece_script -t engine -i $el $1"
     done
 
     for el in $search_instance_list; do
-        su - $ece_unix_user -c "$ece_script -t search -i $el $1"
+        su - "${ece_unix_user-escenic}" -c "$ece_script -t search -i $el $1"
     done
 
     for el in $analysis_instance_list; do
-        su - $ece_unix_user -c "$ece_script -t analysis -i $el $1"
+        su - "${ece_unix_user-escenic}" -c "$ece_script -t analysis -i $el $1"
     done
 }
 
