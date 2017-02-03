@@ -33,7 +33,7 @@ Version: $version
 Section: base
 Priority: optional
 Architecture: all
-Maintainer: Torstein Krause Johansen <tkj@vizrt.com>
+Maintainer: Torstein Krause Johansen <torstein@escenic.com>
 Description: The Escenic Content Engine of type ${type}
   for the ${instance} instance. Built on $HOSTNAME
 EOF

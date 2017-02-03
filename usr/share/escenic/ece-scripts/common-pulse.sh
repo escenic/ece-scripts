@@ -1,4 +1,4 @@
-# by tkj@vizrt.com
+# by torstein@escenic.com
 
 # depends on common-bashing
 common_bashing_is_loaded > /dev/null 2>&1 || source common-bashing.sh

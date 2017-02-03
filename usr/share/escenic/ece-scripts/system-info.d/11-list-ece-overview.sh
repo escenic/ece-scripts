@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-# by tkj@vizrt.com
+# by torstein@escenic.com
 
 ## $1 is the instance name
 function create_ece_overview() {

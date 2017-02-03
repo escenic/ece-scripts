@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-# by tkj@vizrt.com
+# by torstein@escenic.com
 
 print_h2_header "Operating system"
 

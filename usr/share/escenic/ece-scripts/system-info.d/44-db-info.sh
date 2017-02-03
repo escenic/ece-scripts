@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-# by tkj@vizrt.com
+# by torstein@escenic.com
 
 if [ "$(which mysqld 2>/dev/null)x" != "x" ]; then
   print_h2_header "DB information"

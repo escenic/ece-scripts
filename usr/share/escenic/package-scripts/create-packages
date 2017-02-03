@@ -3,13 +3,13 @@
 # script for creating DEB and RPM packages of the vosa, ece-install
 # and ece scripts.
 
-# by tkj@vizrt.com
+# by torstein@escenic.com
 
 target_dir=/tmp/$(basename $0)-$(date --iso)
 package_name=escenic-content-engine-installer
 package_version=$(date +%Y-%m-%d.%H%M%S)
 default_maintainer_name="Torstein Krause Johansen"
-default_maintainer_email=tkj@vizrt.com
+default_maintainer_email=torstein@escenic.com
 log=$HOME/.$(basename $0).log
 
 function clean_up() {

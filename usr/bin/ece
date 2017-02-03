@@ -4,7 +4,7 @@
 # the RMI hub and the indexer standalone instances. Type "ece help"
 # for a complete list of supported operations.
 #
-# echo comments and suggestions > tkj@vizrt.com
+# echo comments and suggestions > torstein@escenic.com
 
 ######################################################################
 # Needs to be here to bootstrap the ece script itself when it looks

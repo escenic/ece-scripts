@@ -936,15 +936,15 @@ function request_distribution
 {
   local dist_path=$1
   if [ ! -z $dist_path ]; then
-    distribution_exists http://maven.vizrt.com/$dist_path  
+    distribution_exists http://maven.escenic.com/$dist_path
     local ret_val=$?
     if [ $ret_val -eq 0 ]; then
-      download_distribution http://maven.vizrt.com/$dist_path
+      download_distribution http://maven.escenic.com/$dist_path
     else
-      distribution_exists http://maven.vizrt.com/unstable/$dist_path
+      distribution_exists http://maven.escenic.com/unstable/$dist_path
       local ret_val=$?
       if [ $ret_val -eq 0 ]; then
-        download_distribution http://maven.vizrt.com/unstable/$dist_path
+        download_distribution http://maven.escenic.com/unstable/$dist_path
       fi      
     fi
   fi
@@ -1011,9 +1011,9 @@ function print_unstable_distributions
       do
         local dist_path=`mvn_coordinate_to_url ${g}:${project_distributions["$f"]}`
         if [ ! -z $dist_path ]; then
-          distribution_exists http://maven.vizrt.com/$dist_path
+          distribution_exists http://maven.escenic.com/$dist_path
           if [ $? -ne 0 ]; then
-            distribution_exists http://maven.vizrt.com/unstable/$dist_path
+            distribution_exists http://maven.escenic.com/unstable/$dist_path
             if [ $? -eq 0 ]; then
               print_and_log "WARNING - $f version ${project_distributions["$f"]} is not supported!"
               local coordinate=$g
@@ -1103,10 +1103,10 @@ function verify_maven_proxy
       if [ $maven_build_offline -eq 1 ]; then
         print_and_log "Skipping maven proxy verification as you've chosen offline mode!"
       else
-        wget --http-user $maven_user --http-password $maven_password http://maven.vizrt.com -qO /dev/null
+        wget --http-user $maven_user --http-password $maven_password http://maven.escenic.com -qO /dev/null
         RETVAL=$?
         if [ $RETVAL -ne 0 ]; then
-          print_and_log "Your user can't reach http://maven.vizrt.com, exiting!"
+          print_and_log "Your user can't reach http://maven.escenic.com, exiting!"
           exit 1
         fi
       fi

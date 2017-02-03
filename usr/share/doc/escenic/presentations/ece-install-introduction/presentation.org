@@ -122,7 +122,7 @@ Yes, that's it.
 
 * 問題?
 
-- Questions to tkj@vizrt.com
+- Questions to torstein@escenic.com
 - Or ask on the SaaS mailing list: saas@lists.escenic.com
 - Or pop by the SaaS chat room: saas@conference.ardendo.se
 
