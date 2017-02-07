@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-# by tkj@vizrt.com
+# by torstein@escenic.com
 
 ### get_instance_list
 ## If the system is installed using the recommended paths, the method

@@ -1,4 +1,4 @@
-# by tkj@vizrt.com
+# by torstein@escenic.com
 function stop_type() {
   local message="Stopping the $instance instance of $type on $HOSTNAME ..."
 

@@ -6,7 +6,7 @@
 # * pid_file
 # * log
 #
-# by tkj@vizrt.com
+# by torstein@escenic.com
 
 debug=0
 
