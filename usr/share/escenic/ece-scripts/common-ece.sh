@@ -94,6 +94,7 @@ webapps_in_standard_webapps_list="
   live-center
   live-center-presentation-webservice
   revision-history
+  resolver
 "
 
 ### is_webapp_a_publication
