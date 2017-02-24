@@ -137,7 +137,7 @@ function set_up_escenic-content-engine-scripts() {
   make_dir $doc_dir
   make_dir $target_dir/usr/share/escenic/ece-scripts
   make_dir $target_dir/usr/{bin,sbin,share/doc}
-  make_dir $target_dir/{etc,usr,/etc/default}
+  make_dir $target_dir/{etc/escenic,usr,/etc/default}
 
   # bin
   local bin_list='ece ece-import'
@@ -153,9 +153,8 @@ function set_up_escenic-content-engine-scripts() {
   # conf
   run cp ../../../../etc/bash_completion.d/{ece,ece-import,ece-deploy} \
     $target_dir/etc/bash_completion.d
-  # we don't include /etc/default/ece as this file often is also
-  # included in the conf packages.
-  # run cp -r ../../../../etc/default/ece $target_dir/etc/default/
+  run cp -r ../../../../etc/default/ece $target_dir/etc/default/
+  run cp -r ../../../../etc/escenic/ece.conf $target_dir/etc/escenic/
   run cp -r ../../../../etc/init.d/ece $target_dir/etc/init.d/
 
   # doc

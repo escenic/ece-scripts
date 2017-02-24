@@ -55,7 +55,7 @@ function get_id() {
 ## $@ :: as many strings as you want
 function debug() {
   if [ $debug -eq 1 ]; then
-    echo "[$(basename $0)-debug]" "$@"
+    echo "[${0##*/}-debug]" "$@"
   fi
 }
 
