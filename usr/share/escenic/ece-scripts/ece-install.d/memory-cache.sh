@@ -17,7 +17,7 @@ function install_memory_cache()
 }
 
 function memcached_set_up_common_nursery() {
-  local dir=$common_nursery_dir/com/whalin/
+  local dir=$common_nursery_dir/com/whalin
   make_dir $dir
   cat > $dir/SockIOPool.properties <<EOF
 \$class=com.whalin.MemCached.SockIOPool
