@@ -276,10 +276,12 @@ function remove_unwanted_libraries() {
     return
   elif [ ! -d $1 ]; then
     return
-  elif [ $type != "search" ]; then
-    return
+  elif [[ $type == "search" ]]; then
+    log "Removing $1/engine-config-*.jar since this is a search instance"
+    run rm $1/engine-config-*.jar
+    log "Removing global lucene JARs  (/solr has them)"
+    run rm $1/lucene-*.jar
+    log "Removing global solr JARs (/solr has them)"
+    run rm $1/solr-*.jar
   fi
-
-  log "Removing $1/engine-config-*.jar since this is a search instance"
-  run rm $1/engine-config-*.jar
 }
