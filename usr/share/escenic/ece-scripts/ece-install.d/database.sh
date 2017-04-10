@@ -8,7 +8,7 @@ if [[ $(uname -m) != "x86_64" ]]; then
   percona_rpm_release_url=http://www.percona.com/downloads/percona-release/$percona_rpm_release_package_name.i386.rpm
 fi
 
-percona_ubuntu_gpg_key=1C4CBDCDCD2EFD2A
+percona_ubuntu_gpg_key=9334A25F8507EFA5
 mariadb_ubuntu_gpg_key=CBCB082A1BB943DB
 
 
@@ -21,37 +21,10 @@ function get_mariadb_repo_url() {
   echo "http://ftp.heanet.ie/mirrors/mariadb/repo/5.5/${distributor}/dists/"
 }
 
-function set_up_mariadb_yum_repo() {
-  local maria_db_repo=/etc/yum.repos.d/mariadb.repo
-  if [ ! -e $maria_db_repo ]; then
-    print_and_log "Setting up the MariaDB repository ..."
-    local distributor=$(lsb_release -i -s | tr '[A-Z]' '[a-z]')
-    local release=$(lsb_release -r -s | sed -e 's/\([0-9]*\).*/\1/')
-    local arch=amd64
-    if [[ $(uname -m) != "x86_64" ]]; then
-      arch=x86
-    fi
-    if [ $distributor = "redhatenterpriseserver" ]; then
-      distributor=rhel
-    fi
-    local yum_url=http://yum.mariadb.org/5.5/${distributor}${release}-${arch}
-    cat > $maria_db_repo <<EOF
-# Created by $(basename $0) @ $(date)
-# http://downloads.mariadb.org/mariadb/repositories/
-[mariadb]
-name = MariaDB
-baseurl = ${yum_url}
-gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
-gpgcheck=1
-EOF
-  fi
-}
-
-function set_up_redhat_repository_if_possible() {
+function set_up_redhat_mariadb_repository_if_necessary() {
   if [ $db_vendor = "mariadb" ]; then
-    set_up_mariadb_yum_repo
-    mysql_server_packages="MariaDB-server"
-    mysql_client_packages="MariaDB-client"
+    mysql_server_packages="mariadb-server"
+    mysql_client_packages="mariadb"
   else
     print_and_log "Setting up the Percona repository ..."
 
@@ -146,22 +119,23 @@ function set_up_repository_if_possible() {
       run rm /var/lib/mysql/debian-*.flag
     fi
 
-    if is_supported $code_name; then
+    # mariadb is now (2017-03-15) in offical repos in both Ubuntu and
+    # Debian - and pretty much everwhere else.
+    if [[ "${db_vendor}" == "mariadb" ]]; then
+      mysql_server_packages="mariadb-server"
+      mysql_client_packages="mariadb-client"
+      leave_trail "trail_db_vendor=mariadb"
+
+    elif is_supported $code_name; then
       add_gpg_key
 
-      if [ $db_vendor = "mariadb" ]; then
-        local distributor=$(lsb_release -i -s | tr '[A-Z]' '[a-z]')
-        add_apt_source "deb http://ftp.heanet.ie/mirrors/mariadb/repo/5.5/$distributor ${code_name} main"
-        mysql_server_packages="mariadb-server"
-        mysql_client_packages="mariadb-client"
-        leave_trail "trail_db_vendor=mariadb"
-      else
+      if [[ $db_vendor == "percona" ]]; then
         add_apt_source "deb http://repo.percona.com/apt ${code_name} main"
         mysql_server_packages="percona-server-server"
         mysql_client_packages="percona-server-client"
         leave_trail "trail_db_vendor=percona"
       fi
-      pin
+
       if ! apt-cache > /dev/null show $mysql_server_packages; then
         print_and_log "Setting Up the $db_vendor Repository ..."
         run apt-get update
@@ -178,7 +152,7 @@ function set_up_repository_if_possible() {
       leave_trail "trail_db_vendor=mysql"
     fi
   elif [ $on_redhat_or_derivative -eq 1 ]; then
-    set_up_redhat_repository_if_possible
+    set_up_redhat_mariadb_repository_if_necessary
   fi
 }
 
@@ -189,12 +163,10 @@ function install_mysql_server_software() {
     install_packages_if_missing $mysql_server_packages
     force_packages=0
 
-    if [ $on_redhat_or_derivative -eq 1 ]; then
-      run chkconfig --level 35 mysql on
-      run /etc/init.d/mysql restart
+    if [ $on_debian_or_derivative -eq 1 ]; then
+      assert_commands_available mysqld
     fi
 
-    assert_commands_available mysqld
   else
     # when only running the SQL scripts, typically when using Amazon
     # RDS, we need the mysql-client.
@@ -219,11 +191,14 @@ function install_database_server() {
     force_packages=0
 
     if [ $on_redhat_or_derivative -eq 1 ]; then
-      run chkconfig --level 35 mysql on
-      run /etc/init.d/mysql restart
+      if [[ "${db_vendor}" == mariadb ]]; then
+        run systemctl enable mariadb
+        run systemctl start mariadb
+      fi
+    else
+      assert_commands_available mysqld
     fi
 
-    assert_commands_available mysqld
   else
     # when only running the SQL scripts, typically when using Amazon
     # RDS, we need the mysql-client.
@@ -503,7 +478,6 @@ db_user=ece5user
 db_password=ece5password
 db_schema=ece5db
 db_host=localhost
-ece_home=/opt/escenic/engine
 db_product=mysql
 
 # oracle specific settings
@@ -571,20 +545,20 @@ EOF
 }
 
 function check_mysql_is_running(){
-if [[ $(netstat -nlp | grep -w mysqld | wc -l) -gt 0 ]]; then
-   return 0
-else
-   return 1
-fi
+  netstat -nlp | grep -q -c -w mysqld
 }
 
 function create_schema() {
-    # we first create the DB (or, if drop_db_first is 1, we've just
-    # dropped it above) before running the SQL scripts.
+    # we first create the DB or, if drop_db_first is 1, we've just
+    # dropped it above before running the SQL scripts.
   if [ $db_product = "mysql" ]; then
-     if ! $(check_mysql_is_running) ; then
- 	run service mysql start	
-     fi
+    if ! $(check_mysql_is_running) ; then
+      if [[ "${db_vendor}" == mariadb ]]; then
+ 	run service mariadb start
+      else
+ 	run service mysql start
+      fi
+    fi
     print_and_log "Creating DB $db_schema on $HOSTNAME ..."
     mysql -h $db_host << EOF
 create database $db_schema character set utf8 collate utf8_general_ci;
@@ -638,9 +612,13 @@ function create_ecedb() {
   fi
 
   # first the ECE SQL ...
-  run_db_scripts $ece_home/database/$db_product
+  run_db_scripts $(get_content_engine_dir)/database/$db_product
+  _run_db_scripts_for_installed_plugins
 
-  # ... then, find the plugins and run their SQL scripts
+  log "${id} ${db_product}://${db_host}/${db_schema} is now ready for ${db_user}/${db_password}"
+}
+
+function _run_db_scripts_for_installed_plugins_pre_ece6() {
   for archive in $technet_download_list $ear_download_list; do
     # don't re-run the engine scripts
     if [[ $(basename ${archive}) == engine* ]]; then
@@ -663,8 +641,25 @@ function create_ecedb() {
     fi
     run_db_scripts ${escenic_root_dir}/${archive_sql_dir}
   done
+}
 
-  log "${id} ${db_product}://${db_host}/${db_schema} is now ready for ${db_user}/${db_password}"
+function _run_db_scripts_for_installed_plugins_post_ece6() {
+  find /usr/share -maxdepth 2 -name "escenic-*" -type d |
+    while read dir; do
+      local plugin_db_sql_dir=${dir}/misc/database/${db_product}
+      if [ ! -d "${plugin_db_sql_dir}" ]; then
+        continue
+      fi
+      run_db_scripts "${plugin_db_sql_dir}"
+    done
+}
+
+function _run_db_scripts_for_installed_plugins() {
+  if is_installing_post_ece6; then
+    _run_db_scripts_for_installed_plugins_post_ece6
+  else
+    _run_db_scripts_for_installed_plugins_pre_ece6
+  fi
 }
 
 ## will run the EAE scripts if they are availabe.

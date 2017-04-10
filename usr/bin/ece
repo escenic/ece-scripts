@@ -29,7 +29,7 @@ everything_but_the_kitchen_sink=0
 ######################################################################
 ece_scripts_version="straight-from-github"
 type=engine
-instance=default
+instance=engine1
 command=""
 backup_exclude_binaries=0
 backup_exclude_conf=0
@@ -152,6 +152,7 @@ function read_conf_file() {
 ## If the system is installed using the recommended paths, the method
 ## will return a list of the instances configured in
 ## ${escenic_conf_dir}/ece-*.conf
+export root_allowed_list_instances=1
 function get_instance_list() {
     local allowed_types="engine analysis changelogd search rmi-hub"
     instance_list=""
@@ -292,7 +293,7 @@ function set_instance_settings() {
     # We respect ece_server if it's set in any of the configuration
     # files. If it's not set there, it sets some sensible defaults.
     if [ -z "$ece_server" ]; then
-        if [ "$instance" == "default" ]; then
+        if [ "$instance" == "engine1" ]; then
             ece_server=${HOSTNAME}
         else
             ece_server=${HOSTNAME}-${instance}
@@ -319,6 +320,7 @@ function set_instance_settings() {
     #   when running in production.
     ece_args="
       -Descenic.server=$ece_server
+      -Dcom.escenic.instance=$instance
       -Djava.awt.headless=true
       -Djava.security.auth.login.config=$ece_security_configuration_dir/jaas.config
       -Djava.security.policy=$ece_security_configuration_dir/java.policy
@@ -348,10 +350,6 @@ function set_instance_settings() {
 
     if [ "$jvm_connection_settings" ]; then
       ece_args=$ece_args" "$jvm_connection_settings
-    fi
-
-    if [ "$instance" != "default" ]; then
-        ece_args=$ece_args" -Dcom.escenic.instance=$instance"
     fi
 
     if [ -n "$ece_environment" ]; then
@@ -459,9 +457,28 @@ function set_instance_settings() {
 
 function sanity_check() {
     if [ "$(whoami)" == "root" ]; then
-        print "Sorry, you cannot be root when running $(basename $0)"
-        print "The root user can only use /etc/init.d/ece"
-        exit 1
+        local next_is_ok=0
+        for subcommand in ${command}; do
+            # ignore options, i.e. things starting with a hyphen.
+            if [[ "${subcommand}" =~ ^-.* ]]; then
+              # Allow values to options, must use this since not
+              # everything is using getopt (yet)
+              next_is_ok=1
+              continue
+            fi
+
+            if [ ${next_is_ok-0} -eq 1 ]; then
+              next_is_ok=0
+              continue
+            fi
+
+            declare | grep -q -w root_allowed_${subcommand//-/_} || {
+              print "Sorry, you cannot be root when running " \
+                    "'${BASH_SOURCE[0]##*/} ${subcommand}'." \
+                    "root can only use /etc/init.d/ece"
+              exit 1
+            }
+        done
     fi
 
     if [ "$(echo $command)" == "list-instances" ]; then
@@ -477,21 +494,6 @@ function sanity_check() {
     fi
 
     local instance_list=$(get_instance_list)
-    # checks if the user is using the default instance when he/she
-    # really wants to start one of the instances installed on the
-    # system.
-    if [ "$instance" == "default" -a \
-        "$type" == "engine" -a \
-        $(echo $command | egrep 'help' | wc -l) -eq 0 ]; then
-        if [[ -n "$instance_list" && \
-            $(echo $instance_list | grep ' ' | wc -l) -gt 0 ]]; then
-            print "You must specify the instance with -i <instance>"
-            print "e.g. ece -i $(echo $instance_list | cut -d' ' -f1) $command"
-            print "Instances available on $HOSTNAME: $instance_list"
-            exit 1
-        fi
-    fi
-
     local instance_exists=0
     for el in $instance_list; do
       if [ $el == $instance ]; then
@@ -692,20 +694,24 @@ function set_type_command_and_instance() {
         fi
 
         # the only thing left at this point, is the command
-        command="$command $el"
+        if [ -n "${command}" ]; then
+          command="$command $el"
+        else
+          command=${el}
+        fi
     done
 
     # If the user didn't specify which instance to use and if there's
     # only one available instance, use that instead of asking the user
     # to provide it in sanity_check.
-    if [ "$instance" == "default" ]; then
+    if [ "$instance" == "engine1" ]; then
         debug "Trying to determine instance name"
         local instance_list=$(get_instance_list)
 
         if [ $(echo $instance_list | grep ' ' | wc -l) -eq 0 ]; then
             instance=$instance_list
             if [ -z "$instance" ] ; then
-              instance=default
+              instance=engine1
             fi
             debug "setting instance=$instance as there's only one"
         fi
@@ -713,11 +719,7 @@ function set_type_command_and_instance() {
 }
 
 function set_id() {
-    if [ "$instance" == "default" ]; then
-        id="["$(basename $0)"#${type}]"
-    else
-        id="["$(basename $0)"#${type}-${instance}]"
-    fi
+    id="["$(basename $0)"#${type}-${instance}]"
 
     debug type is $type \
         and command is $command \
@@ -768,6 +770,7 @@ function get_escenic_admin_url() {
     echo ${url}
 }
 
+export root_allowed_list_publications=1
 function show_all_publications() {
   set_type_port
   print "These are all the publications on ${instance}:"
@@ -775,13 +778,27 @@ function show_all_publications() {
 }
 
 function show_all_deployments() {
-  print "These are all the publications on ${instance}:"
+  print "These are all the deployments on ${instance}:"
   cat $(get_deployment_log)
+}
+
+## $1 :: command
+## $..n :: the rest of the arguments passed to /usr/bin/ece
+function lookup_and_execute_dynamic_command_if_found() {
+  local command=$1
+  local requested_cmd=cmd_${command//-/_}
+  local actual_cmd=
+  actual_cmd=$(declare -F | grep -w "${requested_cmd}" | cut -d' ' -f3)
+  if [ -n "${actual_cmd}" ]; then
+    shift 1
+    "${actual_cmd}" "$@"
+    exit 0
+  fi
 }
 
 init
 read_rc_file_if_present
-set_type_command_and_instance $@
+set_type_command_and_instance "$@"
 set_id
 set_common_settings
 set_type_settings
@@ -872,6 +889,7 @@ for el in $command; do
             print_help
             ;;
         *)
+            lookup_and_execute_dynamic_command_if_found "${el}" "$@"
             print "Invalid command: '$el' :-("
             print "Try 'ece help' to get a list of all commands available."
             exit 1

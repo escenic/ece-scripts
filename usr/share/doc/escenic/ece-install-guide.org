@@ -212,7 +212,6 @@ For example:
 #+BEGIN_SRC conf
 technet_user=<user>
 technet_password=<password>
-fai_enabled=1
 fai_<profile>_install=1
 fai_server_java_version=1.7
 #+END_SRC
@@ -451,7 +450,6 @@ on different hosts.
 
 First create the master database using these *ece-install.conf* settings:
 #+BEGIN_SRC conf
-fai_enabled=1
 fai_db_install=1
 fai_db_master=1
 fai_db_replication=1
@@ -471,7 +469,6 @@ database:
 On the slave database host you can then use these values in your
 *ece-install.conf* file as follows:
 #+BEGIN_SRC conf
-fai_enabled=1
 fai_db_install=1
 fai_db_replication=1
 fai_db_master=0
@@ -640,7 +637,6 @@ to specify what you want to restore are:
 So to restore everything in a specified backup file, you would need
 something like this in your *ece-install.conf* file:
 #+BEGIN_SRC conf
-fai_enabled=1
 fai_restore_from_backup=1
 fai_restore_all=1
 fai_restore_from_file=/var/backups/escenic/backup-2011-10-10.tar
@@ -712,7 +708,6 @@ mount under */mnt*.
 The following example shows the ece-install.conf settings required to
 mount the Escenic multimedia archive on the NFS server:
 #+BEGIN_SRC conf
-fai_enabled=1
 fai_nfs_client_install=1
 fai_nfs_server_address=192.168.1.200
 fai_nfs_export_list="/var/exports/multimedia"
@@ -753,7 +748,6 @@ Both providers are configured to expose the NFS service on the VIP
 
 #+BEGIN_SRC conf
 # install the NFS server
-fai_enabled=1
 fai_nfs_server_install=1
 fai_nfs_export_list="/var/exports/multimedia"
 fai_nfs_allowed_client_network="192.168.1.0/255.255.255.0"
@@ -1344,7 +1338,6 @@ To automatically install an editorial server and create a publication
 called "jollygood", run *ece-install* with the following settings:
 
 #+BEGIN_SRC conf
-fai_enabled=1
 fai_editor_install=1
 fai_publication_create=1
 fai_publication_name=jollygood
@@ -1354,14 +1347,12 @@ fai_publication_name=jollygood
 To install two presentation servers called *engine1* and
 *engine2* on the same host,  first run *ece-install* with the following settings:
 #+BEGIN_SRC conf
-fai_enabled=1
 fai_presentation_install=1
 fai_presentation_name=engine1
 #+END_SRC
 
 Then run it a second time with the following settings:
 #+BEGIN_SRC conf
-fai_enabled=1
 fai_presentation_install=1
 fai_presentation_name=engine2
 fai_presentation_port=8081
@@ -1725,7 +1716,10 @@ user was prompted for all the choices on what to install (most of
 which he/she could just hit ENTER to complete). Once this the
 interactive command was shown to customers and Escenic employees, the
 need for a fully automatic version became apparent and *ece-install*
-got the *fai_enabled* parameter to make the switch.
+got the *fai_enabled* parameter to make the switch. After the a number
+of years, we saw however, that pretty much everyone ran *ece-install*
+in its fully automatic mode, so in March 2017, we removed the
+interactive mode, making the *fai_enabled* parameter obsolete.
 
 For this reason, the *ece-install.conf* options which have a *fai_*
 prefix only applies when running *ece-install* in non-interactive

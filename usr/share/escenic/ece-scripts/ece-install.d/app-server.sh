@@ -3,58 +3,56 @@ function set_up_jdbc_library() {
   if [ -n "$jdbc_driver" -a -e "$jdbc_driver" ]; then
     make_ln $jdbc_driver
   elif [ $db_vendor = "mariadb" ]; then
-    print_and_log "Downloading MariaDB jdbc driver."
+    local mariadb_jdbc_url=https://downloads.mariadb.org/f/mariadb-java-client-1.1.0/mariadb-java-client-1.1.0.jar
+    print_and_log "Downloading MariaDB jdbc driver ${mariadb_jdbc_url}"
+    local mariadb_jdbc_jar=${mariadb_jdbc_url##*/}
     download_uri_target_to_dir \
-        https://downloads.mariadb.org/f/mariadb-java-client-1.1.0/mariadb-java-client-1.1.0.jar/from/http:/ftp.heanet.ie/mirrors/mariadb \
-        .
-    mv mariadb mariadb-java-client-1.1.0.jar
+      "${mariadb_jdbc_url}" \
+      "${download_dir}" \
+      "${mariadb_jdbc_jar}"
+    run cp "${download_dir}/${mariadb_jdbc_jar}" "${tomcat_base}/lib"
   else
     make_ln /usr/share/java/mysql-connector-java.jar      
   fi
 }
 
+function set_apr_lib_dir_in_ece_instance_conf_if_needed() {
+  find /usr/lib* -maxdepth 3 -name libtcnative-1.so.0 |
+    while read -r apr_lib; do
+      set_ece_instance_conf apr_lib_dir "${apr_lib%/*}"
+    done
+}
+
 function set_up_app_server() {
   print_and_log "Setting up the application server ..."
 
-  if [ $fai_enabled -eq 0 ]; then
-    print "On which ports do you wish to run the app server on?"
-    print "Press ENTER to accept the default ports"
-    print "or enter: <port> <shutdown port> <redirect port>:"
-    echo -n "Your choice [${default_app_server_port} ${default_app_server_shutdown} ${default_app_server_redirect}]> "
-    read user_ports
-
-    if [ -n "$user_ports" ]; then
-      read appserver_port shutdown_port redirect_port <<< $user_ports
-    fi
-  else
-    if [ $install_profile_number -eq $PROFILE_EDITORIAL_SERVER ]; then
-      appserver_port=${fai_editor_port-${default_app_server_port}}
-      shutdown_port=${fai_editor_shutdown-${default_app_server_shutdown}}
-      redirect_port=${fai_editor_redirect-${default_app_server_redirect}}
-      leave_trail "trail_editor_host=${HOSTNAME}"
-      leave_trail "trail_editor_port=${fai_editor_port-${default_app_server_port}}"
-    elif [ $install_profile_number -eq $PROFILE_PRESENTATION_SERVER ]; then
-      appserver_port=${fai_presentation_port-${default_app_server_port}}
-      shutdown_port=${fai_presentation_shutdown-${default_app_server_shutdown}}
-      redirect_port=${fai_presentation_redirect-${default_app_server_redirect}}
-      leave_trail "trail_presentation_host=${HOSTNAME}"
-      leave_trail "trail_presentation_port=${fai_presentation_port-${default_app_server_port}}"
-    elif [ $install_profile_number -eq $PROFILE_SEARCH_SERVER ]; then
-      appserver_port=${fai_search_port-${default_app_server_port}}
-      shutdown_port=${fai_search_shutdown-${default_app_server_shutdown}}
-      redirect_port=${fai_search_redirect-${default_app_server_redirect}}
-      leave_trail "trail_search_host=${HOSTNAME}"
-      leave_trail "trail_search_port=${fai_search_port-${default_app_server_port}}"
-    elif [ $install_profile_number -eq $PROFILE_ANALYSIS_SERVER ]; then
-      appserver_port=${fai_analysis_port-${default_app_server_port}}
-      shutdown_port=${fai_analysis_shutdown-${default_app_server_shutdown}}
-      redirect_port=${fai_analysis_redirect-${default_app_server_redirect}}
-      leave_trail "trail_analysis_host=${HOSTNAME}"
-      leave_trail "trail_analysis_port=${fai_analysis_port-${default_app_server_port}}"
-    elif [ $install_profile_number -eq $PROFILE_ALL_IN_ONE ]; then
-      leave_trail "trail_all_port=${default_app_server_port}"
-      leave_trail "trail_all_shutdown=${default_app_server_shutdown}"
-    fi
+  if [ $install_profile_number -eq $PROFILE_EDITORIAL_SERVER ]; then
+    appserver_port=${fai_editor_port-${default_app_server_port}}
+    shutdown_port=${fai_editor_shutdown-${default_app_server_shutdown}}
+    redirect_port=${fai_editor_redirect-${default_app_server_redirect}}
+    leave_trail "trail_editor_host=${HOSTNAME}"
+    leave_trail "trail_editor_port=${fai_editor_port-${default_app_server_port}}"
+  elif [ $install_profile_number -eq $PROFILE_PRESENTATION_SERVER ]; then
+    appserver_port=${fai_presentation_port-${default_app_server_port}}
+    shutdown_port=${fai_presentation_shutdown-${default_app_server_shutdown}}
+    redirect_port=${fai_presentation_redirect-${default_app_server_redirect}}
+    leave_trail "trail_presentation_host=${HOSTNAME}"
+    leave_trail "trail_presentation_port=${fai_presentation_port-${default_app_server_port}}"
+  elif [ $install_profile_number -eq $PROFILE_SEARCH_SERVER ]; then
+    appserver_port=${fai_search_port-${default_app_server_port}}
+    shutdown_port=${fai_search_shutdown-${default_app_server_shutdown}}
+    redirect_port=${fai_search_redirect-${default_app_server_redirect}}
+    leave_trail "trail_search_host=${HOSTNAME}"
+    leave_trail "trail_search_port=${fai_search_port-${default_app_server_port}}"
+  elif [ $install_profile_number -eq $PROFILE_ANALYSIS_SERVER ]; then
+    appserver_port=${fai_analysis_port-${default_app_server_port}}
+    shutdown_port=${fai_analysis_shutdown-${default_app_server_shutdown}}
+    redirect_port=${fai_analysis_redirect-${default_app_server_redirect}}
+    leave_trail "trail_analysis_host=${HOSTNAME}"
+    leave_trail "trail_analysis_port=${fai_analysis_port-${default_app_server_port}}"
+  elif [ $install_profile_number -eq $PROFILE_ALL_IN_ONE ]; then
+    leave_trail "trail_all_port=${default_app_server_port}"
+    leave_trail "trail_all_shutdown=${default_app_server_shutdown}"
   fi
 
   if [ -z "$appserver_port" ]; then
@@ -67,32 +65,10 @@ function set_up_app_server() {
     redirect_port=${default_app_server_redirect}
   fi
 
-  if [ $fai_enabled -eq 0 ]; then
-    print "Another question: Where does the database run?"
-    print "Press ENTER to accept the default " \
-      "($HOSTNAME:${default_db_port}:${default_db_schema})"
-    print "Or enter: <host>:<port>:<schema>, e.g.: 'db1:${default_db_port}:mydb'"
-    echo -n "Your choice [$HOSTNAME:${default_db_port}:${default_db_schema}]> "
-    read user_database
-
-    db_host=$(echo $user_database | cut -d':' -f1)
-    db_port=$(echo $user_database | cut -d':' -f2)
-    db_schema=$(echo $user_database | cut -d':' -f3)
-  else
-    set_db_settings_from_fai_conf
-  fi
-
+  set_db_settings_from_fai_conf
   set_db_defaults_if_not_set
 
-  if [ $fai_enabled -eq 0 ]; then
-    print "Awfully sorry to bug you with so many questions, but:"
-    print "What's the URI to the indexer-webservice? (this is typically"
-    print "something like http://editor1/indexer-webservice/index/)"
-    echo -n "Your choice [http://${HOSTNAME}:${default_app_server_port}/indexer-webservice/index/]> "
-    read user_indexer_ws_uri
-  else
-    user_indexer_ws_uri=${fai_search_indexer_ws_uri}
-  fi
+  user_indexer_ws_uri=${fai_search_indexer_ws_uri}
 
   if [ -n "$user_indexer_ws_uri" ]; then
     indexer_ws_uri=$user_indexer_ws_uri
@@ -100,15 +76,7 @@ function set_up_app_server() {
     indexer_ws_uri=http://${HOSTNAME}:${appserver_port}/indexer-webservice/index/
   fi
 
-  if [ $fai_enabled -eq 0 ]; then
-    print "Really sorry to bug you again with a similar question:"
-    print "What's the URI to the indexer-webservice for presentation search? (this is typically"
-    print "something like http://editor1/indexer-webservice/presentation-index/)"
-    echo -n "Your choice [http://${HOSTNAME}:${default_app_server_port}/indexer-webservice/presentation-index/]> "
-    read user_presentation_indexer_ws_uri
-  else
-    user_presentation_indexer_ws_uri=${fai_presentation_search_indexer_ws_uri}
-  fi
+  user_presentation_indexer_ws_uri=${fai_presentation_search_indexer_ws_uri}
 
   if [ -n "$user_presentation_indexer_ws_uri" ]; then
     presentation_indexer_ws_uri=$user_presentation_indexer_ws_uri
@@ -118,27 +86,9 @@ function set_up_app_server() {
 
   leave_trail "trail_presentation_indexer_ws_uri=${presentation_indexer_ws_uri}"
 
-  if [ $fai_enabled -eq 0 ]; then
-    print "Last question, I promise!: Where does the search instance run?"
-    print "Press ENTER to accept the default ($HOSTNAME:${default_app_server_port})"
-    print "or enter: <host>:<port>, e.g.: 'search1:${default_app_server_port}'"
-    print "If you're in doubt, just press ENTER :-)"
-    echo -n "Your choice [$HOSTNAME:${default_app_server_port}]> "
-    read user_search
-
-    if [ -z "$user_search" ]; then
-      search_host=$HOSTNAME
-      search_port=${default_app_server_port}
-    else
-      search_host=$(echo $user_search | cut -d':' -f1)
-      search_port=$(echo $user_search | cut -d':' -f2)
-    fi
-
-  else
-    search_host=${fai_search_host-$HOSTNAME}
-    search_port=${fai_search_port-$default_app_server_port}
-    solr_port=${fai_solr_port-8983}
-  fi
+  search_host=${fai_search_host-$HOSTNAME}
+  search_port=${fai_search_port-$default_app_server_port}
+  solr_port=${fai_solr_port-8983}
 
   download_tomcat $download_dir
   local tomcat_archive=$(
@@ -161,10 +111,8 @@ function set_up_app_server() {
 
   if [ ! -d $tomcat_base ] ; then
     make_dir $tomcat_base
-    run cp -r ${appserver_parent_dir}/${tomcat_dir}/conf $tomcat_base
-  elif [ -d $tomcat_base/conf ]; then 
-    run cp -nr ${appserver_parent_dir}/${tomcat_dir}/conf/* $tomcat_base/conf/
   fi
+  run cp -rn ${appserver_parent_dir}/${tomcat_dir}/conf ${tomcat_base}/.
 
   for el in bin escenic/lib lib work logs temp webapps; do
     make_dir $tomcat_base/$el
@@ -175,6 +123,7 @@ function set_up_app_server() {
   set_ece_instance_conf appserver_port $appserver_port
   set_appropriate_jvm_heap_sizes
   set_http_auth_credentials_if_needed
+  set_apr_lib_dir_in_ece_instance_conf_if_needed
 
   run cd $tomcat_base/lib
 
@@ -365,8 +314,7 @@ EOF
 EOF
   if [[ ($install_profile_number == $PROFILE_EDITORIAL_SERVER || \
     $install_profile_number == $PROFILE_PRESENTATION_SERVER || \
-    $install_profile_number == $PROFILE_ALL_IN_ONE) && \
-    -n "$fai_publication_domain_mapping_list" ]]; then
+    $install_profile_number == $PROFILE_ALL_IN_ONE) ]]; then
     cat >> $tomcat_base/conf/server.xml <<EOF
         </Engine>
   </Service>
@@ -388,56 +336,6 @@ EOF
              digest="md5"
              resourceName="UserDatabase"/>
 EOF
-    for el in ${fai_publication_domain_mapping_list}; do
-      local old_ifs=$IFS
-      # the entries in the fai_publication_domain_mapping_list are on
-      # the form: <publication[,pub.war]>#<domain>[#<alias1>[,<alias2>]]
-      IFS='#'
-      read publication domain aliases <<< "$el"
-      IFS=','
-      read publication_name publication_war <<< "$publication"
-      IFS=$old_ifs
-
-      # normally the WAR is called the same as the publication, in
-      # which case we set the publication_war to the same as the
-      # publication_name.
-      if [ -z "${publication_war}" ]; then
-        publication_war=$publication_name
-      fi
-
-      ensure_domain_is_known_to_local_host ${domain}
-
-      local file=$tomcat_base/conf/server.xml
-
-      # We are using the WAR and not the publication as the base for
-      # the appBase and docBase variables here to make it possible for
-      # 'ece deploy' to figure out the same location for deploying the
-      # WARs. As 'ece deploy' doesn't have any concept of which
-      # publication the WARs belong to, we must use a scheme were it's
-      # the WAR file name which determines the webapp context.
-      cat >> $file <<EOF
-      <Host
-        name="${domain}"
-        appBase="$(get_app_base $publication_war)"
-        autoDeploy="false">
-EOF
-
-      # add the host aliases (if available)
-      for ele in $(split_string ',' $aliases); do
-        cat >> $file <<EOF
-        <Alias>$ele</Alias>
-EOF
-      done
-
-      cat >> $file <<EOF
-        <Context displayName="${domain}"
-                 docBase="$(basename ${publication_war} .war)"
-                 path=""
-        />
-      </Host>
-EOF
-      leave_trail "trail_virtual_host_${publication_name}=${domain}:${appserver_port}"
-    done
   fi
 
   cat >> $tomcat_base/conf/server.xml <<EOF

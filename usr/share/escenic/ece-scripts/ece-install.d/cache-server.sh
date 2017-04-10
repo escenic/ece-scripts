@@ -1,67 +1,9 @@
+# -*- mode: sh; sh-shell: bash; -*-
+
 # ece-install module for installing the cache server
 
-varnish_redhat_rpm_url=http://repo.varnish-cache.org/redhat/varnish-3.0/el5/noarch/varnish-release-3.0-1.noarch.rpm
-
-function get_supported_varnish_dist_list() {
-  # list taken from http://repo.varnish-cache.org/debian/dists/, which
-  # is the same as http://repo.varnish-cache.org/ubuntu/dists/
-  curl --connect-timeout 5 \
-    --silent http://repo.varnish-cache.org/ubuntu/dists/ | \
-    grep href | \
-    cut -d'"' -f8- | \
-    grep ^[a-z] | \
-    cut -d'/' -f1
-}
-
 function install_varnish_software() {
-  if [ $on_debian_or_derivative -eq 1 ]; then
-
-    if [ $(apt-key list | grep varnish-software.com | wc -l) -eq 0 ]; then
-      curl ${curl_opts} \
-        http://repo.varnish-cache.org/debian/GPG-key.txt \
-        2>> $log | \
-        apt-key add - \
-        1>>$log 2>>$log
-      run apt-get update
-    fi
-
-    local code_name=$(lsb_release -s -c)
-    local supported_code_name=0
-    local supported_list="$(get_supported_varnish_dist_list)"
-    for el in $supported_list; do
-      if [ $code_name = $el ]; then
-        supported_code_name=1
-      fi
-    done
-
-    local dist_name=$(lsb_release -i -s | tr [A-Z] [a-z])
-    if [ $supported_code_name -eq 1 ]; then
-      add_apt_source "deb http://repo.varnish-cache.org/${dist_name}/ ${code_name} varnish-3.0"
-    elif [ $supported_code_name -eq 1 ]; then
-      add_apt_source "deb http://repo.varnish-cache.org/${dist_name}/ ${code_name} varnish-3.0"
-    else
-      print_and_log "Your distribution ${code_name} isn't supported" \
-        "by the Varnish repositories. I'll use version Varnish from your" \
-        "distribution's repositories instead"
-    fi
-
-  elif [[ $on_redhat_or_derivative -eq 1 &&
-        $(rpm -qa | grep varnish-release | wc -l) -lt 1 ]]; then
-    print "Installing the Varnish repository RPM"
-    run rpm --nosignature -i $varnish_redhat_rpm_url
-  fi
-
-  if [[ ${code_name} == "precise" ]]; then
-    # currently, 2012-10-09, the precise packages are not signed by
-    # the Varnish key.
-    local old_force_packages=${force_packages-0}
-    force_packages=1
-    install_packages_if_missing varnish
-    force_packages=${old_force_packages}
-  else
-    install_packages_if_missing varnish
-  fi
-
+  install_packages_if_missing varnish
   assert_commands_available varnishd
 }
 
@@ -70,19 +12,8 @@ function install_cache_server() {
 
   install_varnish_software
 
-  if [ $fai_enabled -eq 0 ]; then
-    print "You must now list your backend servers."
-    print "These must be host names (not IPs) and must all be resolvable"
-    print "by your cache host ($HOSTNAME), preferably from /etc/hosts"
-    print "Seperate the entries with a space. e.g.: app1:8080 app2:8080."
-    print "Press ENTER to accept the default: ${HOSTNAME}:${appserver_port}"
-    echo -n "Your choice [${HOSTNAME}:${appserver_port}]> "
-    read backend_servers
-    cache_port=$default_cache_port
-  else
-    backend_servers=(${fai_cache_backends})
-    cache_port=${fai_cache_port-$default_cache_port}
-  fi
+  backend_servers=(${fai_cache_backends})
+  cache_port=${fai_cache_port-$default_cache_port}
 
   if [ -z "$backend_servers" ]; then
     backend_servers=("localhost:${appserver_port}")
@@ -98,11 +29,28 @@ function set_varnish_port() {
   log "Setting Varnish to listen on port" ${cache_port} "..."
 
   local file=/etc/default/varnish
+
   if [ $on_redhat_or_derivative -eq 1 ]; then
-    file=/etc/sysconfig/varnish
+    # Varnish RedHat package has migrated from /etc/sysconfig/varnish
+    file=/etc/varnish/varnish.params
+  else
+    # Debian/Ubuntu now (15.04+) insists on configuring this in a
+    # systemd fragment:
+    local file=/etc/systemd/system/varnish.service.d/custom-exec.conf
+    mkdir -p "${file%/*}"
+    cat > "${file}" << 'EOF'
+    [Service]
+ExecStart=
+ExecStart=/usr/sbin/varnishd \
+  -a :80 \
+  -T localhost:6082 \
+  -f /etc/varnish/default.vcl \
+  -S /etc/varnish/secret \
+  -s malloc,256m
+EOF
   fi
 
-  run sed -i -e "s/6081/${cache_port}/g" -e 's/^START=no$/START=yes/' $file
+  run sed -i -e "s/6081/${cache_port}/g" "${file}"
 }
 
 function create_varnish_conf_main() {
@@ -113,6 +61,8 @@ function create_varnish_conf_main() {
  *
  * The order of the VCL file inclusion is significant.
  */
+vcl 4.0;
+
 include "host-specific.vcl";
 include "backends.vcl";
 include "access-control.vcl";
@@ -143,7 +93,10 @@ EOF
 function create_varnish_conf_backends() {
 
   local file=${varnish_conf_dir}/backends.vcl
-  echo > $file
+  cat > "${file}" <<EOF
+import directors;
+
+EOF
 
   # first, define the ECE and EAE backends
   for (( i=0 ; i < ${#backend_servers[@]}; i++ )); do
@@ -161,8 +114,8 @@ backend ${appserver_id}${i} {
 
 EOF
   done
-print_and_log "Found anaysis engine host : $fai_analysis_host"
   if [ -n "${fai_analysis_host}" ]; then
+    print_and_log "Found anaysis engine host : $fai_analysis_host"
     cat >> $file <<EOF
 backend analysis {
   .host = "${fai_analysis_host}";
@@ -173,32 +126,30 @@ backend analysis {
 EOF
   fi
 
-  # define a load balacner with session binding
-  cat >> $file <<EOF
-/* The client director gives us session stickiness based on client
- * IP. */
-director webdirector client {
+  # define a load balancer with session binding
+  cat >> "${file}" <<EOF
+/* Session stickiness based on client IP. */
+sub vcl_init {
+  new hash_director = directors.hash();
 EOF
 
   for (( i=0 ; i < ${#backend_servers[@]}; i++ )); do
 	  appserver_id=$(echo ${backend_servers[$i]} | cut -d':' -f1 | sed 's/-/_/g')
     cat >> $file <<EOF
-  {
-     .backend = ${appserver_id}${i};
-     .weight = 1;
-  }
+  hash_director.add_backend(${appserver_id}${i}, 1);
 EOF
   done
 
-  # make use of the backends
-  cat >> $file <<EOF
+  # first, end the vcl_init, then make use of the backends
+  cat >> "${file}" <<EOF
 }
+
 sub vcl_recv {
   /* This is the default backend */
-  set req.backend = webdirector;
+  set req.backend_hint = hash_director.backend(client.identity);
 
   if (req.url == "/.well-known/backend-health.txt") {
-    error 200 "OK";
+    return (synth(200, "OK"));
   }
 
 EOF
@@ -206,13 +157,15 @@ EOF
   if [ -n "${fai_analysis_host}" ]; then
     cat >> $file <<EOF
   if (req.url ~ "^/analysis-logger/Logger" || req.url == "/analysis-logger/") {
-    set req.backend = analysis;
+    set req.backend_hint = analysis;
     return(pass);
   }
 EOF
   fi
 
-  echo "}" >> $file
+  cat >> "${file}" <<EOF
+}
+EOF
 }
 
 function create_varnish_conf_access_control() {
@@ -232,7 +185,7 @@ sub vcl_recv {
        req.url ~ "^/webservice/" ||
        req.url ~ "^/webservice-extensions/" ||
        req.url ~ "^/escenic-admin/")) {
-    error 405 "Not allowed.";
+    return (synth(405, "Not allowed."));
   }
 }
 EOF
@@ -290,108 +243,108 @@ sub vcl_recv {
  * through the use of buckets. Hence, we must remove all headers that
  * backend software (such as Mobiletech) may use to determine the
  * client and by that deliver web content. */
-sub vcl_miss {
-  remove bereq.http.accept-charset;
-  remove bereq.http.accept-encoding;
-  remove bereq.http.accept-language;
-  remove bereq.http.accept-ranges;
-  remove bereq.http.accounting-session-id;
-  remove bereq.http.apn;
-  remove bereq.http.authorization;
-  remove bereq.http.bearer-type;
-  remove bereq.http.cache-control;
-  remove bereq.http.charging-characteristics;
-  remove bereq.http.clientip;
-  remove bereq.http.client-ip;
-  remove bereq.http.connection;
-  remove bereq.http.content-disposition;
-  remove bereq.http.content-length;
-  remove bereq.http.content-range;
-  remove bereq.http.content-type;
-  remove bereq.http.cookie;
-  remove bereq.http.cookie2;
-  remove bereq.http.cuda_cliip;
-  remove bereq.http.date;
-  remove bereq.http.device-stock-ua;
-  remove bereq.http.dnt;
-  remove bereq.http.drm-version;
-  remove bereq.http.etag;
-  remove bereq.http.expires;
-  remove bereq.http.from;
-  remove bereq.http.if-modified-since;
-  remove bereq.http.if-none-match;
-  remove bereq.http.if-range;
-  remove bereq.http.ip-address;
-  remove bereq.http.last-modified;
-  remove bereq.http.location;
-  remove bereq.http.msisdn;
-  remove bereq.http.mt-proxy-id;
-  remove bereq.http.nas-ip-address;
-  remove bereq.http.origin;
-  remove bereq.http.pnp;
-  remove bereq.http.pragma;
-  remove bereq.http.proxy-connection;
-  remove bereq.http.range;
-  remove bereq.http.server;
-  remove bereq.http.set-cookie;
-  remove bereq.http.sgsn-ip-address;
-  remove bereq.http.transfer-encoding;
-  remove bereq.http.ua-cpu;
-  remove bereq.http.unless-modified-since;
-  remove bereq.http.vary;
-  remove bereq.http.via;
-  remove bereq.http.wap-connection;
-  remove bereq.http.x-amz-cf-id;
-  remove bereq.http.x-att-deviceid;
-  remove bereq.http.x-bluecoat-via;
-  remove bereq.http.x-cnection;
-  remove bereq.http.x-country-code;
-  remove bereq.http.x-d-forwarder;
-  remove bereq.http.x-ebo-ua;
-  remove bereq.http.x-ee-brand-id;
-  remove bereq.http.x-ee-client-ip;
-  remove bereq.http.x-flash-version;
-  remove bereq.http.x-forwarded-port;
-  remove bereq.http.x-forwarded-proto;
-  remove bereq.http.x-imforwards;
-  remove bereq.http.x-mcproxyfilter;
-  remove bereq.http.x-mobile-gateway;
-  remove bereq.http.x-network-type;
-  remove bereq.http.x-nokia-bearer;
-  remove bereq.http.x-nokiabrowser-features;
-  remove bereq.http.x-nokia-device-type;
-  remove bereq.http.x-nokia-ipaddress;
-  remove bereq.http.x-nokia-musicshop-bearer;
-  remove bereq.http.x-nokia-musicshop-version;
-  remove bereq.http.x-nokia-upgradeid;
-  remove bereq.http.x-ob;
-  remove bereq.http.x-online-host;
-  remove bereq.http.x-opera-id;
-  remove bereq.http.x-opera-info;
-  remove bereq.http.x-operamini-features;
-  remove bereq.http.x-operamini-phone;
-  remove bereq.http.x-operamini-route;
-  remove bereq.http.x-operator-domain;
-  remove bereq.http.x-orange-rat;
-  remove bereq.http.x-orange-roaming;
-  remove bereq.http.x-p2p-peerdist;
-  remove bereq.http.x-p2p-peerdistex;
-  remove bereq.http.x-piper-id;
-  remove bereq.http.x-powered-by;
-  remove bereq.http.x-proxy-id;
-  remove bereq.http.x-proxyuser-ip;
-  remove bereq.http.x-purpose;
-  remove bereq.http.x-rbt-optimized-by;
-  remove bereq.http.x-requested-with;
-  remove bereq.http.x-ucbrowser-phone;
-  remove bereq.http.x-ucbrowser-phone-ua;
-  remove bereq.http.x-ucbrowser-ua;
-  remove bereq.http.x-up-calling-line-id;
-  remove bereq.http.x-up_devcap-screendepth;
-  remove bereq.http.x-view-mode;
-  remove bereq.http.x-wap-network-client-msisdn;
-  remove bereq.http.x-wap-profile;
-  remove bereq.http.x-wap-profile-diff;
+sub vcl_pipe {
+  unset bereq.http.accept-charset;
+  unset bereq.http.accept-encoding;
+  unset bereq.http.accept-language;
+  unset bereq.http.accept-ranges;
+  unset bereq.http.accounting-session-id;
+  unset bereq.http.apn;
+  unset bereq.http.authorization;
+  unset bereq.http.bearer-type;
+  unset bereq.http.cache-control;
+  unset bereq.http.charging-characteristics;
+  unset bereq.http.clientip;
+  unset bereq.http.client-ip;
+  unset bereq.http.connection;
+  unset bereq.http.content-disposition;
+  unset bereq.http.content-length;
+  unset bereq.http.content-range;
+  unset bereq.http.content-type;
+  unset bereq.http.cookie;
+  unset bereq.http.cookie2;
+  unset bereq.http.cuda_cliip;
+  unset bereq.http.date;
+  unset bereq.http.device-stock-ua;
+  unset bereq.http.dnt;
+  unset bereq.http.drm-version;
+  unset bereq.http.etag;
+  unset bereq.http.expires;
+  unset bereq.http.from;
+  unset bereq.http.if-modified-since;
+  unset bereq.http.if-none-match;
+  unset bereq.http.if-range;
+  unset bereq.http.ip-address;
+  unset bereq.http.last-modified;
+  unset bereq.http.location;
+  unset bereq.http.msisdn;
+  unset bereq.http.mt-proxy-id;
+  unset bereq.http.nas-ip-address;
+  unset bereq.http.origin;
+  unset bereq.http.pnp;
+  unset bereq.http.pragma;
+  unset bereq.http.proxy-connection;
+  unset bereq.http.range;
+  unset bereq.http.server;
+  unset bereq.http.set-cookie;
+  unset bereq.http.sgsn-ip-address;
+  unset bereq.http.transfer-encoding;
+  unset bereq.http.ua-cpu;
+  unset bereq.http.unless-modified-since;
+  unset bereq.http.vary;
+  unset bereq.http.via;
+  unset bereq.http.wap-connection;
+  unset bereq.http.x-amz-cf-id;
+  unset bereq.http.x-att-deviceid;
+  unset bereq.http.x-bluecoat-via;
+  unset bereq.http.x-cnection;
+  unset bereq.http.x-country-code;
+  unset bereq.http.x-d-forwarder;
+  unset bereq.http.x-ebo-ua;
+  unset bereq.http.x-ee-brand-id;
+  unset bereq.http.x-ee-client-ip;
+  unset bereq.http.x-flash-version;
+  unset bereq.http.x-forwarded-port;
+  unset bereq.http.x-forwarded-proto;
+  unset bereq.http.x-imforwards;
+  unset bereq.http.x-mcproxyfilter;
+  unset bereq.http.x-mobile-gateway;
+  unset bereq.http.x-network-type;
+  unset bereq.http.x-nokia-bearer;
+  unset bereq.http.x-nokiabrowser-features;
+  unset bereq.http.x-nokia-device-type;
+  unset bereq.http.x-nokia-ipaddress;
+  unset bereq.http.x-nokia-musicshop-bearer;
+  unset bereq.http.x-nokia-musicshop-version;
+  unset bereq.http.x-nokia-upgradeid;
+  unset bereq.http.x-ob;
+  unset bereq.http.x-online-host;
+  unset bereq.http.x-opera-id;
+  unset bereq.http.x-opera-info;
+  unset bereq.http.x-operamini-features;
+  unset bereq.http.x-operamini-phone;
+  unset bereq.http.x-operamini-route;
+  unset bereq.http.x-operator-domain;
+  unset bereq.http.x-orange-rat;
+  unset bereq.http.x-orange-roaming;
+  unset bereq.http.x-p2p-peerdist;
+  unset bereq.http.x-p2p-peerdistex;
+  unset bereq.http.x-piper-id;
+  unset bereq.http.x-powered-by;
+  unset bereq.http.x-proxy-id;
+  unset bereq.http.x-proxyuser-ip;
+  unset bereq.http.x-purpose;
+  unset bereq.http.x-rbt-optimized-by;
+  unset bereq.http.x-requested-with;
+  unset bereq.http.x-ucbrowser-phone;
+  unset bereq.http.x-ucbrowser-phone-ua;
+  unset bereq.http.x-ucbrowser-ua;
+  unset bereq.http.x-up-calling-line-id;
+  unset bereq.http.x-up_devcap-screendepth;
+  unset bereq.http.x-view-mode;
+  unset bereq.http.x-wap-network-client-msisdn;
+  unset bereq.http.x-wap-profile;
+  unset bereq.http.x-wap-profile-diff;
 }
 EOF
 }
@@ -411,55 +364,13 @@ EOF
 function create_varnish_conf_serve_stale_content() {
   local file=${varnish_conf_dir}/serve-stale-content.vcl
   cat > $file <<EOF
-backend unhealthy {
-  .host = "127.0.0.1";
-  .port = "1";
-  .probe = {
-    .url = "/fake.html";
-    .interval = 600s;
-    .timeout = 0.1s;
-    .window = 1;
-    .threshold = 1;
-    .initial = 1;
-  }
-}
-
-sub vcl_recv {
-  /* We accept up to this old data, if backends for some reason
-   * don't deliver (fresh) content, typically when they're down */
-  set req.grace = 2h;
-
-  if (req.http.unhealthy && req.http.unhealthy == "true" ) {
-    set req.backend = unhealthy;
-  }
-}
-
-sub vcl_fetch {
+sub vcl_backend_response {
   /* Store objects 1 hour after they are due to be purged for
    * grace-purposes (this means that we've got 1 hour to serve stale
    * content in case of failing backends).
-  */
+   */
   if (beresp.status == 200) {
     set beresp.grace = 1h;
-  }
-  else if (beresp.status == 503) {
-    /* For this URL, don't ask the backend again for this amount of
-     * time. */
-    set beresp.saintmode = 60s;
-    return(restart);
-  }
-}
-
-sub vcl_error {
-  /* If we're serving a 503 and haven't restarted (this means the
-   * backend is down, 503 is the typical Varnish 'guru meditation',
-   * try to invoke grace mode. We do this by setting the backend to be
-   * the unhealthy, phony packend. This will never work, so Varnish
-   * will invoke grace mode, i.e. serve stale/old content from the
-   * previous status=200 for that URL.  */
-  if (obj.status == 503 && req.restarts == 0) {
-    set req.http.unhealthy = "true";
-    return(restart);
   }
 }
 EOF
@@ -468,7 +379,7 @@ EOF
 function create_varnish_conf_compression() {
   local file=${varnish_conf_dir}/compression.vcl
   cat > $file <<EOF
-sub vcl_fetch {
+sub vcl_backend_response {
   if (beresp.http.content-type ~ "^text/" || 
       beresp.http.content-type == "application/javascript") {
     set beresp.do_gzip = true;
@@ -483,16 +394,16 @@ function create_varnish_conf_robots_on_beta() {
 sub vcl_recv {
   if (req.http.host ~ "^beta\." && req.url == "/robots.txt") {
     set req.http.marker-robots = "true";
-    error 200 "OK";
+    return (synth(200, "OK"));
   }
 }
 
-sub vcl_error {
-  if (obj.status == 200 && req.http.marker-robots == "true") {
-    remove req.http.marker-robots;
-    synthetic {"User-Agent: *
+sub vcl_synth {
+  if (resp.status == 200 && req.http.marker-robots == "true") {
+    unset resp.http.marker-robots;
+    synthetic({"User-Agent: *
 Disallow /
-"};
+"});
     return(deliver);
   }
 }
@@ -503,7 +414,7 @@ function create_varnish_conf_cookie_cleaner() {
   local file=${varnish_conf_dir}/cookie-cleaner.vcl
   cat > $file <<EOF
 sub vcl_recv {
-  /* remove all cookies, except the poll cookie see
+  /* unset all cookies, except the poll cookie see
    * https://www.varnish-cache.org/trac/wiki/VCLExampleRemovingSomeCookies#RemovingallBUTsomecookies */
   if (req.http.Cookie) {
     set req.http.Cookie = ";" + req.http.Cookie;
@@ -513,14 +424,14 @@ sub vcl_recv {
     set req.http.Cookie = regsuball(req.http.Cookie, "^[; ]+|[; ]+$", "");
 
     if (req.http.Cookie == "") {
-      remove req.http.Cookie;
+      unset req.http.Cookie;
     }
   }
 }
 
-sub vcl_fetch {
+sub vcl_backend_response {
   if (beresp.status == 200) {
-    remove beresp.http.Set-Cookie;
+    unset beresp.http.Set-Cookie;
   }
 }
 EOF
@@ -529,7 +440,7 @@ EOF
 function create_varnish_conf_caching_policies() {
   local file=${varnish_conf_dir}/caching-policies.vcl
   cat > $file <<EOF
-sub vcl_fetch {
+sub vcl_backend_response {
   /*   Cache everything for 2 minutes. */
   if (beresp.status == 200) {
     set beresp.ttl = 2m;
@@ -537,8 +448,8 @@ sub vcl_fetch {
 
   /* Remove cookies from these resource types and cache them for a
    * long time */
-  if (req.url ~ "\.(png|gif|jpg|css|js)$" || beresp.http.content-type ~ "^image/" ||
-      req.url == "/favicon.ico" && beresp.status == 200) {
+  if (bereq.url ~ "\.(png|gif|jpg|css|js)$" || beresp.http.content-type ~ "^image/" ||
+      bereq.url == "/favicon.ico" && beresp.status == 200) {
     set beresp.ttl = 5h;
   }
 }
@@ -588,10 +499,12 @@ function get_from_domain() {
 
 function create_varnish_conf_redirects() {
   local file=${varnish_conf_dir}/redirects.vcl
-  echo "" > $file
+  echo "" > "${file}"
 
   if [ -n "${fai_publication_domain_mapping_list}" ]; then
-    echo "sub vcl_recv {" > $file
+    cat > "${file}" <<EOF
+sub vcl_recv {
+EOF
 
     for el in $fai_publication_domain_mapping_list; do
       local old_ifs=$IFS
@@ -599,22 +512,23 @@ function create_varnish_conf_redirects() {
       read publication publication_domain publication_aliases <<< "$el"
       IFS=$old_ifs
 
-      local from_domain=$(get_from_domain $publication_domain)
+      local from_domain=
+      from_domain=$(get_from_domain "${publication_domain}")
 
       cat >> $file <<EOF
   if (req.http.host == "${from_domain}") {
-    error 301 "Moved Temporarily";
+    return (synth(301, "Moved Permanently"));
   }
 EOF
     done
 
-    cat >> $file <<EOF
+    cat >> "${file}" <<EOF
 }
 
-sub vcl_error {
+sub vcl_synth {
   /* We want both web sites to be identified by one URL, hence we make
    * an HTTP re-direct here. See vcl_recv for how these 301 error
-   * directives.
+   * directives are initiated.
    */
 EOF
     for el in $fai_publication_domain_mapping_list; do
@@ -623,17 +537,19 @@ EOF
       read publication publication_domain publication_aliases <<< "$el"
       IFS=$old_ifs
 
-      local from_domain=$(get_from_domain $publication_domain)
+      local from_domain=
+      from_domain=$(get_from_domain "${publication_domain}")
 
-      cat >> $file <<EOF
-  if (obj.status == 301 && req.http.host == "${from_domain}") {
-    set obj.http.Location = "http://${publication_domain}" + req.url;
+      cat >> "${file}" <<EOF
+  if (resp.status == 301 &&
+      req.http.host == "${from_domain}") {
+    set resp.http.Location = req.proto + "://${publication_domain}" + req.url;
     return (deliver);
   }
 EOF
     done
 
-    echo "}" >> $file
+    echo "}" >> "${file}"
   fi
 }
 
@@ -650,8 +566,12 @@ sub vcl_deliver {
   else if (resp.status == 200) {
     set resp.http.X-Cache = "MISS";
   }
-  set resp.http.X-Cache-Backend = req.backend;
 }
+
+sub vcl_backend_response {
+  set beresp.http.X-Cache-Backend = beresp.backend.name;
+}
+
 EOF
 }
 
@@ -682,10 +602,12 @@ function create_varnish_conf() {
 
 function set_up_varnish() {
   print_and_log "Setting up Varnish to match your environment ..."
-  run /etc/init.d/varnish stop
+  run service varnish stop
   set_varnish_port
   create_varnish_conf
-  run /etc/init.d/varnish start
+
+  run systemctl enable varnish
+  run systemctl start varnish
 }
 
 function leave_cache_trails() {

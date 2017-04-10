@@ -48,11 +48,13 @@ function multicore_solr_setup_pre_ece6(){
       run rm -r $a_tmp_dir
     else
       print_and_log "Installing default Solr conf shipped with ECE ..."
-      run cp -r $escenic_root_dir/engine/solr/conf $escenic_conf_dir/solr
+      local engine_dir=
+      engine_dir=$(get_content_engine_dir)
+      run cp -r ${engine_dir}/solr/conf $escenic_conf_dir/solr
       
       # ECE 5.6 has one additional configuration file!
-      if [ -e $escenic_root_dir/engine/solr/solr.xml ]; then
-        run cp -r $escenic_root_dir/engine/solr/solr.xml $escenic_conf_dir/. 
+      if [ -e ${engine_dir}/solr/solr.xml ]; then
+        run cp -r ${engine_dir}/solr/solr.xml $escenic_conf_dir/.
       fi
     fi
   else
@@ -161,7 +163,7 @@ function setup_solr_init_d_script() {
 }
 
 function start_solr() {
-  run /etc/init.d/solr start
+  run /etc/init.d/solr restart
 }
 
 function set_up_solr() {
@@ -173,6 +175,7 @@ function set_up_solr() {
   "
 
   print_and_log "Setting up Solr ..."
+  install_packages_if_missing lsof
   download_and_install_solr
   create_global_solr_configuration
   setup_solr_init_d_script
@@ -205,7 +208,7 @@ function set_up_solr() {
       print_and_log "Installing default Solr conf shipped with ECE ..."
 
       for solr_core in ${solr_core_list}; do
-        run cp -r "$escenic_root_dir/engine/solr/conf" "$escenic_conf_dir/solr/${solr_core}"
+        run cp -r "$(get_content_engine_dir)/solr/conf" "$escenic_conf_dir/solr/${solr_core}"
       done
     fi
   else

@@ -1,3 +1,5 @@
+# -*- mode: sh; sh-shell: bash; -*-
+
 # ece-install module for installing the memory cache
 
 function install_memory_cache()
@@ -6,7 +8,7 @@ function install_memory_cache()
 
   install_packages_if_missing "memcached"
   if [ $on_redhat_or_derivative -eq 1 ]; then
-    run /etc/init.d/memcached restart
+    run service memcached restart
   fi
   
   assert_commands_available memcached
@@ -17,10 +19,10 @@ function install_memory_cache()
 }
 
 function memcached_set_up_common_nursery() {
-  local dir=$common_nursery_dir/com/danga
+  local dir=$common_nursery_dir/com/whalin
   make_dir $dir
   cat > $dir/SockIOPool.properties <<EOF
-\$class=com.danga.MemCached.SockIOPool
+\$class=com.whalin.MemCached.SockIOPool
 # fill in memcached servers here.
 servers=${fai_memcached_node_list-localhost:11211}
 
@@ -41,6 +43,6 @@ EOF
   cat >> $common_nursery_dir/Initial.properties <<EOF
 
 # using memcached, added by $(basename $0) @ $(date --iso)
-service.0.0-memcached-socket-pool=/com/danga/SockIOPool
+service.0.0-memcached-socket-pool=/com/whalin/SockIOPool
 EOF
 }

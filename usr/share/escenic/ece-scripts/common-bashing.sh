@@ -602,3 +602,16 @@ function pretty_print_xml() {
   xmllint --format "${file}" > "${tmp_file}"
   run mv "${tmp_file}" "${file}"
 }
+
+## Lookup XPath in XML file.
+##
+## $1 :: XML file
+## $2 :: XPATH xpression
+lookup_in_xml_file() {
+  local file=$1
+  local xpath=$2
+
+  # xmllint doesn't work too well with namespaces
+  sed 's#xmlns=".*"##' "${file}" | \
+    xmllint --xpath "${xpath}" -
+}

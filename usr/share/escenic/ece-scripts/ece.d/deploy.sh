@@ -1,3 +1,5 @@
+# Emacs: -*- mode: sh; sh-shell: bash; -*-
+
 # Module for the 'ece deploy' command.
 
 function get_state_file() {
@@ -59,6 +61,226 @@ EOF
   print_and_log "Deployment log file updated:" $(get_deployment_log_file)
 }
 
+## Finds the ECE webapps directory with webservice.war++
+##
+## If there are more than one ECE package installed, the latest is
+## picked. This, however, will (probably) never happens since the ECE
+## packages have conflict markers in place to prevent having multiple
+## ECE installed (which will be a problem since they all contain some
+## of the same files, especially in /etc/escenic).
+function _find_ece_webapps_dir() {
+  find -L /usr/share/escenic/escenic-content-engine-* \
+       -maxdepth 1 \
+       -name webapps \
+       -type d |
+    tail -n 1
+}
+
+function _create_engine_bootstrap_jar_in_dir() {
+  local dir=$1
+  local tmp_dir=
+  tmp_dir=$(mktemp -d)
+  local -a layers=(
+    family
+    vosa
+    common
+    host
+    addon
+    default
+    instance
+    server
+    environment
+  )
+
+  local bootstrap_dir="${tmp_dir}/com/escenic/configuration/bootstrap"
+  local layers_dir="${bootstrap_dir}/layers"
+  for layer in "${layers[@]}"; do
+    local layer_dir="${layers_dir}/${layer}"
+    mkdir -p "${layer_dir}"
+    cat > "${layer_dir}/Layer.properties" <<'EOF'
+$class=neo.nursery.PropertyFileConfigurator
+depot=./Files
+EOF
+  done
+
+  cat > "${layers_dir}/family/Files.properties" <<'EOF'
+# The family configuration is read from the file system hierarchy standard for configuration
+$class=neo.nursery.FileSystemDepot
+
+# The files are loaded from a subdirectory of /etc/escenic/engine/host
+# either from the system property "com.escenic.config.engine.family"
+# or the family name "default" if that system property is null
+fileSystemRoot = /etc/escenic/engine/family/${com.escenic.config.engine.family "default"}
+EOF
+  cat > "${layers_dir}/vosa/Files.properties" <<'EOF'
+$class=neo.nursery.FileSystemDepot
+fileSystemRoot = /etc/escenic/engine/vosa/
+EOF
+  cat > "${layers_dir}/common/Files.properties" <<'EOF'
+# The common configuration is read from the file system hierarchy standard location for configuration files
+$class=neo.nursery.FileSystemDepot
+fileSystemRoot = /etc/escenic/engine/common/
+
+EOF
+  cat > "${layers_dir}/host/Files.properties" <<'EOF'
+# The host configuration is read from the file system hierarchy standard for configuration
+$class=neo.nursery.FileSystemDepot
+
+# The files are loaded from a subdirectory of /etc/escenic/engine/host
+#   * the system property "hostname" if specified
+#   * the environment variable "HOSTNAME" or "COMPUTERNAME"
+#   otherwise the default value of "localhost"
+fileSystemRoot = /etc/escenic/engine/host/${hostname env:HOSTNAME env:COMPUTERNAME "localhost"}/
+EOF
+
+  cat > "${layers_dir}/addon/Files.properties" <<'EOF'
+# The addon configuration is read from the classpath with no prefix
+$class=neo.nursery.ResourceDepot
+EOF
+  cat > "${layers_dir}/default/Files.properties" <<'EOF'
+# The Escenic default configuration is read from the classpath with a prefix of com/escenic/configuration/default
+$class=neo.nursery.ResourceDepot
+prefix=com/escenic/configuration/default
+EOF
+  cat > "${layers_dir}/instance/Files.properties" <<'EOF'
+$class=neo.nursery.FileSystemDepot
+fileSystemRoot = /etc/escenic/engine/instance/${com.escenic.instance "default"}
+EOF
+  cat > "${layers_dir}/server/Files.properties" <<'EOF'
+# The host configuration is read from the file system hierarchy
+# standard for configuration
+$class=neo.nursery.FileSystemDepot
+
+# The files are loaded from a subdirectory of /etc/escenic/engine/host-instance
+# named after the hostname and instance name it's running as.
+fileSystemRoot = /etc/escenic/engine/server/${escenic.server "default"}/
+
+EOF
+  cat > "${layers_dir}/environment/Files.properties" <<'EOF'
+$class=neo.nursery.FileSystemDepot
+fileSystemRoot = /etc/escenic/engine/environment/${com.escenic.environment "unknown"}/
+EOF
+
+  cat > "${bootstrap_dir}/Nursery.properties" <<'EOF'
+########################################################
+# Site Wide Nursery configuration file.
+########################################################
+# The purpose of this file is to set up the nursery,
+# and all of the other configuration layers that are
+# to be used by this configuration.
+#
+# This Nursery component will bootstrap the Nursery.
+#
+# Therefore, it is vital that all files needed to
+# configure the nursery are available in _this_
+# configuration layer.
+#
+# Only after loading the Nursery component, will the
+# other configuration layers be visible to any other
+# Nursery component.
+#
+# After bootstrapping itself, it will  turn bootstrap
+# the rest of Escenic.
+#
+# It is possible to do System property substitution
+# in all configuration layers, even this configuration
+# layer:
+#   someProperty=${some.system.property}
+# will expand to the value of the system property
+# called "some.system.property".
+#
+# Note: There is only one nursery per Java process.
+########################################################
+
+$class=neo.nursery.Bootstrapper
+
+########################################################
+# CONFIGURATION LAYERS
+########################################################
+# Each referenced component must have its own
+# properties file; they _must_ reside in this
+# configuration layer.
+#
+# Content Engine ships with three default layers
+# layer.01 = /layers/default/Layer
+# layer.02 = /layers/addon/Layer
+# layer.03 = /layers/common/Layer
+########################################################
+
+# ECE :: default layer
+layer.01 = /layers/default/Layer
+
+# ECE :: plugins layer
+layer.02 = /layers/addon/Layer
+
+# VOSA :: common VOSA/SaaS layer
+layer.03 = /layers/vosa/Layer
+
+# Customer :: common layer
+layer.04 = /layers/common/Layer
+
+# Customer :: family/group layer (e.g. presentation, editorial)
+layer.05 = /layers/family/Layer
+
+# Customer :: environment layer (e.g. testing, staging, production)
+layer.06 = /layers/environment/Layer
+
+# Customer :: host specific layer
+layer.07 = /layers/host/Layer
+
+# Customer :: instance specific layer
+layer.08 = /layers/instance/Layer
+
+# Customer :: "escenic.server" specific layer
+layer.09 = /layers/server/Layer
+EOF
+
+  jar cf "${dir}/engine-bootstrap-config.jar" -C "${tmp_dir}" .
+  rm -r "${tmp_dir}"
+}
+
+## Assumes the variable ear is set (with the EAR to be deployed).
+##
+## If the file in 'ear' doesn't exist, the method will create a
+## default EAR.
+##
+## Finally, the method will update the ear global variable with that
+## of the newly created EAR.
+function _if_no_ear_try_to_create_a_default_one() {
+  if [ -e "${ear}" ]; then
+    return
+  fi
+
+  local ece_webapps_dir=
+  ece_webapps_dir=$(_find_ece_webapps_dir)
+
+  if [ ! -d "${ece_webapps_dir}" ]; then
+    return
+  fi
+
+  print_and_log "${ear} doesn't exist, will create a default,
+    minimal EAR based on ${ece_webapps_dir//\/webapps}"
+  local tmp_dir=
+  tmp_dir=$(mktemp -d)
+  mkdir -p "${tmp_dir}"/{jar,ear/lib}
+
+  # lib
+  run cp "${ece_webapps_dir}/../lib/"*.jar "${tmp_dir}/ear/lib"
+
+  # war
+  if [ "${type}" == engine ]; then
+    _create_engine_bootstrap_jar_in_dir "${tmp_dir}/ear/lib"
+  fi
+  run cp "${ece_webapps_dir}/"*.war "${tmp_dir}"/ear
+
+  local ear_fn=
+  ear_fn="${cache_dir}/minimal-$(date +%s).ear"
+  jar cf "${ear_fn}" -C "${tmp_dir}/ear" .
+  chmod -R 755 "${tmp_dir}"
+
+  ear=${ear_fn}
+}
+
 function deploy() {
   local ear=$cache_dir/engine.ear
 
@@ -66,11 +288,9 @@ function deploy() {
     print_and_log "Deploying $file on $instance ..."
 
     #Check if the file is a cached file, then will just install the file.
-    # If it is not cached and a local file then create a symlink of that file in cache directory otherwise
-    #We we wil consider it is a url and will try to download the file.
     ear=$cache_dir/$(basename $file)
     if [ -e "$ear" ] && [ $(is_archive_healthy $ear) -eq 1 ]; then
-      print_and_log "If found a healthy $ear locally so I will not fetch it again."
+      print_and_log "I found a healthy $ear locally so I will not try to fetch it (again)."
     elif [ -f "$file" ]; then
       print_and_log " Found a local ear file $file"
       log "Copying it to to $cache_dir"
@@ -86,6 +306,8 @@ function deploy() {
         "not be retrieved. I will exit now. :-("
       exit 1
     fi
+  else
+    _if_no_ear_try_to_create_a_default_one "${ear}"
   fi
 
   if [ ! -e "$ear" ]; then
@@ -107,7 +329,7 @@ function deploy() {
     run unzip -q $ear < /dev/null
   )
 
-  print "Deploying $ear on $appserver ..."
+  print "Deploying $ear on ${instance} (${appserver}) ..."
 
   case $appserver in
     tomcat)
@@ -281,5 +503,5 @@ function remove_unwanted_libraries() {
   fi
 
   log "Removing $1/engine-config-*.jar since this is a search instance"
-  run rm $1/engine-config-*.jar
+  run find "${1}/." -maxdepth 1 -name "engine-config-*.jar" -delete
 }

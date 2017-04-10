@@ -1,3 +1,4 @@
+# -*- mode: sh; sh-shell: bash; -*-
 # ece-install module Content Engine specific code.
 
 function get_deploy_white_list() {
@@ -7,41 +8,29 @@ function get_deploy_white_list() {
   local editor_deploy_white_list="escenic-admin escenic studio indexer-webservice webservice webservice-extensions preview-editor-ws"
   local search_deploy_white_list="solr indexer-webapp"
 
+  if is_installing_post_ece6; then
+    search_deploy_white_list="indexer-webapp"
+  fi
+
   # user's deploy white list, if present, takes precedence.
-  if [ $fai_enabled -eq 1 ]; then
-    if [ $install_profile_number -eq $PROFILE_PRESENTATION_SERVER ]; then
-      deploy_white_list=${fai_presentation_deploy_white_list-$presentation_deploy_white_list}
-    elif [ $install_profile_number -eq $PROFILE_EDITORIAL_SERVER ]; then
-      deploy_white_list=${fai_editor_deploy_white_list-$editor_deploy_white_list}
-    elif [ $install_profile_number -eq $PROFILE_SEARCH_SERVER ]; then
-      deploy_white_list=${fai_search_deploy_white_list-$search_deploy_white_list}
-    elif [ $install_profile_number -eq $PROFILE_ALL_IN_ONE ]; then
-      local default_all_deploy_white_list="
+  if [ $install_profile_number -eq $PROFILE_PRESENTATION_SERVER ]; then
+    deploy_white_list=${fai_presentation_deploy_white_list-$presentation_deploy_white_list}
+  elif [ $install_profile_number -eq $PROFILE_EDITORIAL_SERVER ]; then
+    deploy_white_list=${fai_editor_deploy_white_list-$editor_deploy_white_list}
+  elif [ $install_profile_number -eq $PROFILE_SEARCH_SERVER ]; then
+    deploy_white_list=${fai_search_deploy_white_list-$search_deploy_white_list}
+  elif [ $install_profile_number -eq $PROFILE_ALL_IN_ONE ]; then
+    local default_all_deploy_white_list="
         ${presentation_deploy_white_list}
         ${editor_deploy_white_list}
         ${search_deploy_white_list}
       "
-      deploy_white_list=${fai_all_deploy_white_list-$default_all_deploy_white_list}
-    else
-      deploy_white_list=${fai_publication_deploy_white_list-""}
-    fi
+    deploy_white_list=${fai_all_deploy_white_list-$default_all_deploy_white_list}
+  else
+    deploy_white_list=${fai_publication_deploy_white_list-""}
   fi
 
   echo ${deploy_white_list}
-}
-
-function get_publications_webapps_list() {
-
-  local publication_webapps=""
-  # Publication service webapp mappping
-  if [ $fai_enabled -eq 1 ]; then
-    if [ $install_profile_number -eq $PROFILE_PRESENTATION_SERVER ] || [ $install_profile_number -eq $PROFILE_ALL_IN_ONE ]; then
-      publication_webapps=${fai_publications_webapps-""}
-    else
-      publication_webapps=""
-    fi
-  fi
-  echo ${publication_webapps}
 }
 
 function get_publication_short_name_list() {
@@ -129,11 +118,9 @@ function deploy_conf_package() {
 }
 
 function set_search_host_and_ports() {
-  if [ ${fai_enabled-0} -eq 1 ]; then
-    search_host=${fai_search_host-$HOSTNAME}
-    search_port=${fai_search_port-$default_app_server_port}
-    solr_port=${fai_solr_port-8983}
-  fi
+  search_host=${fai_search_host-$HOSTNAME}
+  search_port=${fai_search_port-$default_app_server_port}
+  solr_port=${fai_solr_port-8983}
 }
 
 ## $1=<default instance name>
@@ -142,7 +129,6 @@ function install_ece_instance() {
 
   ask_for_instance_name $1
   set_up_engine_directories
-  set_up_ece_scripts
 
   set_archive_files_depending_on_profile
 
@@ -150,6 +136,7 @@ function install_ece_instance() {
 
   download_escenic_components
   check_for_required_downloads
+  set_up_ece_scripts
   set_up_engine_and_plugins
 
   # most likely, the user is _not_ installing from archives (EAR +
@@ -198,14 +185,6 @@ function install_ece_instance() {
         "$fai_environment" \
         $file
     fi
-  fi
-  if [ $install_profile_number -eq $PROFILE_PRESENTATION_SERVER ] || [ $install_profile_number -eq $PROFILE_ALL_IN_ONE ]; then
-    local file=$escenic_conf_dir/ece-${instance_name}.conf
-    print_and_log "Added publications service webapps in $file ..."
-    set_conf_file_value \
-      publications_webapps \
-      $(get_publications_webapps_list) \
-      $file
   fi
   if [ $install_profile_number -ne $PROFILE_ANALYSIS_SERVER -a \
     $install_profile_number -ne $PROFILE_SEARCH_SERVER ]; then
@@ -341,6 +320,9 @@ function set_up_engine_and_plugins() {
   if [ $ece_software_setup_completed -eq 1 ]; then
     return
   fi
+  if [ "${fai_package_enabled-0}" -eq 1 ]; then
+    return
+  fi
 
   print_and_log "Setting up the Escenic Content Engine & its plugins ..."
   make_dir $escenic_root_dir
@@ -401,22 +383,47 @@ function set_up_engine_and_plugins() {
   ece_software_setup_completed=1
 }
 
-function set_up_assembly_tool() {
-  print_and_log "Setting up the Assembly Tool ..."
-
-  make_dir $escenic_root_dir/assemblytool/
-  cd $escenic_root_dir/assemblytool/
-
-  if [ -e $download_dir/assemblytool*zip ]; then
-    run unzip -q -u -o $download_dir/assemblytool*zip
-  elif [ -e $download_dir/assemblytool*jar ]; then
-    run unzip -q -u -o $download_dir/assemblytool*jar
+function _assembly_tool_should_set_up() {
+  if [ "${fai_package_enabled-0}" -eq 0 ]; then
+    return 0
+  elif [[ "${fai_assembly_tool_install-0}" -eq 1 ]]; then
+    return 0
   fi
 
+  return 1
+}
+
+function _assembly_tool_install_binaries() {
+  make_dir $(_assembly_tool_get_dir)/
+
+  if [ "${fai_package_enabled-0}" -eq 1 ]; then
+    # The user defines the packages/versions he/she wants in the YAML
+    # file.
+    :
+  else
+    if [ -e $download_dir/assemblytool*zip ]; then
+      run unzip -q -u -o $download_dir/assemblytool*zip \
+          -d "${escenic_root_dir}/assemblytool/"
+    elif [ -e ${download}_dir/assemblytool*jar ]; then
+      run unzip -q -u -o ${download_dir}/assemblytool*jar \
+          -d "${escenic_root_dir}/assemblytool/"
+    fi
+  fi
+}
+
+function _assembly_tool_get_dir() {
+  if [ "${fai_package_enabled-0}" -eq 0 ]; then
+    echo "${escenic_root_dir}/assemblytool"
+  else
+    echo "${escenic_root_dir}/escenic-assemblytool"
+  fi
+}
+
+function _assembly_tool_set_up_bootstrap_conf() {
   # adding an instance layer to the Nursery configuration
-  run cp -r $escenic_root_dir/engine/siteconfig/bootstrap-skeleton \
-    $escenic_root_dir/assemblytool/conf
-  run cd $escenic_root_dir/assemblytool/conf/
+  run cp -r $(get_content_engine_dir)/siteconfig/bootstrap-skeleton \
+    $(_assembly_tool_get_dir)/conf
+  run cd $(_assembly_tool_get_dir)/conf/
   run cp -r layers/host layers/environment
   run cp -r layers/host layers/instance
   run cp -r layers/host layers/vosa
@@ -475,13 +482,25 @@ EOF
 
   # fixing the path to the Nursery configuration according to
   # escenic_conf_dir which may have been overridden by the user.
-  for el in $(find $escenic_root_dir/assemblytool/conf -name Files.properties)
+  for el in $(find $(_assembly_tool_get_dir)/conf -name Files.properties)
   do
     sed -i "s#/etc/escenic#${escenic_conf_dir}#g" $el
   done
+}
+
+
+function set_up_assembly_tool() {
+  if ! _assembly_tool_should_set_up; then
+    return
+  fi
+
+  print_and_log "Setting up the Assembly Tool ..."
+
+  _assembly_tool_install_binaries
+  _assembly_tool_set_up_bootstrap_conf
 
   # set up which plugins to use
-  run cd $escenic_root_dir/assemblytool/
+  run cd $(_assembly_tool_get_dir)/
   make_dir plugins
   run cd plugins
   find ../../ -maxdepth 1 -type d | \
@@ -504,7 +523,7 @@ EOF
     make_ln $directory
   done
 
-  run cd $escenic_root_dir/assemblytool/
+  run cd $(_assembly_tool_get_dir)/
   run ant -q initialize
   sed -i "s~#\ engine.root\ =\ \.~engine.root=${escenic_root_dir}/engine~g" \
     assemble.properties \
@@ -516,7 +535,7 @@ EOF
     1>>$log 2>>$log
   exit_on_error "sed on assemble.properties"
 
-  make_dir $escenic_root_dir/assemblytool/publications
+  make_dir $(_assembly_tool_get_dir)/publications
 
   # Set up a publication definition
   #
@@ -528,11 +547,11 @@ EOF
   # fai_<presentation|editor>_ear for creating publication definitions
   # and WARs.
   if [[ -n "${fai_publication_name}" && -n "${fai_publication_war}" ]]; then
-    local file=$escenic_root_dir/assemblytool/publications/${fai_publication_name}.properties
+    local file=$(_assembly_tool_get_dir)/publications/${fai_publication_name}.properties
     print_and_log "Creating a publication definition for publication" \
       $fai_publication_name "..."
     run cp ${fai_publication_war} \
-      $escenic_root_dir/assemblytool/publications/${fai_publication_name}.war
+      $(_assembly_tool_get_dir)/publications/${fai_publication_name}.war
     cat > $file <<EOF
 name: ${fai_publication_name}
 source-war: ${fai_publication_name}.war
@@ -541,12 +560,12 @@ EOF
   fi
 }
 
-function set_up_basic_nursery_configuration() {
+function _set_up_basic_nursery_configuration_by_copying() {
   print_and_log "Setting up basic Nursery configuration ..."
 
   # we always copy the default plugin configuration (even if there is
   # an archive)
-  for el in $escenic_root_dir/assemblytool/plugins/*; do
+  for el in $(_assembly_tool_get_dir)/plugins/*; do
     if [ ! -d $el/misc/siteconfig/ ]; then
       continue
     fi
@@ -577,16 +596,16 @@ function set_up_basic_nursery_configuration() {
     else
       print "Archive $ece_instance_conf_archive doesn't have JAAS config,"
       print "I'll use standard JAAS (engine/security) instead."
-      run cp -r $escenic_root_dir/engine/security/ $common_nursery_dir/
+      run cp -r $(get_content_engine_dir)/security/ $common_nursery_dir/
     fi
 
     run cp -rn engine/siteconfig/config-skeleton/* $common_nursery_dir/
-  elif [ -d $escenic_root_dir/engine/siteconfig/config-skeleton ] ; then
+  elif [ -d $(get_content_engine_dir)/siteconfig/config-skeleton ] ; then
     print_and_log "I'm using Nursery & JAAS configuration (skeleton) " \
-      "from $escenic_root_dir/engine"
-    run cp -rn $escenic_root_dir/engine/siteconfig/config-skeleton/* \
+      "from $(get_content_engine_dir)"
+    run cp -rn $(get_content_engine_dir)/siteconfig/config-skeleton/* \
       $common_nursery_dir/
-    run cp -r $escenic_root_dir/engine/security/ $common_nursery_dir/
+    run cp -r $(get_content_engine_dir)/security/ $common_nursery_dir/
   else
     print_and_log "I'm creating an empty config tree for you, since" \
       "no content engine was downloaded."
@@ -596,17 +615,18 @@ function set_up_basic_nursery_configuration() {
   if [ -n "${a_tmp_dir}" ]; then
     run rm -rf ${a_tmp_dir}
   fi
+}
+
+function set_up_basic_nursery_configuration() {
+  print_and_log "Setting up basic Nursery configuration ..."
+
+  if [ "${fai_package_enabled-0}" -eq 0 ]; then
+    _set_up_basic_nursery_configuration_by_copying
+  fi
 
   public_host_name=$HOSTNAME:${appserver_port}
-  if [ $fai_enabled -eq 1 ]; then
-    if [ -n "$fai_public_host_name" ]; then
-      public_host_name=$fai_public_host_name
-    fi
-  else
-    print "What is the public address of your website?"
-    print "Press ENTER to use the default ($public_host_name)"
-    echo -n "Your choice [$public_host_name]> "
-    read user_host_name
+  if [ -n "$fai_public_host_name" ]; then
+    public_host_name=$fai_public_host_name
   fi
 
   if [ -n "$user_host_name" ]; then
@@ -665,44 +685,14 @@ property.com.escenic.studio.font.windowsvista=Arial Unicode MS
 property.jnlp.packEnabled=true
 EOF
 
-  set_up_publication_nursery_conf
   set_up_search_client_nursery_conf
 }
 
-## Set publication specific configuration, set here and not in
-## set_up_instance_specific_nursery_configuration as this
-## configuration will be the same on two instaces running on the same
-## host.
-function set_up_publication_nursery_conf() {
-  if [ -n "$fai_publication_domain_mapping_list" ]; then
-    local publication_name=""
-    local publication_domain=""
-    local publication_aliases=""
-
-    for el in $fai_publication_domain_mapping_list; do
-      local old_ifs=$IFS
-      IFS='#'
-      read publication publication_domain publication_aliases <<< "$el"
-      IFS=','
-      read publication_name publication_war <<< "$publication"
-      IFS=$old_ifs
-
-      local file=$escenic_conf_dir/engine/environment/${fai_publication_environment-production}/neo/publications/Pub-${publication_name}.properties
-
-      print_and_log "Creating Nursery component" \
-        $(basename $file .properties) \
-        "for publication $publication_name"
-      make_dir $(dirname $file)
-      cat > $file <<EOF
-# Created by $(basename $0) @ $(date)
-\$class=neo.xredsys.config.SimplePublicationSupport
-url=http://${publication_domain}/
-EOF
-    done
-  fi
-}
-
 function set_up_instance_specific_nursery_configuration() {
+  if [ "${fai_package_enabled-0}" -eq 1 ]; then
+    return
+  fi
+
   print_and_log "Setting up instance specific Nursery configuration ..."
 
   for el in $escenic_conf_dir/engine/instance/*; do
@@ -784,11 +774,11 @@ function install_ece_third_party_packages
       apr
       memcached
       mysql-connector-java
+      tomcat-native
       wget
       xmlstarlet
     "
 
-    # TODO no tomcat APR wrappers in official repositories
     install_sun_java_on_redhat
   fi
 
@@ -830,8 +820,7 @@ function is_installing_from_ear()
   log install_profile_number=$install_profile_number
   log ece_instance_ear_file=$ece_instance_ear_file
 
-  if [[ -z "$ece_instance_ear_file" || \
-    $fai_enabled -eq 0 ]]; then
+  if [[ -z "$ece_instance_ear_file" ]]; then
     echo 0
     return
   fi
@@ -844,8 +833,7 @@ function is_using_conf_archive(){
   log install_profile_number=$install_profile_number
   log ece_instance_conf_archive=$ece_instance_conf_archive
 
-  if [[ -z "$ece_instance_conf_archive" || \
-    $fai_enabled -eq 0 ]]; then
+  if [[ -z "$ece_instance_conf_archive" ]]; then
     echo 0
     return
   fi
@@ -853,9 +841,43 @@ function is_using_conf_archive(){
   echo 1
 }
 
+function _repackage_deploy_and_restart_type()
+{
+  if [ "$(is_using_conf_archive)" -eq 1 ]; then
+    local ece_command="
+      ece \
+        -i ${instance_name} \
+        -t ${type} \
+        repackage \
+        stop \
+        deploy \
+        start \
+        --uri ${ece_instance_ear_file}
+     "
+  else
+    local ece_command="
+      ece \
+        -i ${instance_name} \
+        -t ${type} \
+        repackage \
+        stop \
+        deploy \
+        start
+    "
+  fi
+
+  su - "${ece_user}" -c "${ece_command}" &>> "${log}"
+  exit_on_error "su - ${ece_user} -c ${ece_command}"
+}
+
 function assemble_deploy_and_restart_type()
 {
   set_correct_permissions
+
+  if [ "${fai_package_enabled-0}" -eq 1 ]; then
+    _repackage_deploy_and_restart_type
+    return
+  fi
 
   # need to run clean here since we might be running multiple profiles
   # in the same ece-install process.
@@ -876,8 +898,10 @@ function assemble_deploy_and_restart_type()
 }
 
 function set_up_engine_directories() {
+  local el=
   for el in $engine_dir_list; do
-    make_dir $el
+    make_dir "${el}"
+    run chown -R "${ece_user}:${ece_group}" "${el}"
   done
 }
 

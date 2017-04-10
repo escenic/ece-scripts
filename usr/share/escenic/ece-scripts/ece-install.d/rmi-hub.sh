@@ -4,7 +4,7 @@ function install_rmi_hub()
 {
   make_dir $escenic_conf_dir/rmi-hub
   
-  run cp -r $escenic_root_dir/engine/contrib/rmi-hub/config/* \
+  run cp -r $(get_content_engine_dir)/contrib/rmi-hub/config/* \
     $escenic_conf_dir/rmi-hub/
 
   hub_host=$HOSTNAME

@@ -15,7 +15,6 @@ fai_db_host=$db_host
 fai_db_password=$db_password
 fai_db_schema=$db_schema
 fai_db_user=$db_user
-fai_enabled=1
 fai_keep_off_etc_hosts=1
 fai_monitoring_server_ip=$monitoring_server_ip
 "

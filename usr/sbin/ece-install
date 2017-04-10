@@ -50,8 +50,13 @@ java_package_name=""
 # This variable is updated by the package build scripts.
 ece_scripts_version="straight-from-github"
 
-#Set the default database vendor. Possible values are mariadb and percona
-db_vendor=percona
+# Set the default database vendor. Possible values are mariadb and percona
+db_vendor=mariadb
+
+## Map with package name to version entries. The version can be empty.
+declare -A fai_package_map
+## Map with package name to arch entries. The arch can be empty.
+declare -A fai_package_arch_map
 
 #####################################################################
 
@@ -61,7 +66,7 @@ conf_file=$HOME/ece-install.conf
 ece_scripts_git_source=https://github.com/escenic/ece-scripts.git
 maven_opts="--batch-mode"
 wget_opts="--continue --inet4-only --quiet"
-apt_opts="--no-install-recommends"
+apt_opts='--no-install-recommends -o Dpkg::Options::=--force-confold'
 curl_opts="--silent"
 
 # hook scripts
@@ -149,10 +154,24 @@ function init() {
   trap common_bashing_user_cancelled_hook SIGINT SIGHUP
 }
 
+function get_content_engine_dir() {
+  if [ "${fai_package_enabled-0}" -eq 1 ]; then
+    find "${escenic_root_dir}"/escenic-content-engine-* -maxdepth 0 |
+      tail -n 1
+  else
+    printf "%s\n" "${escenic_root_dir}/engine"
+  fi
+}
+
 function download_escenic_components()
 {
     if [ $ece_software_setup_completed -eq 1 ]; then
         return
+    fi
+
+    if [ "${fai_package_enabled-0}" -eq 1 ]; then
+      install_configured_escenic_packages
+      return
     fi
 
     print_and_log "Downloading software from technet.escenic.com ..."
@@ -251,7 +270,7 @@ function install_packages_if_missing() {
 function install_common_os_packages()
 {
   print_and_log "Installing common OS packages ..."
-  local packages="curl wget unzip bc ca-certificates xml2"
+  local packages="curl wget unzip bc ca-certificates xml2 zip"
   local git_package=git
 
   if [ $on_debian_or_derivative -eq 1 ]; then
@@ -275,11 +294,15 @@ function install_common_os_packages()
     if [ ${fai_offline_mode-0} -eq 0 ]; then
       curl -s http://apt.escenic.com/archive.key 2>> $log | \
         apt-key add - 1>> $log 2>> $log
-      local package_pool=${fai_apt_vizrt_pool-unstable}
+      local package_pool=${fai_apt_vizrt_pool-stable}
       add_apt_source "deb http://apt.escenic.com ${package_pool} main"
       run apt-get update
     fi
-    install_packages_if_missing escenic-common-scripts
+
+    # Allow manually installed escenic-common-scripts
+    if [ ! -e /usr/share/escenic/ece-scripts/common-bashing.sh ]; then
+      install_packages_if_missing escenic-common-scripts
+    fi
   fi
 }
 
@@ -359,8 +382,8 @@ function set_correct_permissions()
         -user ${ece_user} | \
         wc -l)
       if [ $correct_permission -gt 0 ]; then
-        log "Data directory root, $el,"
-        log "has correct permissions, skiping sub directories."
+        log "Data directory root, $el," \
+            "has correct permissions, skiping sub directories."
         continue
       fi
     fi
@@ -408,7 +431,7 @@ function print_status_and_next_steps()
         $install_profile_number -ne $PROFILE_CACHE_SERVER -a \
         $install_profile_number -ne $PROFILE_WIDGET_FRAMEWORK ]; then
         add_next_step "UNIX man pages: $(man -k escenic | awk '{print $1;}')"
-        add_next_step "Guide books: http://docs.escenic.com/ece-5.7.html"
+        add_next_step "Guide books: http://docs.escenic.com/ece-6.0.html"
     fi
 
     print_next_step_list
@@ -420,6 +443,9 @@ function print_status_and_next_steps()
 function check_for_required_downloads()
 {
   if [ $ece_software_setup_completed -eq 1 ]; then
+    return
+  fi
+  if [ "${fai_package_enabled-0}" -eq 1 ]; then
     return
   fi
 
@@ -483,42 +509,6 @@ EOF
   fi
 }
 
-function read_user_input()
-{
-    installation_profiles=(
-        "$PROFILE_ALL_IN_ONE - All in one, full stack on one host,"\
-" suitable for dev & test environments"
-"$PROFILE_EDITORIAL_SERVER - Editorial (publication) server"
-"$PROFILE_PRESENTATION_SERVER - Presentation server (ECE + memcached)."
-"$PROFILE_DB_SERVER - Database server"
-"$PROFILE_CACHE_SERVER - Cache server (cache and web server)"
-"$PROFILE_RMI_HUB - RMI hub"
-"$PROFILE_SEARCH_SERVER - Search server (Solr + indexer-webapp)"
-"$PROFILE_WIDGET_FRAMEWORK - Install Widget Framework."
-"$PROFILE_RESTORE_FROM_BACKUP - Restore from backup"\
-" (DB, data files, binaries, conf & publications)"
-    )
-
-    echo "Hi, which server profile do you wish to install?"$'\n'
-
-    for (( i = 0; i < ${#installation_profiles[@]}; i++ )); do
-        echo "  " ${installation_profiles[$i]}
-    done
-
-    echo $'\n'"Select 1-${#installation_profiles[@]} and press ENTER"
-    echo -n "Your choice [1]> "
-    read install_profile_number
-
-    if [ -z "$install_profile_number" ]; then
-        install_profile_number=$PROFILE_ALL_IN_ONE
-    fi
-
-    if [ $(is_number $install_profile_number) -eq 0 ]; then
-        print_and_log "Profile number, $install_profile_number, is not a number"
-        remove_pid_and_exit_in_error
-    fi
-}
-
 function assert_correct_runtime_environment()
 {
     if [ $(whoami) != "root" ]; then
@@ -534,8 +524,6 @@ function assert_correct_runtime_environment()
       print_and_log $conf_file "doesn't exist." \
         "I cannot live without it, so I'm exiting :-("
       remove_pid_and_exit_in_error
-    else
-      source $conf_file
     fi
 }
 
@@ -587,20 +575,16 @@ function check_software_credentials() {
       print_and_log "are insufficient to access ${url} :-("
       remove_pid_and_exit_in_error
     fi
-  elif [ ${fai_enabled-0} -eq 1 ]; then
-    if [[ ${fai_wf_install-0} -eq 1 || ${fai_all_install-0} -eq 1 ]]; then
-      print_and_log "You must have a valid wf_user & wf_password"
-      print_and_log "in your ${conf_file}. If you don't have these,"
-      print_and_log "please contact support@escenic.com"
-      remove_pid_and_exit_in_error
-    fi
+  elif [[ ${fai_wf_install-0} -eq 1 || ${fai_all_install-0} -eq 1 ]]; then
+    print_and_log "You must have a valid wf_user & wf_password"
+    print_and_log "in your ${conf_file}. If you don't have these,"
+    print_and_log "please contact support@escenic.com"
+    remove_pid_and_exit_in_error
   fi
 }
 
 function common_pre_install() {
     print "I'm logging to $log"
-
-    run source $conf_file
 
     # These variables are placed here as all the directories can be
     # overridden in ece-install.conf
@@ -624,30 +608,38 @@ function common_pre_install() {
       $escenic_spool_dir/import
     "
     ece_install_env=${escenic_run_dir}/$(basename $0).env
-    ensure_variable_is_set technet_user technet_password
-    wget_auth="--http-user ${technet_user} --http-password ${technet_password}"
-
     if [ -e /etc/debian_version -a -x /usr/bin/dpkg ]; then
         on_debian_or_derivative=1
         export DEBIAN_FRONTEND=noninteractive
 
-      # chicken and the egg problem, we need lsb_release to install the
-      # packages later on, hence as soon as we know we've got a Debian
-      # based platform, we install lsb-release. Also note, the
-      # executable, lsb_release, is in the list of required binaries in
-      # install_common_os_packages.
-      install_packages_if_missing "lsb-release"
+        # chicken and the egg problem, we need lsb_release to install
+        # the packages later on, hence as soon as we know we've got a
+        # Debian based platform, we install lsb-release. Also note,
+        # the executable, lsb_release, is in the list of required
+        # binaries in install_common_os_packages.
+        #
+        # Same goes for json_xs and jq which are required for parsing
+        # YAML conf files.
+        install_packages_if_missing "lsb-release libjson-xs-perl libyaml-perl jq"
     fi
 
     if [ -e /etc/redhat-release ]; then
       on_redhat_or_derivative=1
-      install_packages_if_missing "redhat-lsb"
 
-      if [ $(lsb_release -i | grep RedHat | wc -l) -gt 0 ]; then
-        on_redhat=1
+      # Chicken and egg problem: we need the lsb_release command
+      # before doing anything else.
+      install_packages_if_missing "redhat-lsb"
+      rh_add_epel_repo
+      install_packages_if_missing "jq perl-JSON-XS perl-YAML"
+
+      if [ "$(lsb_release -i | grep -c RedHat)" -gt 0 ]; then
+        export on_redhat=1
       fi
     fi
 
+    parse_yaml_conf_file_or_source_if_sh_conf "${conf_file}"
+    ensure_variable_is_set technet_user technet_password
+    wget_auth="--http-user ${technet_user} --http-password ${technet_password}"
     check_software_credentials
     assert_commands_available lsb_release
 
@@ -678,24 +670,17 @@ function common_pre_install() {
 # setting this.
 function ask_for_instance_name()
 {
-    if [ ${fai_enabled-0} -eq 0 ]; then
-        print "What do you want to call this ECE instance?"
-        print "Press ENTER to accept the default instance name, $1."
-        echo -n "Your choice [$1]> "
-        read instance_name
-    else
-        if [ $install_profile_number -eq $PROFILE_EDITORIAL_SERVER ]; then
-            instance_name=${fai_editor_name-$1}
-        elif [ $install_profile_number -eq $PROFILE_PRESENTATION_SERVER ]; then
-            instance_name=${fai_presentation_name-$1}
-        elif [ $install_profile_number -eq $PROFILE_SEARCH_SERVER ]; then
-            instance_name=${fai_search_name-$1}
-        elif [ $install_profile_number -eq $PROFILE_ALL_IN_ONE ]; then
-            instance_name=${fai_all_name-$1}
-        elif [ $install_profile_number -eq $PROFILE_ANALYSIS_SERVER ]; then
-            instance_name=${fai_analysis_name-$1}
-        fi
-    fi
+    if [ $install_profile_number -eq $PROFILE_EDITORIAL_SERVER ]; then
+        instance_name=${fai_editor_name-$1}
+     elif [ $install_profile_number -eq $PROFILE_PRESENTATION_SERVER ]; then
+        instance_name=${fai_presentation_name-$1}
+     elif [ $install_profile_number -eq $PROFILE_SEARCH_SERVER ]; then
+        instance_name=${fai_search_name-$1}
+     elif [ $install_profile_number -eq $PROFILE_ALL_IN_ONE ]; then
+         instance_name=${fai_all_name-$1}
+     elif [ $install_profile_number -eq $PROFILE_ANALYSIS_SERVER ]; then
+         instance_name=${fai_analysis_name-$1}
+     fi
 
     if [ -z "$instance_name" ]; then
         instance_name=$1
@@ -775,7 +760,7 @@ function install_editorial_server()
 {
     print_and_log "Installing an editorial server on $HOSTNAME ..."
     type=engine
-    install_ece_instance "editor1" 0
+    install_ece_instance "${default_ece_intance_name}" 0
 }
 
 function run_hook()
@@ -986,13 +971,14 @@ function get_java_package_name() {
   fi
 }
 
-read_user_input "$@"
-init
-assert_correct_runtime_environment
-get_java_package_name
 
-if [ ${fai_enabled-0} -eq 1 ]; then
-    print_and_log "Full Automatic Install (FAI) enabled."
+function main() {
+    read_user_input "$@"
+    init
+    assert_correct_runtime_environment
+    get_java_package_name
+
+    print_and_log "Full Automatic Install (FAI)."
     print_and_log "All user input will be read from $conf_file"
 
     common_pre_install
@@ -1113,6 +1099,11 @@ if [ ${fai_enabled-0} -eq 1 ]; then
       no_fai_profile=0
     fi
 
+    if [ ${fai_assembly_tool_install-0} -eq 1 ]; then
+      set_up_assembly_tool
+      no_fai_profile=0
+    fi
+
     if [ $no_fai_profile -eq 1 ]; then
         print_and_log "No install profile selected, be sure to have one of the "
         print_and_log "fai_<profile>_install=1 in your $conf_file"
@@ -1120,53 +1111,7 @@ if [ ${fai_enabled-0} -eq 1 ]; then
     fi
 
     common_post_install
-else
-    read_user_input
-    common_pre_install
+}
 
-    case $install_profile_number in
-        $PROFILE_ALL_IN_ONE)
-            install_all_in_one_environment
-            ;;
-        $PROFILE_CACHE_SERVER)
-            install_cache_server
-            ;;
-        $PROFILE_DB_SERVER)
-            install_database_server
-            ;;
-        $PROFILE_EDITORIAL_SERVER)
-            install_editorial_server
-            ;;
-        $PROFILE_PRESENTATION_SERVER)
-            install_presentation_server
-            ;;
-        $PROFILE_SEARCH_SERVER)
-            install_search_server
-            ;;
-        $PROFILE_RMI_HUB)
-            install_rmi_hub
-            ;;
-        $PROFILE_WIDGET_FRAMEWORK)
-            install_widget_framework
-            ;;
-        $PROFILE_CREATE_PUBLICATION)
-            create_publication
-            ;;
-        $PROFILE_RESTORE_FROM_BACKUP)
-            restore_from_backup
-            ;;
-        $PROFILE_VIP_PROVIDER)
-            install_vip_provider
-            ;;
-        $PROFILE_DB_BACKUP_SERVER)
-            set_up_db_backup
-            ;;
-        *)
-            print "Invalid profile number $install_profile_number, must be 1-11"
-            remove_pid_and_exit_in_error
-            ;;
-    esac
-    common_post_install
-fi
-
+main "$@"
 exit 0
