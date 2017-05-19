@@ -23,9 +23,9 @@ _create_publication_find_par_if_none_has_been_specified() {
   par=$(
     find /usr/share/escenic/escenic-content-engine-* \
          -maxdepth 3 \
-         -name demo-clean.war)
+         -name demo-clean.war 2>/dev/null)
 
-  if [ -r "${par}" ]; then
+  if [[ -n "${par}" && -r "${par}" ]]; then
     file=${par}
   fi
 }

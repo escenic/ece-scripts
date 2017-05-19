@@ -294,9 +294,15 @@ function install_common_os_packages()
     if [ ${fai_offline_mode-0} -eq 0 ]; then
       curl -s http://apt.escenic.com/archive.key 2>> $log | \
         apt-key add - 1>> $log 2>> $log
-      local package_pool=${fai_apt_vizrt_pool-stable}
-      add_apt_source "deb http://apt.escenic.com ${package_pool} main"
       run apt-get update
+
+      # Only add our repo if there's no other entry (from our pool or
+      # not), there
+      if ! grep -q apt.escenic.com /etc/apt/sources.list.d/escenic.list; then
+        local package_pool=${fai_apt_vizrt_pool-stable}
+        add_apt_source "deb http://apt.escenic.com ${package_pool} main non-free"
+        run apt-get update
+      fi
     fi
 
     # Allow manually installed escenic-common-scripts
@@ -420,7 +426,7 @@ function print_status_and_next_steps()
     local minutes=$(( seconds_left / 60 ))
     local seconds_left=$(( seconds_left - $minutes * 60 ))
 
-    if [ $install_profile_number -ne $PROFILE_RESTORE_FROM_BACKUP ]; then
+    if [ "${install_profile_number-42}" -ne "${PROFILE_RESTORE_FROM_BACKUP}" ]; then
       local message="The installation is now $(green complete)!"
     else
       local message="The restore is now $(green complete)!"
@@ -1080,6 +1086,11 @@ function main() {
 
     if [ ${fai_assembly_tool_install-0} -eq 1 ]; then
       set_up_assembly_tool
+      no_fai_profile=0
+    fi
+
+    if [ "${fai_cue_install-0}" -eq 1 ]; then
+      install_cue
       no_fai_profile=0
     fi
 

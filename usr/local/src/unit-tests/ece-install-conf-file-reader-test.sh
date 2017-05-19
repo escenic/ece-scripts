@@ -93,6 +93,7 @@ test_can_parse_yaml_conf_editor() {
   local editor_redirect=4333
   local editor_name=fooeditor1
   local editor_host=edapp1
+  local editor_ear=http://builder/engine.ear
   local editor_deploy_white_list=foo
 
   local yaml_file=
@@ -107,6 +108,7 @@ profiles:
     name: ${editor_name}
     redirect: ${editor_redirect}
     shutdown: ${editor_shutdown}
+    ear: ${editor_ear}
     deploy_white_list: ${editor_deploy_white_list}
 EOF
 
@@ -115,6 +117,7 @@ EOF
   unset fai_editor_shutdown
   unset fai_editor_redirect
   unset fai_editor_name
+  unset fai_editor_ear
   unset fai_editor_deploy_white_list
 
   parse_yaml_conf_file_or_source_if_sh_conf "${yaml_file}"
@@ -125,6 +128,7 @@ EOF
   assertEquals "Should set fai_editor_shutdown" "${editor_shutdown}" "${fai_editor_shutdown}"
   assertEquals "Should set fai_editor_redirect" "${editor_redirect}" "${fai_editor_redirect}"
   assertEquals "Should set fai_editor_name" "${editor_name}" "${fai_editor_name}"
+  assertEquals "Should set fai_editor_ear" "${editor_ear}" "${fai_editor_ear}"
   assertEquals "Should set fai_editor_deploy_white_list" \
                "${editor_deploy_white_list}" \
                "${fai_editor_deploy_white_list}"
@@ -375,6 +379,41 @@ EOF
   assertEquals "fai_cache_backends" "${be1} ${be2}" "${fai_cache_backends}"
   assertEquals "fai_cache_conf_dir" "${conf_dir}" "${fai_cache_conf_dir}"
   assertEquals "fai_cache_port" "${port}" "${fai_cache_port}"
+
+  rm -rf "${yaml_file}"
+}
+
+test_can_parse_yaml_conf_cue() {
+  local cue_backend_ece=http://ece.example.com
+  local cue_backend_ng=http://ng.example.com
+  local cue_cors_origin1=editor.example.com
+  local cue_cors_origin2=cue.example.com
+
+  local yaml_file=
+  yaml_file=$(mktemp)
+  cat > "${yaml_file}" <<EOF
+---
+profiles:
+  cue:
+    install: yes
+    backend_ece: ${cue_backend_ece}
+    backend_ng: ${cue_backend_ng}
+    cors_origins:
+      - ${cue_cors_origin1}
+      - ${cue_cors_origin2}
+EOF
+
+  unset fai_cue_install
+  unset fai_cue_backend_ece
+  unset fai_cue_backend_ng
+  unset fai_cue_cors_origins
+
+  parse_yaml_conf_file_or_source_if_sh_conf "${yaml_file}"
+  assertNotNull "Should set fai_cue_install" "${fai_cue_install}"
+  assertEquals "Should set fai_cue_install" 1 "${fai_cue_install}"
+  assertEquals "fai_cue_backend_ece" "${cue_backend_ece}" "${fai_cue_backend_ece}"
+  assertEquals "fai_cue_backend_ng" "${cue_backend_ng}" "${fai_cue_backend_ng}"
+  assertEquals "fai_cue_cors_origins" "${cue_cors_origin1} ${cue_cors_origin2}" "${fai_cue_cors_origins}"
 
   rm -rf "${yaml_file}"
 }
