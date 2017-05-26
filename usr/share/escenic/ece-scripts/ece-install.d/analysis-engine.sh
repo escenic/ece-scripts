@@ -1,9 +1,31 @@
+# -*- mode: sh; sh-shell: bash; -*-
+#
 # ece-install module for installing Escenic Analysis Engine (EAE),
 # also known as "Stats".
+
+_analysis_install_package_if_missing() {
+  if [ "${fai_package_enabled-0}" -eq 0 ]; then
+    return
+  fi
+
+  install_packages_if_missing escenic-analysis-engine
+}
+
+_analysis_get_analysis_engine_dir() {
+  if [ "${fai_package_enabled-0}" -eq 1 ]; then
+    find "${escenic_root_dir}" -name "escenic-analysis-engine*" |
+      tail -n -1
+  else
+    find "${escenic_root_dir}" -maxdepth 1 -name "analysis-engine*" -type d
+  fi
+}
+
 
 function install_analysis_server() {
   run_hook install_analysis_server.preinst
   print_and_log "Installing an analysis server on $HOSTNAME ..."
+
+  _analysis_install_package_if_missing
 
   if [ -n "${fai_analysis_host}" ]; then
     appserver_host=${fai_analysis_host}
@@ -16,7 +38,7 @@ function install_analysis_server() {
   install_ece_instance "analysis1"
 
   # deploy the EAE WARs
-  run cp ${escenic_root_dir}/analysis-engine-*/wars/*.war \
+  run cp $(_analysis_get_analysis_engine_dir)/wars/*.war \
     ${tomcat_base}/webapps
 
   set_correct_permissions
@@ -59,7 +81,7 @@ function set_up_analysis_conf() {
   # extract cfg files if the don't exist already
   local file=${escenic_conf_dir}/analysis/reports.cfg
   local path=WEB-INF/config/reports.cfg
-  local war=${escenic_root_dir}/analysis-engine-*/wars/analysis-reports.war
+  local war=$(_analysis_get_analysis_engine_dir)/wars/analysis-reports.war
   extract_path_from_war_if_target_file_doesnt_exist $war $path $file
 
   set_conf_file_value queryServiceUrl \
@@ -68,7 +90,7 @@ function set_up_analysis_conf() {
 
   # Second, configure EAE Logger
   print_and_log "Configuring EAE Logger ..."
-  local war=${escenic_root_dir}/analysis-engine-*/wars/analysis-logger.war
+  local war=$(_analysis_get_analysis_engine_dir)/wars/analysis-logger.war
   local path=WEB-INF/config/logger.cfg
   local file=${escenic_conf_dir}/analysis/logger.cfg
   extract_path_from_war_if_target_file_doesnt_exist $war $path $file
@@ -87,7 +109,7 @@ function set_up_analysis_conf() {
 
   # Third, configure the EAE query service
   print_and_log "Configuring EAE query service ..."
-  local war=${escenic_root_dir}/analysis-engine-*/wars/analysis-qs.war
+  local war=$(_analysis_get_analysis_engine_dir)/wars/analysis-qs.war
   local path=WEB-INF/config/qs.cfg
   local file=${escenic_conf_dir}/analysis/qs.cfg
   extract_path_from_war_if_target_file_doesnt_exist $war $path $file

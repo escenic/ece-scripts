@@ -5,10 +5,11 @@
 # by torstein@escenic.com
 
 # depends on common-bashing
-common_bashing_is_loaded > /dev/null 2>&1 || source $(pwd)/common-bashing.sh
+common_bashing_is_loaded > /dev/null 2>&1 ||
+  source "${BASH_SOURCE[0]%/*}/common-bashing.sh"
 
 ## Only used if the Tomcat download mirror couldn't be determined
-fallback_tomcat_url="http://apache.uib.no/tomcat/tomcat-7/v7.0.70/bin/apache-tomcat-7.0.70.tar.gz"
+fallback_tomcat_url="http://apache.uib.no/tomcat/tomcat-7/v7.0.78/bin/apache-tomcat-7.0.78.tar.gz"
 
 # Can be used like this:
 # common_io_os_loaded 2>/dev/null || source common-os.sh
@@ -134,18 +135,19 @@ function assert_commands_available() {
 }
 
 function get_tomcat_download_url() {
-  if [ -n $tomcat_download ]; then
-    local url=$tomcat_download
+  local url=
+  if [ -n "${tomcat_download}" ]; then
+    url=$tomcat_download
   else
-    local url=$(
-        curl -s http://tomcat.apache.org/download-60.cgi | \
+    url=$(
+        curl -s http://tomcat.apache.org/download-70.cgi | \
             grep tar.gz | \
             head -1 | \
             cut -d'"' -f2
     )
   fi
 
-  if [ -z $url ]; then
+  if [ -z "${url}" ]; then
     url=$fallback_tomcat_url
     log "Failed to get Tomcat mirror URL, will use fallback URL $url"
   fi
@@ -215,7 +217,12 @@ function add_apt_source() {
     return
   fi
 
-  if [ $(grep -r "$@" /etc/apt/sources.list* | wc -l) -lt 1 ]; then
+  # Remove HTTP scheme and user/pass when checking if the source
+  # already exists.
+  local url_fragment=${url##*://}
+  url_fragment=${url_fragment##*@}
+
+  if [ "$(grep -r "${url_fragment}" /etc/apt/sources.list* | wc -l)" -lt 1 ]; then
     echo "# added by $(basename $0) @ $(date)" >> $escenic_sources
     echo "$@" >> $escenic_sources
   fi
@@ -250,4 +257,25 @@ function get_memory_summary_of_pid() {
   )
 
   echo "${size} (peaked at: $peak)"
+}
+
+### Returns 0 (ok) if the passed RPM file has been installed on the
+### current machine, 1 if not.
+##
+## $1 :: RPM file reference
+function is_rpm_already_installed() {
+  local file=$1
+
+  if [ ! -e "${file}" ]; then
+    return 1
+  fi
+
+  local package_name=
+  package_name=$(rpm -qp --queryformat "%{Name}\n" "${file}")
+  is_rpm_already_installed_by_name "${package_name}"
+}
+
+function is_rpm_already_installed_by_name() {
+  local package_name=$1
+  rpm -q "${package_name}" &> /dev/null
 }

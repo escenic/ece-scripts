@@ -36,15 +36,37 @@ function install_ece_scripts_with_git() {
   done
 }
 
-function set_up_ece_scripts()
-{
-  print_and_log 'Setting up the ece UNIX scripts ...'
+function _ece_scripts_install_if_necesary() {
+  local -a must_have_list=(
+    /etc/default/ece
+    /etc/init.d/ece
+    /usr/bin/ece
+    /usr/share/escenic/ece-scripts
+  )
+
+  local missing_anything=0
+  for must_have in "${must_have_list[@]}"; do
+    if [ ! -e "${must_have}" ]; then
+      missing_anything=1
+    fi
+  done
+
+  if [ "${missing_anything}" -eq 0 ]; then
+    return
+  fi
 
   if [ $on_debian_or_derivative -eq 1 ]; then
     install_packages_if_missing escenic-content-engine-scripts
   else
     install_ece_scripts_with_git
   fi
+}
+
+function set_up_ece_scripts()
+{
+  print_and_log 'Setting up the ece UNIX scripts ...'
+
+  _ece_scripts_install_if_necesary
 
   local file=${escenic_conf_dir}/ece.conf
   local example_ece_conf=/usr/share/doc/escenic/escenic-content-engine-scripts/examples/etc/ece.conf

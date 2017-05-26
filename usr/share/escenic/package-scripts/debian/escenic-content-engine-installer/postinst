@@ -6,12 +6,12 @@ cat <<EOF
 Thank you for installing ece-install. This is currently un-supported
 software as it's undergoing heavy development. Be sure to check out
 known issues at
-https://github.com/vizrt/ece-scripts/blob/master/known-issues.org and
-report any issues to https://github.com/vizrt/ece-scripts/issues
+https://github.com/escenic/ece-scripts/blob/master/known-issues.org and
+report any issues to https://github.com/escenic/ece-scripts/issues
 
 Have fun!
 
--Vizrt Online
+-Escenic
 EOF
 
 exit 0

@@ -321,6 +321,12 @@ ensure_ear_reference_and_lineage_sanity() {
       ear_name_or_hash=${last_deployed_hash}
       file_or_uri=${file}
       return
+    else
+      print_and_log "
+        Will NOT repackage: I couldn't find a previously deployed EAR
+        and you didn't specify an EAR to be repackaged using --file
+        <ear> or --uri <ear>."
+      return 1
     fi
 
   elif [ -r "${default_cached_engine_ear}" ]; then
@@ -329,10 +335,10 @@ ensure_ear_reference_and_lineage_sanity() {
     ear_name_or_hash=${default_cached_engine_ear##*/}
   else
     print_and_log "
-      You must either specify an EAR to be repackaged
-      using --file <ear> or --uri <ear>, or the previously
+      Will NOT repackage: You must either specify an EAR to be
+      repackaged using --file <ear> or --uri <ear>, or the previously
       deployed EAR must be available in ${cache_dir}."
-    exit 1
+    return 1
   fi
 }
 
@@ -667,7 +673,16 @@ repackage() {
 
   exit_if_no_os_packages_are_installed
 
-  ensure_ear_reference_and_lineage_sanity "${file_or_uri}"
+  if [[ "${type}" != "engine" ]]; then
+    print_and_log \
+      "Doesn't make sense to repackge ${type} instances →" \
+      "not repackaging EAR for ${instance}"
+    return
+  fi
+
+  ensure_ear_reference_and_lineage_sanity "${file_or_uri}" || {
+    return
+  }
   ear=$(get_local_ear_reference "${file_or_uri}")
 
   local tmp_dir=

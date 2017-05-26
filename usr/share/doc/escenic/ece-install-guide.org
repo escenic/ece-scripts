@@ -13,7 +13,7 @@ ece-install [[[-f|--file conf-file]]] [[[-V|--version]]] [[[-v|--verbose]]]
 * OPTIONS
 ** -f|--file conf-file
 Instructs *ece-install* to read configuration data from the specified
-file.
+file. This can either be a `.conf` or `.yaml` file.
 
 ** -v|--verbose
 Requests verbose output from *ece-install*.
@@ -53,32 +53,17 @@ need to install manually, and it still handles the configuration of
 these components for you.
 
 ** Supported Operating Systems
-*ece-install* works best on Debian 6.0 (Squeeze) or later. It should,
-however, work on any UNIX-like system that provides a BASH command
-shell (version 4.2 or later).
+| Operating system            | Status                       |
+|-----------------------------+------------------------------|
+| Debian 8.7 (jessie)         | Everything is 100% automatic |
+| Ubuntu LTS 16.04            | Everything is 100% automatic |
+| RedHat Enterprise Linux 7.3 | Everything is 100% automatic |
+| CentOS 7.3                  | Everything is 100% automatic |
 
-Here is an overview of the situation on some of the most popular
-platforms:
-
- - Debian-based operating systems :: On Debian 6.0 or later,
-     installation is fully automated. *ece-install* installs and
-     configures all required components. This may also be the case on
-     some Debian-based distributions. On recent Ubuntu distributions,
-     however, you will need to manually install some components. For
-      details, see Tested Operating Systems.
-
- - RedHat-based operating systems :: *ece-install* support for
-      RedHat-based operating systems is constantly improving. However,
-      since the public RedHat software repositories are significantly smaller
-      than the Debian ones, it may often be necessary to manually
-      install some components. For
-      details, see Tested Operating Systems.
-
- - Other GNU/Linux and UNIX systems :: *ece-install* does not currently support
-      automated installation of third-party components on these
-      platforms, so you will need to install them manually. It will,
-      of course, tell you which components you need to install, and
-      configure them for you.
+Other Unix operating systems may work, given that the required
+binaries (=curl=, =varnishd=, =mysqld=++) are already available in
+PATH and that the configuration files exist in familiar
+locations. However this is untested. YMMV.
 
 ** Requirements
 Whichever operating system(s) you will be installing on, you must ensure
@@ -115,14 +100,6 @@ Platforms on which you will need to do this include:
  - Any BSD-based system (including Mac OS X)
  - Solaris
 
-** <<<Tested Operating Systems>>>
-| Operating system     | Status                                     |
-|----------------------+--------------------------------------------|
-| CentOS 6.2           | HA, APR & monitoring are not automatic     |
-| Debian 6.0 (squeeze) | Everything is 100% automatic               |
-| Ubuntu 11.10         | Everything except Tomcat/APR are automatic |
-| Ubuntu LTS 10.04     | Everything except Tomcat/APR are automatic |
-| Ubuntu LTS 12.04     | Everything except Tomcat/APR are automatic |
 
 * Using ece-install
 The various software components required to run an Escenic-powered web
@@ -185,68 +162,34 @@ before running *ece-install*.
 #+END_QUOTE
 
 ** <<<Create a Configuration File>>>
-*ece-install* expects to find a configuration file called
-*ece-install.conf* in the root user's home directory, which is usually
-*/root*. If you wish to call your configuration file something else,
-you need to specify it with the *-f* parameter, e.g. *ece-install -f
-ece-install-db-master.conf=.
+*ece-install* can use configuration files in either =.conf= (old) or
+*=.yaml= (new) format. This manual describes first and foremost the
+*YAML format.
 
-If you forget to provide such a file before running *ece-install*,
-then *ece-install* will complain:
-#+BEGIN_SRC text
-[ece-install] /root/ece-install.conf doesn't exist,
-I cannot live without it :-(
-#+END_SRC
-
-*/root/ece-install.conf*. may contain a large number of configuration
+*ece-install.yaml*. may contain a large number of configuration
 parameters, but the minimum requirement is that it contains:
 
- * A user name and password for downloading software from Escenic
-   Technet.
- * The parameter *fai\_enabled=1*.
- * A parameter of the form *fai\_<profile>\_install=1* where *<profile>*
-   is the name of the *profile* you want to install (see Server
-   Profiles for information about profiles).
+ * A user name and password for downloading software from Escenic.
+ * A profile to install
 
 For example:
-#+BEGIN_SRC conf
-technet_user=<user>
-technet_password=<password>
-fai_enabled=1
-fai_<profile>_install=1
-fai_server_java_version=1.7
-#+END_SRC
-
-If the configuration file does not contain these settings then
-*ece-install* will complain. For example:
-#+BEGIN_SRC text
-[ece-install] Be sure to set technet_user and technet_password
-[ece-install] in /root/ece-install.conf
+#+BEGIN_SRC yaml
+credentials:
+  - site: maven.escenic.com
+    user: foo
+    password: bar
+  - site: apt.escenic.com
+    user: foo
+    password: bar
+profiles:
+  editor:
+    install: yes
 #+END_SRC
 
 Depending on what components you are installing on the server, you may
-need to include other configuration parameters in the file. If you are
-installing the Widget Framework, for example, you will need to specify
-additional download credentials (see [[fai_wf_install]]). In most cases,
-however, parameters have default settings that enable *ece-install* to
-complete installation with very few settings.
-
-****** Interactive Mode
-The setting *fai\_enabled=1* tells *ece-install* to run in *fully
-automated install (FAI)* mode. In this mode *ece-install* reads
-parameters from *ece-install.conf*. If it cannot find all the
-parameters it needs in the configuration file, then it fails. This is
-the recommended way to use *ece-install*.
-
-If you omit this parameter then *ece-install* will not read any
-*fai\_???* parameters from *ece-install.conf* and will prompt for them
-interactively instead. You are, however, *strongly advised* not to run
-*ece-install* in interactive mode:
-
- * Interactive mode is much less flexible than FAI mode.
- * Interactive mode is not actively maintained and may therefore be
-   unreliable.
- * Use of interactive mode is therefore not supported.
+need to include other configuration parameters in the file. In most
+cases, however, parameters have default settings that enable
+*ece-install* to complete installation with very few settings.
 
 ** <<<Run ece-install>>>
 To run *ece-install*, enter:
@@ -330,41 +273,49 @@ role in an Escenic installation.
 The profile to be installed by *ece-install* is determined by setting
 one of the following parameters in *ece-install.conf*:
 
-- *fai\_editor\_install=1* :: Installs all the components that need to
+- *profiles: editor* :: Installs all the components that need to
      be installed to create an Escenic *editorial server*.
-- *fai\_presentation\_install=1* :: Installs all the components that
+- *profiles: presentation* :: Installs all the components that
      need to be installed to create an Escenic *presentation server*.
-- *fai\_wf\_install=1* :: Installs the Widget Framework on an editorial
-     or presentation server.
-- *fai\_db\_install=1* :: Installs a Database Server.
-- *fai\_cache\_install=1* :: Installs a Cache Server.
-- *fai\_search\_install=1* :: Installs a Search Server.
-- *fai\_rmi\_install=1* :: Installs an RMI Hub.
-- *fai\_monitoring\_install=1* :: Installs a Monitoring Server.
-- *fai\_publication\_create=1* :: Creates an Escenic publication.
-- *fai\_all\_install=1* :: Installs all of the above on one host
+- *profiles: db* :: Installs a Database Server.
+- *profiles: cache* :: Installs a Cache Server.
+- *profiles: search* :: Installs a Search Server.
+- *profiles: publication* :: Creates an Escenic publication.
+- *profiles: all* :: Installs all of the above on one host
      machine.
-- *fai\_restore\_from\_backup=1* :: Restores a backup created with *ece*.
-- *fai\_analysis\_install=1* :: Installs and configures an Escenic Analysis Engine.
-- *fai\_nfs\_server\_install=1* :: Installs an NFS server.
-- *fai\_nfs\_client\_install=1* :: Installs an NFS client.
-- *fai\_vip\_install=1* :: Installs virtual IP (VIP) providers.
+- *profiles: restorebackup* :: Restores a backup created with *ece*.
+- *profiles: analysis* :: Installs and configures an Escenic Analysis Engine.
+- *profiles: nfs* :: Installs an NFS server.
+- *profiles: nfs* :: Installs an NFS client.
+- *profiles: vip* :: Installs virtual IP (VIP) providers.
 
 There are a number of common components that are included in all or
 most of the profiles. These are described below.
 
-** <<<fai\_editor\_install>>>
-To use this profile add *fai\_editor\_install=1* to your
-*ece-install.conf* file.
+** <<<profiles: editor>>>
+To use this profile add:
+#+begin_src yaml
+profiles:
+  editor:
+    create: true
+#+end_src
+
+to your *ece-install.yaml* file.
 
 This profile contains all the components that need to be installed to
 create an Escenic *editorial server*. An editorial server (sometimes
 also called a publication server) hosts a Content Engine used for editorial
 purposes (primarily Content Studio sessions).
 
-** <<<fai\_presentation\_install>>>
-To use this profile, add *fai\_presentation\_install=1* to your
-*ece-install.conf* file.
+** <<<profiles: presentation>>>
+To use this profile, add:
+#+begin_src yaml
+profiles:
+  presentation:
+    create: true
+#+end_src
+
+to your *ece-install.yaml* file.
 
 This profile contains all the components that need to be installed to
 create an Escenic *presentation server*. A presentation server hosts a
@@ -376,46 +327,26 @@ users. Differences between this and an editorial server include:
    required.
  * Memcached, the distributed memory cache is installed.
 
-** <<<fai\_wf\_install>>>
-To use this profile, add the following settings:
-#+BEGIN_SRC text
-fai_wf_install=1
-wf_user=<user-name>
-wf_password=<password>
-#+END_SRC
+** <<<profiles: db>>>
+To use this profile, add:
 
-to your *ece-install.conf* file.
+#+begin_src yaml
+profiles:
+  db:
+    create: true
+#+end_src
 
-*wf\_user* and *wf\_password* must contain your Widget Framework Maven
-repository credentials (supplied when you purchased the Widget
-Framework). If you do not have these credentials, please contact
-support@escenic.com.
+to your *ece-install.yaml* file.
 
-This profile installs the Escenic Widget Framework. It should be
-installed on a machine where you have already installed either an
-editorial or presentation profile. Exactly which machines you install
-the Widget Framework on depends on your deployment strategy.
+When this profile is used on a supported version of Debian, Ubuntu,
+CentOS or RedHat, *ece-install* installs will install all the
+components needed to create an Escenic database, based on the MariaDB
+fork of MySQL or the Percona distribution of MySQL.
 
-** <<<fai\_db\_install>>>
-To use this profile, add *fai\_db\_install=1* to your
-*ece-install.conf* file.
+The default is to install MariaDB.
 
-When this profile is used on a supported version of Debian or Ubuntu,
-*ece-install* installs all the components needed to create an Escenic
-database, based on the MariaDB fork of MySQL or the Percona
-distribution of MySQL. On any other platform you must install either
-MariaDB, Percona or a standard MySQL distribution yourself before running
-*ece-install*.
-
-The default is to install MariaDB unless this setting is added to to
-*ece-install.conf* before you run *ece-install*.
-
-#+BEGIN_SRC conf
-db_vendor=percona
-#+END_SRC
-
-Otherwise, this profile contains all the Escenic components needed on
-a database server plus the correct database schema for the Content
+Furthermore, this profile contains all the Escenic components needed
+on a database server plus the correct database schema for the Content
 Engine version and plug-in versions you are installing.
 
 If an Escenic database has already been installed on the machine, then
@@ -431,30 +362,31 @@ If an Escenic database has already been installed on the machine, then
 #+END_SRC
 
 If you actually want to re-install the database you can do so by
-adding this setting to *ece-install.conf* before you run *ece-install*:
+adding this setting to *ece-install.yaml* before you run *ece-install*:
 
-#+BEGIN_SRC conf
-fai_db_drop_old_db_first=1
+#+BEGIN_SRC yaml
+profiles:
+  db:
+    install: true
+    drop_old_db_first: true
 #+END_SRC
 
 Given that *mysqld* is installed, this profile will download all the
-Escenic components and install the ECE database schema based from the
-SQL files contained inside the distribution bundles specified with in
-the *technet\_download\_list* and *wf\_dowload\_list* variables. The
-defaults are inside the *ece-install* command itself, but you can
-overrides these in your *ece-install.conf* if you wish different minor
-versions of the ECE and plugins.
+Escenic components that you have defined in the configuration file and
+install the ECE database schema based from the SQL files contained
+inside the individual packages.
 
 *** Master & slave setup
 You can easily use *ece-install* to set up master and slave databases
 on different hosts.
 
-First create the master database using these *ece-install.conf* settings:
-#+BEGIN_SRC conf
-fai_enabled=1
-fai_db_install=1
-fai_db_master=1
-fai_db_replication=1
+First create the master database using these *ece-install.yaml* settings:
+#+BEGIN_SRC yaml
+profiles:
+  db:
+    install: true
+    master: true
+    replication: true
 #+END_SRC
 
 When you run *ece-install* with these settings, the output log
@@ -469,15 +401,16 @@ database:
 #+END_SRC
 
 On the slave database host you can then use these values in your
-*ece-install.conf* file as follows:
-#+BEGIN_SRC conf
-fai_enabled=1
-fai_db_install=1
-fai_db_replication=1
-fai_db_master=0
-fai_db_master_host=my-db-master
-fai_db_master_log_file=mysql-bin.000013
-fai_db_master_log_position=106
+*ece-install.yaml* file as follows:
+#+BEGIN_SRC yaml
+profiles:
+  db:
+    install: true
+    master: false
+    replication: true
+    master_host: "my-db-master"
+    master_log_file: "mysql-bin.000013"
+    master_log_position: "106"
 #+END_SRC
 
 *ece-install* uses internal defaults to create a replication user and
@@ -485,14 +418,21 @@ credentials. You can override these defaults by setting additional
 parameters in *ece-install.conf*. For details, see [[Overview of All FAI
 Parameters]].
 
-** <<<fai\_cache\_install>>>
-To use this profile, add *fai\_cache\_install=1* to your
-*ece-install.conf* file.
+** <<<profiles: cache>>>
+To use this profile, add:
+
+#+begin_src yaml
+profiles:
+  cache:
+    install: true
+#+end_src
+
+
+to your *ece-install.yaml* file.
 
 When this profile is used on a supported version of Debian or Ubuntu,
-*ece-install* installs the latest Varnish 3.x caching server from the
-Varnish APT repository. On any other platform you must install Varnish 3.x
-yourself before running *ece-install*.
+*ece-install* installs the latest Varnish caching server from the
+official distro repositories.
 
 Once Varnish is installed, *ece-install* configures it to suit the
 typical requirements of an Escenic site:
@@ -522,71 +462,68 @@ TBD:
   configuration.
 #+END_COMMENT
 
-** <<<fai\_search\_install>>>
-To use this profile, add *fai\_search\_install=1* to your
-*ece-install.conf* file.
+** <<<profiles: search>>>
+To use this profile, add
 
-This profile installs search components (Apache Solr plus the Escenic
-*indexer* web app.
+#+begin_src yaml
+profiles:
+  search:
+    install: true
+#+end_src
 
-** <<<fai\_rmi\_install>>>
-To use this profile, add *fai\_rmi\_install=1* to your
-*ece-install.conf* file.
 
-This profile installs an RMI hub. This is only necessary on systems
-using ECE < 5.3
+to your *ece-install.yaml* file.
 
-** <<<fai\_monitoring\_install>>>
-To use this profile, add *fai\_monitoring\_install=1* to your
-*ece-install.conf* file.
+This profile installs a standalone Solr instance and an app server
+with the Escenic *indexer* web app.
 
-This profile installs a Munin gatherer, a Icinga (an enhanced Nagios)
-server plus a web server for providing access to Icinga and the
-reports Munin generates.
+** <<<profiles: publications>>>
+To use this profile, add
 
-** <<<fai\_publication\_create>>>
-To use this profile, add *fai\_publication\_create=1* to your
-*ece-install.conf* file.
+#+begin_src yaml
+profiles:
+  publications:
+    - name: mypub
+      create: true
+#+end_src
+
+
+to your *ece-install.yaml* file.
 
 This profile creates a publication for you. It should be used on a
 machine where you have already installed either an editorial or
 presentation profile.
 
-If the Widget Framework is installed on the machine, then the
-create publication is based on the Widget Framework. Otherwise the
-publication is based on the clean demo WAR supplied with the Content
-Engine.
-
 *ece-install* will create publications of all the publication WAR
 files in your EAR file if you also
-define *fai\_publication\_domain\_mapping\_list*
-and *fai\_publication\_ear*.
-#+BEGIN_SRC text
-fai_publication_create=1
-fai_publication_ear=/tmp/stoppok-rev6195-2012-12-04_1134.ear
-fai_publication_domain_mapping_list="
-  stoppok,st.war#stoppok.example.com#newindian.example.com
-  helden#dinamani.example.com#helden.example.com
-"
+define domain (and optionally, aliases):
+#+BEGIN_SRC yaml
+profiles:
+  publications:
+    - name: stoppok
+      domain: stoppok.example.com
+      aliases:
+        - s.exampel.com
+        - o.exampel.com
+      ear: /tmp/stoppok-rev6195-2012-12-04_1134.ear
+    - name: helden
+      domain: helden.example.com
+      ear: /tmp/stoppok-rev6195-2012-12-04_1134.ear
 #+END_SRC
 
 See [[Overview of All Configuration Parameters]] for further details on the format
 of the domain mapping list.
 
-** <<<fai\_all\_install>>>
-To use this profile, add *fai\_all\_install=1* to your
-*ece-install.conf* file.
+** <<<profiles: restore>>>
+To use this profile, add:
 
-This profile is primarily intended for use by developers and system
-administrators as a test environment. It is *not* considered suitable
-for production purposes. A complete stack including caching
-server, application server, Escenic Content Engine, assembly host,
-database and Widget Framework is installed. In addition, a publication
-is created.
+#+begin_src yaml
+profiles:
+  restore:
+    from_file: /var/backups/backup.tar.gz
+#+end_src
 
-** <<<fai\_restore\_from\_backup>>>
-To use this profile, add *fai\_restore\_from\_backup=1* to your
-*ece-install.conf* file.
+to your *ece-install.yaml* file.
 
 Unlike all the other profiles, this profile does not install anything
 or create anything new. Instead, it restores a backup you have
@@ -617,49 +554,49 @@ parameters in *ece-install.conf* in order to specify the location of
 the backup file you want to restore and the specific items you want to
 restore from the file.
 
-The parameters you can use together with *fai\_restore\_from\_backup*
+The parameters you can use together with *profiles: restore*
 to specify what you want to restore are:
 
-- *fai\_restore\_all* :: Restore all backup items. Requires a full
-     backup tarball. Default is 1.
+#+begin_src yaml
+profiles:
+  restore:
+    # The *.tar* file produced by *ece -i <instance> backup*. Default is "".
+    from_file:
+    from_backup: true
 
-- *fai\_restore\_db* :: Install the database server and restore its
-     contents. Default is 0
+    # Restore the Solr and Content Engine data files. Default is false.
+    data_files: true
 
-- *fai\_restore\_data\_files* :: Restore the Solr and Content Engine
-     data files. Default is 0
+    # Restore the Escenic and Apache Tomcat software. Default is false.
+    software_binaries: true
 
-- *fai\_restore\_configuration* :: Restore the Solr and content Engine
-     configuration files. Default is 0.
-- *fai\_restore\_software\_binaries* :: Restore the Escenic and Apache
-     Tomcat software. Default is 0.
+    # Install the database server and restore its. Default false
+    db: true
 
-- *fai\_restore\_from\_file* :: The *.tar* file produced by *ece -i
-     <instance> backup*. Default is "".
+    # Restore the Solr and content Engine configuration files. Default is  false
+    configuration: true
+#+end_src
 
-So to restore everything in a specified backup file, you would need
-something like this in your *ece-install.conf* file:
-#+BEGIN_SRC conf
-fai_enabled=1
-fai_restore_from_backup=1
-fai_restore_all=1
-fai_restore_from_file=/var/backups/escenic/backup-2011-10-10.tar
-#+END_SRC
 
 *ece-install* can also remove unwanted files from an existing
 installation prior to restoring from a backup. You can specify the
 files you would like to remove using the following parameters:
 
-- *fai\_restore\_pre\_wipe\_all* :: Remove all data/state & log
-     files. Default is 0.
-- *fai\_restore\_pre\_wipe\_cache* :: Remove the cache files. Default
-     is 0.
-- *fai\_restore\_pre\_wipe\_crash* :: Remove the crash files. Default
-     is 0.
-- *fai\_restore\_pre\_wipe\_logs*  :: Remove all log files. Default
-     is 0.
-- *fai\_restore\_pre\_wipe\_solr*  :: Remove the solr data/state
-     files. Default is 0.
+#+begin_src yaml
+profiles:
+  restore:
+    # Remove the solr data/state files. Default is false.
+    pre_wipe_solr: true
+    # Remove all log files. Default is false.
+    pre_wipe_logs: true
+    # Remove the cache files. Default is false.
+    pre_wipe_cache: true
+    # Remove the crash files. Default is false.
+    pre_wipe_crash: true
+
+    # Remove all of the above
+    pre_wipe_all: true
+#+end_src
 
 *** Data security
 You must be careful when restoring backups that you don't
@@ -684,9 +621,16 @@ restore will fail as follows:
   details.
 #+END_SRC
 
-** <<<fai\_analysis\_install>>>
-To use this profile, add *fai\_analysis\_install=1* to your
-*ece-install.conf* file.
+** <<<profiles: analysis>>>
+To use this profile, add:
+
+#+begin_src yaml
+profiles:
+  analysis:
+    create: true
+#+end_src
+
+to your *ece-install.yaml* file.
 
 This profile installs the Escenic Analysis Engine, and configures it
 for production use with a sensible set of defaults.
@@ -701,6 +645,8 @@ To use this profile, add *fai\_nfs\_server\_install=1* to your
 
 This profile installs an NFS server.
 
+This feature is not yet supported with YAML configuration files.
+
 ** <<<fai\_nfs\_client\_install>>>
 To use this profile, add *fai\_nfs\_client\_install=1* to your
 *ece-install.conf* file.
@@ -712,11 +658,12 @@ mount under */mnt*.
 The following example shows the ece-install.conf settings required to
 mount the Escenic multimedia archive on the NFS server:
 #+BEGIN_SRC conf
-fai_enabled=1
 fai_nfs_client_install=1
 fai_nfs_server_address=192.168.1.200
 fai_nfs_export_list="/var/exports/multimedia"
 #+END_SRC
+
+This feature is not yet supported with YAML configuration files.
 
 ** <<<fai\_vip\_install>>>
 [[file:images/nfs-vip.png]]
@@ -753,7 +700,6 @@ Both providers are configured to expose the NFS service on the VIP
 
 #+BEGIN_SRC conf
 # install the NFS server
-fai_enabled=1
 fai_nfs_server_install=1
 fai_nfs_export_list="/var/exports/multimedia"
 fai_nfs_allowed_client_network="192.168.1.0/255.255.255.0"
@@ -892,11 +838,16 @@ application servers if the profile is *editor*, *all* or
 
 To use this feature, you must define one domain for each publication
 in the following FAI parameter:
-#+BEGIN_SRC conf
-fai_publication_domain_mapping_list="
-  firepub#fire.escenic.com
-  ildpub#ild.escenic.com#feuer.escenic.com,fuego.escenic.com
-"
+#+BEGIN_SRC yaml
+profiles:
+  publications:
+    - name: firepub
+      domain: fire.escenic.com
+    - name: ildpub
+      domain: ild.escenic.com
+      aliases:
+        - feuer.example.com
+        - fuego.example.com
 #+END_SRC
 
 This will produce the following stanzas in *server.xml*:
@@ -946,11 +897,16 @@ application servers if the profile is *editor*, *all* or
 
 To use this feature, you must define one domain for each publication
 in the following FAI parameter:
-#+BEGIN_SRC conf
-fai_publication_domain_mapping_list="
-  firepub#fire.escenic.com
-  ildpub#ild.escenic.com#feuer.escenic.com,fuego.escenic.com
-"
+#+BEGIN_SRC yaml
+profiles:
+  publications:
+    - name: firepub
+      domain: fire.escenic.com
+    - name: ildpub
+      domain: ild.escenic.com
+      aliases:
+        - feuer.example.com
+        - fuego.example.com
 #+END_SRC
 
 This will produce the following stanzas in *server.xml*:
@@ -1017,322 +973,9 @@ If you do not want ece-install to touch your */etc/hosts*, you can set
 
 ** Overview of All Configuration Parameters
 The *ece-install* command understands the following settings in
-the *ece-install.conf*:
+the *ece-install.yaml*:
 
-- *technet\_user* and *technet\_password* The user name and password
-  used to access Technet for downloading Escenic software.
-
-- *wf\_user* and *wf\_password* The user name and password used for
-  downloading the Widget Framework.
-
-- *keep\_off\_wget\_user\_agent* Whenever *ece-install* uses *wget* to
-  download software, *ece-install* will add something to the user
-  agent string of *wget* so that it's possible to identify what
-  the *ece-install* command downloads. If you wish to turn this
-  feature off, set this to *0*.
-
-- *fai\_server\_java\_version* The java version to use.
-  Only allowable values are 1.6 and 1.7.
-  The default is 1.6
-
-- *fai\_all\_conf\_archive* :: *conf.tar.gz* to use for Nursery & JAAS
-     configuration. Default is "".
-
-- *fai\_all\_ear* :: EAR to use instead of the Escenic
-     binaries. Default is "".
-
-- *fai\_all\_install* :: Install all components on your
-     server.. Default is 0.
-
-- *fai\_all\_name* :: Instance name for the all install
-     server.. Default is engine1.
-
-- *fai\_all\_stop\_and\_clear* :: After installation, stop the
-     instance and clear its work & log files.. Default is 0.
-
-- *fai\_analysis\_db\_host* :: For the EAE DB (different from
-     ECE's). Default is localhost.
-
-- *fai\_analysis\_db\_install* :: Install DB profile. Default is 0.
-
-- *fai\_analysis\_db\_password* :: For the EAE DB (different from
-     ECE's). Default is read-the-source-luke.
-
-- *fai\_analysis\_db\_port* :: For the EAE DB (different from
-     ECE's). Default is 3306.
-
-- *fai\_analysis\_db\_schema* :: For the EAE DB (different from
-     ECE's). Default is ece5db.
-
-- *fai\_analysis\_db\_user* :: For the EAE DB (different from
-     ECE's). Default is ece5user.
-
-- *fai\_analysis\_heap\_size* :: The JVM heap size in megabytes. The
-     default is *2048*.
-
-- *fai\_analysis\_install* :: Will install the Escenic Analysis
-     Engine, aka Stats, EAE.. Default is 0.
-
-- *fai\_analysis\_name* :: EAE instance name. Default is analysis1.
-
-- *fai\_analysis\_port* :: Port of the EAE. Default is 8080.
-
-- *fai\_analysis\_shutdown* :: Shutdown port for the EAE app
-     server. Default is 8005.
-
-- *fai\_analysis\_stop\_and\_clear* :: After installation, stop the
-     instances and clear its work & log files. Default is 0.
-
-- *fai\_apt\_escenic\_pool* :: Which package pool in the Escenic APT to
-     install package from.. Default is stable.
-
-- *fai\_cache\_backends* :: Space separated, e.g. "app1:8080
-     app2:8080". Default is ${HOSTNAME}:8080.
-
-- *fai\_cache\_install* :: Install cache server profile. Default is 0.
-
-- *fai\_db\_daily\_backup* :: Sets up daily backup of the DB.. Default
-     is 0.
-
-- *fai\_db\_drop\_old\_db\_first* :: Warning: this will drop the old
-     database before installing a new one. Default is 0.
-
-- *fai\_db\_host* :: Useful for editor & presentation
-     profiles. Default is *$HOSTNAME*.
-
-- *fai\_db\_install* :: Install db profile. Default is 0.
-
-- *fai\_db\_password* :: Useful for DB installation profile. Default
-     is read-the-source-luke.
-
-- *fai\_db\_port* :: Useful for editor & presentation
-     profiles. Default is 3306.
-
-- *fai\_db\_schema* :: Useful for DB installation profile. Default is
-     ece5db.
-
-- *fai\_db\_user* :: Useful for DB installation profile. Default is
-     ece5user.
-
-- *fai\_dry\_run* :: ece-install will download Escenic archives and
-     install OS packages, but will not configure anything.. Default
-     is 0.
-
-- *fai\_editor\_conf\_archive* :: *conf.tar.gz* :: to use for Nursery
-     & JAAS configuration. Default is "".
-
-- *fai\_editor\_deploy\_white\_list* :: The list of WARs to be
-     deployed on this instance.. Default is "escenic-admin escenic
-     studio indexer-webservice webservice".
-
-- *fai\_editor\_ear* :: EAR to use instead of the Escenic
-     binaries. Default is "".
-
-- *fai\_editor\_heap\_size* :: The JVM heap size in megabytes. The
-     default is *2048*.
-
-- *fai\_editor\_install* :: Install the editorial profile. Default
-     is 0.
-
-- *fai\_editor\_name* :: Name of the editor instance. Default is
-     editor1.
-
-- *fai\_editor\_port* :: HTTP port of the editor instance. Default
-     is 8080.
-
-- *fai\_editor\_shutdown* :: Shutdown port of the editor
-     instance. Default is 8005.
-
-- *fai\_editor\_stop\_and\_clear* :: After installation, stop the
-     instances and clear its work & log files. Default is 0.
-
-- *fai\_enabled* :: Whether or not to run ece-install in FAI
-                    mode. Default is 0.
-
-- *fai\_keep\_off\_etc\_hosts* :: Set this to 1 if you don't
-     want *ece-install* adding entries to */etc/hosts*. Default is 0.
-
-- *fai\_monitoring\_admin\_password* :: The admin password of the web
-     interface(s). Currenlty only set for Icinga.. Default is No
-     telling you here ;-).
-
-- *fai\_monitoring\_ece\_host\_list* :: Hosts running one or more ECE
-     instance. Default is "".
-
-- *fai\_monitoring\_host\_list* :: Quoted, space separated list of
-     <host>#<ip> pairs, e.g.:
-     #+BEGIN_SRC text
-     pres1#10.72.227.250
-     pres2#10.72.227.251.
-     #+END_SRC
-     Default is "".
-
-- *fai\_monitoring\_install* :: Install the monitoring server
-     profile.. Default is 0.
-
-- *fai\_monitoring\_munin\_node\_list* :: Set this to a whitespace
-     separated list of nodes that munin should monitor. Default is "".
-
-- *fai\_monitoring\_search\_host\_list* :: Hosts running search
-     instance(s) (Solr + indexer). Default is "".
-
-- *fai\_monitoring\_server\_ip* :: The IP of the monitoring
-     server.. Default is *127.0.0.1*.
-
-- *fai\_nfs\_allowed\_client\_network* :: IP/netmask of allowed NFS
-     clients, example: *192.168.1.0/255.255.255.0*. Default is "".
-
-- *fai\_nfs\_client\_install* :: Installs an NFS client. Default is 0.
-
-- *fai\_nfs\_client\_mount\_point\_parent* :: Mount point parent
-     directory. Default is */mnt*.
-
-- *fai\_nfs\_export\_list* :: Space separated list of NFS export
-     directories, full paths as seen on the NFS server.. Default is
-     "".
-
-- *fai\_nfs\_server\_address* :: Address of the NFS server, useful for
-     the NFS client profile. Default is "".
-
-- *fai\_nfs\_server\_install* :: Install an NFS server. Default is 0.
-
-- *fai\_presentation\_conf\_archive* :: *conf.tar.gz* :: to use for
-     Nursery & JAAS configuration. Default is "".
-
-- *fai\_presentation\_ear* :: EAR to use instead of the Escenic
-     binaries. Default is "".
-
-- *fai\_presentation\_heap\_size* :: The JVM heap size in megabytes. The
-     default is *2048*.
-
-- *fai\_presentation\_install* :: Install the presentation server
-     profile. Default is 0.
-
-- *fai\_presentation\_name* :: Name of the presentation server
-     instance. Default is engine1.
-
-- *fai\_presentation\_port* :: HTTP port of the presentation server
-     instance. Default is 8080.
-
-- *fai\_presentation\_deploy\_white\_list* :: The list of WARs to be
-     deployed on this instance.. Default is "escenic-admin".
-
-- *fai\_presentation\_shutdown* :: Shutdown port of the presentation
-     instance. Default is 8005.
-
-- *fai\_presentation\_stop\_and\_clear* :: After installation, stop
-     the instances and clear its work & log files. Default is 0.
-
-- *fai\_public\_host\_name* :: The public address for your
-     website. Default is *${HOSTNAME}:8080*.
-
-- *fai\_publication\_create* :: Create a new publication. Default
-     is 0.
-
-- *fai\_publication\_domain\_mapping\_list* :: Mapping between
-     publications and domains:
-     #+BEGIN_SRC text
-     "<pub>[,pub.war]#<domain>[#,<alias1>,<alias2>]"
-     #+END_SRC
-     Default is "".
-
-- *fai\_publication\_ear* :: All publications WARs inside will be used
-     for publication creation
-     (requires that *fai\_publication\_create* is 1). Default is "".
-
-- *fai\_publication\_environment* :: The kind of
-     environment/habitat. Typical values are: production, staging,
-     testing, development.. Default is "production".
-
-- *fai\_publication\_name* :: Name of the publication. Default
-     is *mypub*. When installing an editorial or presentation server
-     and not using an EAR, you can specify *fai\_publication\_name*
-     and *fai\_publication\_war* to have *ece-install* set up the
-     correct publication definition for your Assembly Tool
-     environment.
-
-- *fai\_publication\_use\_instance* :: Name of local instance to use
-     for creation. Default is *engine1*.
-
-- *fai\_publication\_war* :: WAR to base the new publication
-     on. Default is WF demo WAR (if present) or the ECE demo
-     WAR. When installing an editorial or presentation server and
-     not using an EAR, you can specify *fai\_publication\_name*
-     and *fai\_publication\_war* to have *ece-install* set up the
-     correct publication definition for your Assembly Tool environment.
-
-- *fai\_publication\_war\_remove\_file\_list* :: File list that should
-     be removed from all WARs inside *fai\_publication\_ear*
-     or *fai\_publication\_war*. Default is "".
-
-- *fai\_rmi\_install* :: Install the RMI hub profile. Default is 0.
-
-- *fai\_search\_conf\_archive* :: *conf.tar.gz* :: to use for Nursery
-     & JAAS configuration. Default is "".
-
-- *fai\_search\_deploy\_white\_list* :: The list of WARs to be
-     deployed on this instance.. Default is "solr indexer-webapp".
-
-- *fai\_search\_ear* :: EAR to use instead of the Escenic
-     binaries. Default is "".
-
-- *fai\_search\_for\_editor* :: If 1, will configure Solr for use with
-     an editorial server, if not for presentation servers.. Default
-     is 0.
-
-- *fai\_search\_heap\_size* :: The JVM heap size in megabytes. The
-     default is *2048*.
-
-- *fai\_search\_indexer\_ws\_uri* :: URI of the indexer-webservice
-     that the search instance shall use for knowing what to
-     index.. Default is
-     http://${HOSTNAME}:8080/indexer-webservice/index/.
-
-- *fai\_search\_install* :: Install the search server profile (Solr +
-     indexer). Default is 0.
-
-- *fai\_search\_name* :: Name of the search instance. Default is
-     search1.
-
-- *fai\_search\_port* :: HTTP port of the search instance. Default
-  is 8080.
-
-- *fai\_search\_shutdown* :: Shutdown port of the search
-  instance. Default is 8005.
-
-- *fai\_vip\_address* :: The virtual IP the provider will
-     claim. Default is "".
-
-- *fai\_vip\_install* :: Install a VIP provider. Default is 0.
-
-- *fai\_vip\_primary\_node\_auth\_key* :: Optional, but useful to set
-     to make conf files consistent. Will be generated if not
-     set. Default is "".
-
-- *fai\_vip\_primary\_node\_ip* :: Primary node IP. Default is "".
-
-- *fai\_vip\_primary\_node\_name* :: Primary node name, must be what
-     $(uname -n) returns. Default is "".
-
-- *fai\_vip\_secondary\_node\_ip* :: Secondary node IP. Default is "".
-
-- *fai\_vip\_secondary\_node\_name* :: Secondary node name, must be
-     what $(uname -n) returns. Default is "".
-
-- *fai\_vip\_service\_list* :: List of init.d scripts to invoke when
-     the VIP is acclaimed/revoked, script must support start &
-     stop. Default is "".
-
-- *fai\_vip\_sibling\_ip* :: The IP of the other node offering the
-  VIP. Default is "".
-
-- *fai\_wf\_install* :: Install Widget Framework profile. Default is 0.
-
-- *fallback\_tomcat\_url* :: Override url used to download Tomcat. As old
-    releases are removed from Tomcat download mirrors this can be used to
-    point to the updated versions. Use the link for the .tar.gz file.
-
-As you've probably already found out, *0* means "false" and *1* means "true".
+#+include: "ece-install-conf-reference.org"
 
 ** Example Configurations
 Here are a few simple example configurations, you can find more under
@@ -1343,29 +986,32 @@ Here are a few simple example configurations, you can find more under
 To automatically install an editorial server and create a publication
 called "jollygood", run *ece-install* with the following settings:
 
-#+BEGIN_SRC conf
-fai_enabled=1
-fai_editor_install=1
-fai_publication_create=1
-fai_publication_name=jollygood
+#+BEGIN_SRC yaml
+profiles:
+  editor:
+    install: true
+  publications:
+    - name: jollygood
+      create: true
 #+END_SRC
 
 ****** Install Two Presentation Servers On a Single Host
 To install two presentation servers called *engine1* and
 *engine2* on the same host,  first run *ece-install* with the following settings:
-#+BEGIN_SRC conf
-fai_enabled=1
-fai_presentation_install=1
-fai_presentation_name=engine1
+#+BEGIN_SRC yaml
+profiles:
+  presentation:
+    install: true
 #+END_SRC
 
 Then run it a second time with the following settings:
-#+BEGIN_SRC conf
-fai_enabled=1
-fai_presentation_install=1
-fai_presentation_name=engine2
-fai_presentation_port=8081
-fai_presentation_shutdown=8105
+#+BEGIN_SRC yaml
+profiles:
+  presentation:
+    install: true
+    name: engine2
+    port: 8081
+    shutdown: 8105
 #+END_SRC
 More parameters are required the second time. On the first run,
 defaults could be used, but the second time you need to override the
@@ -1413,7 +1059,7 @@ bundle, see the FAI section.
 * Using a Custom Configuration File for ece-install
 You can specify a different configuration by using the -f parameter:
 #+BEGIN_SRC text
-# ece-install -f ece-install-presentation-server.conf
+# ece-install -f ece-install-presentation-server.yaml
 #+END_SRC
 
 * Overview of File Paths Used by the ece-install command
@@ -1488,7 +1134,7 @@ but these should be the most interesting ones.
 
 * Overriding the Escenic directories
 All of the Escenic specific directories may be overwritten in
-ece-install.conf. Here's an example of changing all the paths possible
+=ece-install.conf=. Here's an example of changing all the paths possible
 with the same suffix.
 
 #+BEGIN_SRC conf
@@ -1511,6 +1157,9 @@ test environment and want to separate stacks of Escenic Content Engine
 and plugins. Another usecase is if you want to test out a new minor
 version of ECE, e.g. you're currently running 5.4, but want to try
 out 5.5 in parallel on the same boxes.
+
+This feature is currently only available through the use of
+=.conf= configuration files.
 
 * Extending ece-install by Writing Hooks
 ece-install  has a number of hooks on which you can hook on your own
@@ -1558,60 +1207,6 @@ install_analysis_server.preinst
 install_analysis_server.postinst
 set_up_solr.preinst
 set_up_solr.postinst
-#+END_SRC
-
-* Uninstalling Everything that the ece-install Set Up
-#+BEGIN_QUOTE
-WARNING: this is potentially dangerous as some of these components may
-be used by other pieces of software you have running on your
-host. However, this may be useful if you're installing a clean
-environment and want to e.g. undo your previous install to install a
-different profile.
-#+END_QUOTE
-
-You trigger this by setting the following in your *ece-install.conf*:
-#+BEGIN_SRC conf
-fai_un_install_everything=1
-#+END_SRC
-
-*ece-install* will then prompt the user to type a confirmation
-sentence. Once the un-installation is done, a summary is printed to
-the user.
-
-*ece-install* will then continue with the other tasks and installation
-profiles if so defined. The fai_un_install_everything=1 is processed
-before any other FAI profile, hence, on a system where you want to
-wipe the slate clean before starting over, you can for instance do:
-
-#+BEGIN_SRC conf
-fai_un_install_everything=1
-fai_presentation_install=1
-#+END_SRC
-
-The output will be similar to:
-#+BEGIN_SRC text
-[ece-install-5] You have set fai_un_install_everything=1 in your
-  /root/ece-install.conf
-[ece-install-5] This will uninstall the following on raven:
-[ece-install-5] Packages to be removed: ant ant-contrib
-  ant-optional escenic-content-engine-scripts
-  escenic-munin-plugins escenic-munin-plugins libmysql-java maven2
-  memcached munin munin-node munin-plugins-extra
-  munin-java-extra nginx percona-server-client
-  percona-server-client-5.5 percona-server-common-5.5
-  percona-server-server percona-server-server-5.5
-  varnish sun-java6-jdk
-[ece-install-5] Files & directories to be removed: /etc/escenic
-  /opt/*tomcat* /opt/escenic /var/lib/escenic /var/run/escenic
-/etc/escenic /var/log/escenic /etc/apt/sources.list.d/escenic.list
-[ece-install-5] APT keys to be removed: C4DEFFEB CD2EFD2A
-[ece-install-5] If you're absolutely sure about this, type:
-[ece-install-5] I know what I'm doing, please do as I say.
-I know what I'm doing, please do as I say.
-[ece-install-11] OK, I'll do as you wish:
-[ece-install-11] I will uninstall everything from ece-install
-[ece-install-11] Everything (well, most) set up by ece-install
-[ece-install-11] should now have been removed from raven.
 #+END_SRC
 
 * GOALS & DESIGN CHOICES
@@ -1725,7 +1320,10 @@ user was prompted for all the choices on what to install (most of
 which he/she could just hit ENTER to complete). Once this the
 interactive command was shown to customers and Escenic employees, the
 need for a fully automatic version became apparent and *ece-install*
-got the *fai_enabled* parameter to make the switch.
+got the *fai_enabled* parameter to make the switch. After the a number
+of years, we saw however, that pretty much everyone ran *ece-install*
+in its fully automatic mode, so in March 2017, we removed the
+interactive mode, making the *fai_enabled* parameter obsolete.
 
 For this reason, the *ece-install.conf* options which have a *fai_*
 prefix only applies when running *ece-install* in non-interactive
@@ -1776,7 +1374,7 @@ using *ece-install*.
 Torstein Krause Johansen, Erik Mogsensen
 
 * COPYRIGHT
-Copyright 2011-2015 Escenic
+Copyright 2011-2017 Escenic
 
 Licensed under the Apache License, Version 2.0, see
 https://github.com/escenic/ece-scripts/COPYING for further details.

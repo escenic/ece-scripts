@@ -42,8 +42,7 @@ function restore_from_backup()
 
   wipe_the_slate_clean
   
-  if [ ${fai_enabled-0} -eq 1 -a \
-    ${fai_restore_from_backup-0} -eq 1 ]; then
+  if [ ${fai_restore_from_backup-0} -eq 1 ]; then
     print_and_log "Restoring from backup on $HOSTNAME ..."
     
     backup_file=${fai_restore_from_file}
@@ -72,65 +71,6 @@ function restore_from_backup()
     
     if [ ${fai_restore_configuration-0} -eq 1 ]; then
       restore_conf=1
-    fi
-  elif [ ${fai_enabled-0} -eq 0 ]; then
-    print "From which dataset do you wish to restore?"
-    if [ ! -d $backup_dir ]; then
-      print_and_log "Directory $backup_dir doesn't exist or isn't readable"
-      remove_pid_and_exit_in_error
-    fi
-
-    if [ $(ls $backup_dir | grep ".tar$" | wc -l) -lt 1 ]; then
-      print_and_log "No backup files (.tar) found in $backup_dir, exiting."
-      exit 0
-    fi
-    
-    local tarball_array=($(ls -t $backup_dir/*.tar))
-    
-    for (( i = 0; i <${#tarball_array[@]}; i++ )); do
-      echo "   " $(( ${i} + 1 )) "-" $(basename  ${tarball_array[$i]})
-    done
-    
-    print "Enter the number next to the tarball, from 1 to $i"
-    echo -n "Your choice [1]> "
-    read user_tarball
-
-    if [ -z "$user_tarball" ]; then
-      user_tarball=1
-    fi
-
-    backup_file=${tarball_array[$(( ${user_tarball} - 1 ))]}
-
-    print "Which part of the system do you wish to restore?"
-    restore_profiles=(
-      "The database"
-      "The Solr and ECE data files (multimedia archive)"
-      "The ECE configuration files"
-      "The Escenic and Tomcat software binaries + publication templates"
-      "Restore everything of the above"
-    )
-    for (( i = 0; i <${#restore_profiles[@]}; i++ )); do
-      echo "   " $(( ${i} + 1 )) "-" ${restore_profiles[$i]}
-    done
-    
-    print "Enter the number next to the tarball, from 1 to $i"
-    echo -n "Your choice [1]> "
-    read user_restore_profile
-
-    if [ -z "$user_restore_profile" ]; then
-      user_restore_profile=1
-    fi
-
-    if [ $user_restore_profile -eq 1 ]; then
-      restore_db=1
-    elif [ $user_restore_profile -eq 2 ]; then
-      restore_data_files=1
-    elif [ $user_restore_profile -eq 3 ]; then
-      restore_conf=1
-    elif [ $user_restore_profile -eq 4 ]; then
-      restore_binaries=1
-    elif [ $user_restore_profile -eq 5 ]; then
-      restore_all=1
     fi
   fi
 

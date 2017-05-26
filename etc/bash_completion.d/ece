@@ -1,11 +1,7 @@
 # auto completion for the /usr/bin/ece command.       Emacs: -*- sh -*- mode
 
-_ece_commands()
-{
-    local cur=${COMP_WORDS[COMP_CWORD]}
-    local prev=${COMP_WORDS[COMP_CWORD-1]}
-
-    commands="
+_get_sub_commands_for_ece() {
+  cat <<EOF
       applog
       assemble
       backup
@@ -32,8 +28,32 @@ _ece_commands()
       top
       update
       versions
-    "
-    
+EOF
+
+  # Dynamic lookup of available sub commands for /usr/bin/ece
+  (
+    local cmd_dir=/usr/share/escenic/ece-scripts/ece.d
+    if [ ! -d "${cmd_dir}" ]; then
+      return
+    fi
+
+    for el in "${cmd_dir}"/*.sh; do
+      source "${el}"
+    done
+    declare -F |
+      awk '{print $3}' |
+      sed -n 's#^cmd_##p' |
+      sed 's#_#-#g'
+  )
+}
+
+_get_completions_for_ece_command()
+{
+    local cur=${COMP_WORDS[COMP_CWORD]}
+    local prev=${COMP_WORDS[COMP_CWORD-1]}
+
+    commands=$(_get_sub_commands_for_ece)
+
     options="-i --instance -p --publication -r --publication-resource
              -t --type -u --user -w --password"
     resources="content-type feature layout layout-group image-version menu
@@ -77,11 +97,33 @@ _ece_commands()
         -r|--publication-resource)
             completions=$resources
             ;;
+        *)
+          if [[ "${prev}" != "$1" ]]; then
+            completions=${completions}" "$(get_completions_for_cmd "${prev}")
+          fi
+        #   ;;
     esac
   
     COMPREPLY=( $(compgen -W "$completions" -- $cur) )
 }
 
-complete -F _ece_commands ece
+## $1 :: cmd name
+get_completions_for_cmd() {
+  local cmd=$1
+  local cmd_completion_function=complete_${cmd//-/_}
 
+  local cmd_dir=/usr/share/escenic/ece-scripts/ece.d
+  if [ ! -d "${cmd_dir}" ]; then
+    return
+  fi
 
+  for el in "${cmd_dir}"/*.sh; do
+    source "${el}" 2>/dev/null
+  done
+
+  declare -F |
+    grep -q -w "${cmd_completion_function}" &&
+    "${cmd_completion_function}"
+}
+
+complete -F _get_completions_for_ece_command ece

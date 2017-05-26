@@ -34,7 +34,7 @@ function set_conf_file_value() {
 
   if [ -r $file ]; then
     if [ $(grep ^$1 $file | wc -l) -gt 0 ]; then
-      if [ $dont_quote_conf_values -eq 0 ]; then
+      if [ ${dont_quote_conf_values-0} -eq 0 ]; then
         sed -i "s~$key=.*~$key=\"$value\"~g" $file
       else
         sed -i "s~$key=.*~$key=$value~g" $file
