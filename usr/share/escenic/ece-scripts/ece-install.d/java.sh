@@ -1,12 +1,14 @@
-default_java_version=1.8
-_java_version_with_build_number=${fai_java_version-${fai_server_java_version-8u121-b13}}
-_java_version=${_java_version_with_build_number%-*}
-sun_java_bin_url=http://download.oracle.com/otn-pub/java/jdk/6u39-b04/jdk-6u39-linux-i586.bin
-if [[ $(uname -m) == "x86_64" ]]; then
-  sun_java_bin_url=http://download.oracle.com/otn-pub/java/jdk/${_java_version_with_build_number}/e9e7ea248e2c4826b92b3f075a80e441/jdk-${_java_version}-linux-x64.rpm
-fi
-  
+# -*- mode: sh; sh-shell: bash; -*-
+
 function install_oracle_java() {
+  local default_java_version=1.8
+  local _java_version_with_build_number=${fai_java_version-${fai_server_java_version-8u131-b11}}
+  _java_version=${_java_version_with_build_number%-*}
+  sun_java_bin_url=http://download.oracle.com/otn-pub/java/jdk/6u39-b04/jdk-6u39-linux-i586.bin
+  if [[ $(uname -m) == "x86_64" ]]; then
+    sun_java_bin_url=http://download.oracle.com/otn-pub/java/jdk/${_java_version_with_build_number}/d54c1d3a095b4ff2b6607d096fa80163/jdk-${_java_version}-linux-x64.rpm
+  fi
+
   if _java_is_sun_java_already_installed; then
     print_and_log "Oracle Java is already installed on $HOSTNAME"
     _java_update_java_env_from_java_bin
@@ -21,10 +23,6 @@ function install_oracle_java() {
       "Conf: fai_java_oracle_licence_accepted=1"
     remove_pid_and_exit_in_error
   fi
-
-  print_and_log "Downloading Oracle Java from download.oracle.com ..."
-  server_java_version=${fai_server_java_version-${default_java_version}}
-  debian_package_name=""
 
   if [ "${on_debian_or_derivative-0}" -eq 1 ]; then
     _install_oracle_java_debian
@@ -107,9 +105,14 @@ function _java_update_java_env_from_java_bin() {
 ## $1 :: uri
 ## $2 :: target file
 function _download_oracle_file() {
-  print_and_log "Downloading Oracle Java from download.oracle.com ..."
   local uri=$1
   local target_file=$2
+
+  print_and_log \
+    "Downloading Oracle Java" \
+    "${_java_version_with_build_number}" \
+    "from download.oracle.com ..."
+
   run wget \
       --no-cookies \
       --header 'Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com ; oraclelicense=accept-securebackup-cookie' \
