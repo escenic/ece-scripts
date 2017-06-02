@@ -1,4 +1,4 @@
-# by tkj@vizrt.com
+# by torstein@escenic.com
 
 function start_type() {
   unset CLASSPATH

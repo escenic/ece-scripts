@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-# by tkj@vizrt.com
+# by torstein@escenic.com
 
 handbook_org=vosa-handbook.org
 target_dir=$HOME/tmp/$(basename $0 .sh)-$(date --iso)

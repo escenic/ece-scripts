@@ -133,9 +133,11 @@ function set_up_app_server() {
       search_host=$(echo $user_search | cut -d':' -f1)
       search_port=$(echo $user_search | cut -d':' -f2)
     fi
+
   else
     search_host=${fai_search_host-$HOSTNAME}
     search_port=${fai_search_port-$default_app_server_port}
+    solr_port=${fai_solr_port-8983}
   fi
 
   download_tomcat $download_dir
@@ -378,7 +380,7 @@ EOF
                />
     <Engine name="Catalina" defaultHost="localhost" jvmRoute="jvm1">
       <Valve className="org.apache.catalina.valves.AccessLogValve"
-             prefix="access."
+             prefix="access-publications."
              suffix=".log"
              pattern="common"
              />
@@ -476,11 +478,18 @@ EOF
     done
   fi
 
+  local solr_editorial_url=http://${search_host}:${solr_port}/solr/editorial
+  local solr_presentation_url=http://${search_host}:${solr_port}/solr/presentation
+  if [ ${fai_search_legacy-0} -eq 1 ]; then
+    solr_editorial_url=http://${search_host}:${search_port}/solr/collection1
+    solr_presentation_url=http://${search_host}:${search_port}/solr/presentation
+  fi
+
   if [ $install_profile_number -ne $PROFILE_ANALYSIS_SERVER ]; then
     xmlstarlet ed -P -L \
        -s /Context -t elem -n TMP -v '' \
        -i //TMP -t attr -n name -v escenic/solr-base-uri \
-       -i //TMP -t attr -n value -v http://${search_host}:${search_port}/solr/collection1 \
+       -i //TMP -t attr -n value -v "${solr_editorial_url}" \
        -i //TMP -t attr -n type -v java.lang.String \
        -i //TMP -t attr -n override -v false \
        -r //TMP -v Environment \
@@ -499,7 +508,7 @@ EOF
        -r //TMP -v Environment \
        -s /Context -t elem -n TMP -v '' \
        -i /Context/TMP -t attr -n name -v escenic/index-update-uri \
-       -i /Context/TMP -t attr -n value -v http://${search_host}:${search_port}/solr/collection1/update/ \
+       -i /Context/TMP -t attr -n value -v ${solr_editorial_url}/update/ \
        -i /Context/TMP -t attr -n type -v java.lang.String \
        -i /Context/TMP -t attr -n override -v true \
        -r //TMP -v Environment \
@@ -519,17 +528,18 @@ EOF
    print_and_log "Finished adding solr configuration for search"
    print_and_log "Started adding context configuration for indexer-webapp-presentation"
  
-     mkdir -p $tomcat_base/conf/Catalina/localhost/
+   mkdir -p $tomcat_base/conf/Catalina/localhost/
 
-     cat >> $tomcat_base/conf/Catalina/localhost/indexer-webapp-presentation.xml <<EOF
+   cat > $tomcat_base/conf/Catalina/localhost/indexer-webapp-presentation.xml <<EOF
     <Context docBase="$\\{catalina.base}/webapps/indexer-webapp">
-      <Environment name="escenic/solr-base-uri" value="http://${search_host}:${search_port}/solr/presentation/" type="java.lang.String" override="true"/>
+      <Environment name="escenic/solr-base-uri" value="${solr_presentation_url}" type="java.lang.String" override="true"/>
       <Environment name="escenic/indexer-webservice" value="${presentation_indexer_ws_uri}" type="java.lang.String" override="true"/>
-      <Environment name="escenic/index-update-uri" value="http://${search_host}:${search_port}/solr/presentation/update/" type="java.lang.String" override="true"/>
+      <Environment name="escenic/index-update-uri" value="${solr_presentation_url}/update/" type="java.lang.String" override="true"/>
       <Environment name="escenic/head-tail-storage-file" value="$escenic_data_dir/engine/head-tail-presentation.index" type="java.lang.String" override="true"/>
       <Environment name="escenic/failing-documents-storage-file" value="$escenic_data_dir/engine/failures-presentation.index" type="java.lang.String" override="true"/>
    </Context>
 EOF
+   pretty_print_xml $tomcat_base/conf/Catalina/localhost/indexer-webapp-presentation.xml
    print_and_log "Finished adding context for indexer-webapp-presentation"
 
   elif [ $install_profile_number -eq $PROFILE_ANALYSIS_SERVER ]; then
@@ -547,6 +557,7 @@ EOF
        $tomcat_base/conf/context.xml
   fi
 
+  pretty_print_xml $tomcat_base/conf/context.xml
   set_up_logging
 }
 

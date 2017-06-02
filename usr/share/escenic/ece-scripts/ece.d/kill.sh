@@ -1,4 +1,4 @@
-# by tkj@vizrt.com
+# by torstein@escenic.com
 function kill_type() {
   if [ -n "$type_pid" ]; then
     message="Using force to stop the $instance instance of $type on $HOSTNAME ..."

@@ -67,6 +67,7 @@ newsgate
 vcpeditor
 online-graphics
 widget-framework-core
+widget-framework
 widget-framework-common
 widget-framework-mobile
 widget-framework-community
@@ -79,7 +80,8 @@ note
 seo
 mobile-studio
 preview-editor
-live-center"
+live-center
+revision-history"
 
 declare -A project_distributions=()
 
@@ -87,7 +89,8 @@ project_maven_coordinates=""
 
 declare -A maven_snapshot_coordinates=(
 ["assemblytool"]="com.escenic.tools:assemblytool:jar"
-["engine"]="com.escenic:engine-dist:zip:bin"
+["engine"]="com.escenic:engine-dist:zip:bin
+com.escenic:engine:zip"
 ["analysis-engine"]="com.escenic.plugins.analysis-engine:analysis-engine:zip"
 ["changelog"]="com.escenic.changelog:changelog:zip"
 ["dashboard"]="com.escenic.plugins.dashboard:dashboard:zip"
@@ -110,17 +113,20 @@ declare -A maven_snapshot_coordinates=(
 ["xml-editor"]="com.escenic.plugins.xml-editor:xml-editor:zip"
 ["vcpeditor"]="com.escenic.plugins.vcpeditor:vcpeditor:zip"
 ["widget-framework-core"]="com.escenic.widget-framework:framework-dist:zip"
+["widget-framework"]="com.escenic.widget-framework:widget-framework:zip"
 ["widget-framework-community"]="com.escenic.widget-framework:framework-community-dist:zip"
 ["widget-framework-mobile"]="com.escenic.widget-framework:framework-mobile-dist:zip"
 ["seo"]="com.escenic.plugins.seo:seo:zip"
 ["mobile-studio"]="com.escenic.plugins.mobile-studio:mobile-studio:zip"
 ["preview-editor"]="com.escenic.plugins.preview-editor:preview-editor:zip"
 ["live-center"]="com.escenic.plugins.live-center:live-center:zip"
+["revision-history"]="com.escenic.plugins.revision-history:revision-history:zip"
 )
 
 declare -A maven_coordinates=(
 ["assemblytool"]="com.escenic.tools:assemblytool:jar"
-["engine"]="com.escenic:engine-dist:zip:bin"
+["engine"]="com.escenic:engine-dist:zip:bin
+com.escenic:engine:zip"
 ["analysis-engine"]="com.escenic.plugins.analysis:analysis-engine:zip
 com.escenic.plugins.analysis-engine:analysis-engine:zip"
 ["changelog"]="com.escenic.changelog:changelog:zip"
@@ -153,12 +159,14 @@ com.escenic.plugins.xml-editor:xml-editor:zip"
 ["vcpeditor"]="com.escenic.plugins.vcpeditor:vcpeditor-dist:zip
 com.escenic.plugins.vcpeditor:vcpeditor:zip"
 ["widget-framework-core"]="com.escenic.widget-framework:framework-dist:zip"
+["widget-framework"]="com.escenic.widget-framework:widget-framework:zip"
 ["widget-framework-community"]="com.escenic.widget-framework:framework-community-dist:zip"
 ["widget-framework-mobile"]="com.escenic.widget-framework:framework-mobile-dist:zip"
 ["seo"]="com.escenic.plugins.seo:seo:zip"
 ["mobile-studio"]="com.escenic.plugins.mobile-studio:mobile-studio:zip"
 ["preview-editor"]="com.escenic.plugins.preview-editor:preview-editor:zip"
 ["live-center"]="com.escenic.plugins.live-center:live-center:zip"
+["revision-history"]="com.escenic.plugins.revision-history:revision-history:zip"
 )
 
 # root folders for engine and plugin distributions
@@ -844,7 +852,7 @@ function fetch_distributions
     if [[ ! $dist_version = "" ]]; then
 
       # remove old trunk-SNAPSHOT if present
-      if [[ $dist_version = "trunk-SNAPSHOT" ]]; then
+      if [ "$dist_version" == "trunk-SNAPSHOT" ] || [ "$dist_version" = "develop-SNAPSHOT" ]; then
         if [ -d $dists_root_dir/$f-$dist_version ]; then
           rm -rf $dists_root_dir/$f-$dist_version
         fi
@@ -858,7 +866,7 @@ function fetch_distributions
         local artifact_version=$dist_version
         local target_path=$dists_root_dir
        
-        if [[ $dist_version = "trunk-SNAPSHOT" ]]; then
+         if [ "$dist_version" == "trunk-SNAPSHOT" ] || [ "$dist_version" = "develop-SNAPSHOT" ]; then
           for h in ${maven_snapshot_coordinates["$f"]};
           do
             local dist_path=`mvn_coordinate_to_rest_call ${h}:$dist_version`
@@ -928,15 +936,15 @@ function request_distribution
 {
   local dist_path=$1
   if [ ! -z $dist_path ]; then
-    distribution_exists http://maven.vizrt.com/$dist_path  
+    distribution_exists http://maven.escenic.com/$dist_path
     local ret_val=$?
     if [ $ret_val -eq 0 ]; then
-      download_distribution http://maven.vizrt.com/$dist_path
+      download_distribution http://maven.escenic.com/$dist_path
     else
-      distribution_exists http://maven.vizrt.com/unstable/$dist_path
+      distribution_exists http://maven.escenic.com/unstable/$dist_path
       local ret_val=$?
       if [ $ret_val -eq 0 ]; then
-        download_distribution http://maven.vizrt.com/unstable/$dist_path
+        download_distribution http://maven.escenic.com/unstable/$dist_path
       fi      
     fi
   fi
@@ -986,7 +994,7 @@ function print_unstable_distributions
 {
   for f in ${!project_distributions[@]}; do
     local coordinate=
-    if [[ ${project_distributions["$f"]} = "trunk-SNAPSHOT" ]]; then
+    if [ "${project_distributions["$f"]}" == "trunk-SNAPSHOT" ] || [ "${project_distributions["$f"]}" == "develop-SNAPSHOT" ]; then
       for g in ${maven_snapshot_coordinates["$f"]}
       do
         local dist_path=`mvn_coordinate_to_rest_call ${g}:${project_distributions["$f"]}`
@@ -1003,9 +1011,9 @@ function print_unstable_distributions
       do
         local dist_path=`mvn_coordinate_to_url ${g}:${project_distributions["$f"]}`
         if [ ! -z $dist_path ]; then
-          distribution_exists http://maven.vizrt.com/$dist_path
+          distribution_exists http://maven.escenic.com/$dist_path
           if [ $? -ne 0 ]; then
-            distribution_exists http://maven.vizrt.com/unstable/$dist_path
+            distribution_exists http://maven.escenic.com/unstable/$dist_path
             if [ $? -eq 0 ]; then
               print_and_log "WARNING - $f version ${project_distributions["$f"]} is not supported!"
               local coordinate=$g
@@ -1095,10 +1103,10 @@ function verify_maven_proxy
       if [ $maven_build_offline -eq 1 ]; then
         print_and_log "Skipping maven proxy verification as you've chosen offline mode!"
       else
-        wget --http-user $maven_user --http-password $maven_password http://maven.vizrt.com -qO /dev/null
+        wget --http-user $maven_user --http-password $maven_password http://maven.escenic.com -qO /dev/null
         RETVAL=$?
         if [ $RETVAL -ne 0 ]; then
-          print_and_log "Your user can't reach http://maven.vizrt.com, exiting!"
+          print_and_log "Your user can't reach http://maven.escenic.com, exiting!"
           exit 1
         fi
       fi
@@ -1624,7 +1632,7 @@ local conf_deploy_opts="--conf"
 }
 
 function phase_deploy() {
-  if [ $auto_deploy == true ]; then
+  if [ "$local_mode" == "true" ] && [ "$auto_deploy" == "true" ]; then
     automatic_deploy
   fi
 }

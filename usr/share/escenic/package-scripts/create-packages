@@ -3,13 +3,13 @@
 # script for creating DEB and RPM packages of the vosa, ece-install
 # and ece scripts.
 
-# by tkj@vizrt.com
+# by torstein@escenic.com
 
 target_dir=/tmp/$(basename $0)-$(date --iso)
 package_name=escenic-content-engine-installer
 package_version=$(date +%Y-%m-%d.%H%M%S)
 default_maintainer_name="Torstein Krause Johansen"
-default_maintainer_email=tkj@vizrt.com
+default_maintainer_email=torstein@escenic.com
 log=$HOME/.$(basename $0).log
 
 function clean_up() {
@@ -265,14 +265,14 @@ function set_up_escenic-munin-plugins() {
   local dir=$(mktemp -d)
   (
     run cp -r ../../../../etc/munin/plugins/* $target_dir/etc/munin/plugins
-    run download_uri_target_to_dir \
-      https://github.com/mogsie/escenic-munin/tarball/master \
-      $dir
     cd $dir
-    tar xzf master
-    run cp $dir/mogsie-escenic-munin*/*_ $target_dir/usr/share/munin/plugins
-    run cp $dir/mogsie-escenic-munin*/README.md $doc_dir
-    run cp $dir/mogsie-escenic-munin*/site/* $doc_dir
+    run git archive --format=tar.gz \
+    --remote=ssh://git@cci-jira-stash.ccieurope.com:7999/vosa/escenic-munin.git master \
+    --output="master.tar.gz"
+    tar xzf master.tar.gz
+    run cp $dir/*_ $target_dir/usr/share/munin/plugins
+    run cp $dir/README.md $doc_dir
+    run cp $dir/site/* $doc_dir
 
     chmod 755 $file $target_dir/usr/share/munin/plugins
   )
@@ -314,15 +314,15 @@ function set_up_spore() {
 
   local dir=$(mktemp -d)
   (
-    download_uri_target_to_dir \
-      https://github.com/vizrt/spore/archive/master.tar.gz \
-      $dir
     cd $dir
+    run git archive --format=tar.gz \
+    --remote=ssh://git@cci-jira-stash.ccieurope.com:7999/vosa/spore.git master \
+    --output="master.tar.gz"
     run tar xzf master.tar.gz
-    run cp $dir/spore-master/bin/* $target_dir/usr/bin
-    run cp $dir/spore-master/sbin/* $target_dir/usr/sbin
-    run cp $dir/spore-master/README.md $target_dir/usr/share/doc/spore
-    run cp -r $dir/spore-master/examples $target_dir/usr/share/doc/spore/examples
+    run cp $dir/bin/* $target_dir/usr/bin
+    run cp $dir/sbin/* $target_dir/usr/sbin
+    run cp $dir/README.md $target_dir/usr/share/doc/spore
+    run cp -r $dir/examples $target_dir/usr/share/doc/spore/examples
   )
   run rm -rf $dir
 }

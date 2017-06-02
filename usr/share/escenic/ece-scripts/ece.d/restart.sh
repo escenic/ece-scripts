@@ -1,4 +1,4 @@
-# by tkj@vizrt.com
+# by torstein@escenic.com
 function restart_type() {
   stop_type
 

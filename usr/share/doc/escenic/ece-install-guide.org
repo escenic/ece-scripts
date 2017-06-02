@@ -146,12 +146,12 @@ is as follows:
       profile (see Run ece-install).
 
 ** <<<Get ece-install>>>
-On Debian based systems, such as Ubuntu, you can use the [[http://apt.vizrt.com][Vizrt APT
+On Debian based systems, such as Ubuntu, you can use the [[http://apt.escenic.com][Escenic APT
 repository]] and install the package *escenic-content-engine-installer*
 to get the *ece-install* command.
 
 On RedHat based systems, such as CentOS, you can use the RPMs
-available from http://yum.vizrt.com/rpm and install the RPM
+available from http://yum.escenic.com/rpm and install the RPM
 *escenic-common-scripts* and *escenic-content-engine-installer* to
 get the *ece-install* command.
 
@@ -159,7 +159,7 @@ If you have any problems installing using the DEB or RPM packages, or
 if you're system is neither Debian nor RedHat based, you can also
 download a ZIP archive of all the *ece-scripts*, which *ece-install*
 is a part of, here:
-https://github.com/vizrt/ece-scripts/zipball/master
+https://github.com/escenic/ece-scripts/zipball/master
 
 ** <<<Become Root>>>
 You must be the root user to run *ece-install*. If you try to run it as
@@ -1083,7 +1083,7 @@ the *ece-install.conf*:
 - *fai\_analysis\_stop\_and\_clear* :: After installation, stop the
      instances and clear its work & log files. Default is 0.
 
-- *fai\_apt\_vizrt\_pool* :: Which package pool in the Vizrt APT to
+- *fai\_apt\_escenic\_pool* :: Which package pool in the Escenic APT to
      install package from.. Default is stable.
 
 - *fai\_cache\_backends* :: Space separated, e.g. "app1:8080
@@ -1723,7 +1723,7 @@ main executable:
 *ece-install* started out as a purely interactive command, where the
 user was prompted for all the choices on what to install (most of
 which he/she could just hit ENTER to complete). Once this the
-interactive command was shown to customers and Vizrt employees, the
+interactive command was shown to customers and Escenic employees, the
 need for a fully automatic version became apparent and *ece-install*
 got the *fai_enabled* parameter to make the switch.
 
@@ -1753,7 +1753,7 @@ high performance. In the middle of 2011, Torstein Krause Johansen set
 out to remedy this and created *ece-install* as a personal side
 project.
 
-In February 2012, he joined the Vizrt Online SaaS team and was allowed
+In February 2012, he joined the Escenic Online SaaS team and was allowed
 to work on *ece-install* full time. The command has since then been
 used to install several full scale production environments, as well as
 being used for full scale automatic integration tests, development
@@ -1763,9 +1763,9 @@ the preferred way of installing new Escenic systems.
 From February 2013, it has been maintained by Erik Mogensen.
 
 * BUGS
-Report any bugs found on https://github.com/vizrt/ece-scripts/issues.
+Report any bugs found on https://github.com/escenic/ece-scripts/issues.
 and be sure to check
-https://github.com/vizrt/ece-scripts/known-issues.org before
+https://github.com/escenic/ece-scripts/known-issues.org before
 using *ece-install*.
 
 * SEE ALSO

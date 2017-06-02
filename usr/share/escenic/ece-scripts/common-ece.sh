@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-# by tkj@vizrt.com
+# by torstein@escenic.com
 
 ### get_instance_list
 ## If the system is installed using the recommended paths, the method
@@ -89,9 +89,13 @@ webapps_in_standard_webapps_list="
   note-webservice
   preview-editor-ws
   mobile-studio
+  mobile-webservice
   live-center-editorial
   live-center
   live-center-presentation-webservice
+  video-presentation-webservice
+  revision-history
+  resolver
 "
 
 ### is_webapp_a_publication

@@ -3,7 +3,7 @@
 echo "--- START : post install hook - install and apply spore ---"
 
 # import spores.key
-ssh -F \$2/ssh.conf root@guest 'curl http://apt.vizrt.com/spores.key | gpg --import'
+ssh -F \$2/ssh.conf root@guest 'curl http://apt.escenic.com/spores.key | gpg --import'
 
 # install spore
 ssh -F \$2/ssh.conf root@guest 'apt-get install spore'

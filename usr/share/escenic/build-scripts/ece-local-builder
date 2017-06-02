@@ -27,8 +27,6 @@ do_initialize=0
 # Add user variables
 builder_system_user=
 customer_name=
-technet_user=
-technet_password=
 maven_user="maven.user"
 maven_password="maven.password"
 git_url=
@@ -55,207 +53,198 @@ update_resources=0
 ##
 function verify_root_privilege
 {
-  if [ "$(id -u)" != "0" ]; then
-    echo "This script must be run as root!"
-    exit 1
-  fi
+    if [ "$(id -u)" != "0" ]; then
+        echo "This script must be run as root!"
+        exit 1
+    fi
 }
 
 function verify_builder_conf
 {
-  if [ ! -e $provided_conf_file ]; then
-    print_and_log "The provided configuration file does not exist, exiting!" >&2
-    remove_pid_and_exit_in_error
-  else
-    provided_conf_file=$(readlink -f $provided_conf_file)
-    run source $provided_conf_file
-  fi
-  enforce_variable customer_name "Your builder configuration file is missing the variable customer_name, exiting!"
-  enforce_variable technet_user "Your builder configuration file is missing the variable technet_user, exiting!"
-  enforce_variable technet_password "Your builder configuration file is missing the variable technet_password, exiting!"
-  enforce_variable maven_user "Your builder configuration file is missing the variable maven_user, exiting!"
-  enforce_variable maven_password "Your builder configuration file is missing the variable maven_password, exiting!"
-  enforce_variable assemblytool_url "Your builder configuration file is missing the variable assemblytool_url, exiting!"
-  enforce_variable maven_download_url "Your builder configuration is missing the variable maven_download_url, exiting"
-  enforce_variable branch_name "Your builder configuration is missing the variable branch_name, exiting"
+    if [ ! -e $provided_conf_file ]; then
+        print_and_log "The provided configuration file does not exist, exiting!" >&2
+        remove_pid_and_exit_in_error
+    else
+        provided_conf_file=$(readlink -f $provided_conf_file)
+        run source $provided_conf_file
+    fi
+    enforce_variable customer_name "Your builder configuration file is missing the variable customer_name, exiting!"
+    enforce_variable maven_user "Your builder configuration file is missing the variable maven_user, exiting!"
+    enforce_variable maven_password "Your builder configuration file is missing the variable maven_password, exiting!"
+    enforce_variable assemblytool_url "Your builder configuration file is missing the variable assemblytool_url, exiting!"
+    enforce_variable maven_download_url "Your builder configuration is missing the variable maven_download_url, exiting"
+    enforce_variable branch_name "Your builder configuration is missing the variable branch_name, exiting"
 
-  wget --http-user $technet_user --http-password $technet_password http://technet.escenic.com/ -qO /dev/null
-  if [ $? -ne 0 ]; then
-    print_and_log "Your user can't reach http://technet.escenic.com/, exiting!"
-    remove_pid_and_exit_in_error
-  fi
-  wget --http-user $maven_user --http-password $maven_password http://maven.escenic.com/ -qO /dev/null
-  if [ $? -ne 0 ]; then
-    print_and_log "Your user can't reach http://maven.escenic.com/, exiting!"
-    remove_pid_and_exit_in_error
-  fi
+    wget --http-user $maven_user --http-password $maven_password http://maven.escenic.com/ -qO /dev/null
+    if [ $? -ne 0 ]; then
+        print_and_log "Your user can't reach http://maven.escenic.com/, exiting!"
+        remove_pid_and_exit_in_error
+    fi
 }
 
 ##
 function verify_scripts
 {
-  init_failed=0
-  if [ ! -d $ece_scripts_home ]; then
-    init_failed=1
-    error_message="The directory for ece-scripts $ece_scripts_home does not exist, exiting!"
-  elif [ ! -e $ece_scripts_home/common-bashing.sh ]; then
-    init_failed=1
-    error_message="The script $ece_scripts_home/common-bashing.sh does not exist, exiting!"
-  elif [ ! -e $ece_scripts_home/common-io.sh ]; then
-    init_failed=1
-    error_message="The script $ece_scripts_home/common-io.sh does not exist, exiting!"
-  fi
-  if [ $init_failed -eq 0 ]; then
-    source $ece_scripts_home/common-bashing.sh
-    source $ece_scripts_home/common-io.sh
-  else
-    echo "$error_message"
-    exit 1
-  fi
+    init_failed=0
+    if [ ! -d $ece_scripts_home ]; then
+        init_failed=1
+        error_message="The directory for ece-scripts $ece_scripts_home does not exist, exiting!"
+    elif [ ! -e $ece_scripts_home/common-bashing.sh ]; then
+        init_failed=1
+        error_message="The script $ece_scripts_home/common-bashing.sh does not exist, exiting!"
+    elif [ ! -e $ece_scripts_home/common-io.sh ]; then
+        init_failed=1
+        error_message="The script $ece_scripts_home/common-io.sh does not exist, exiting!"
+    fi
+    if [ $init_failed -eq 0 ]; then
+        source $ece_scripts_home/common-bashing.sh
+        source $ece_scripts_home/common-io.sh
+    else
+        echo "$error_message"
+        exit 1
+    fi
 
-  # set pid
-  if [ -e $pid_file ]; then
-    echo "Instance of $(basename $0) already running!"
-    exit 1
-  else
-    create_pid
-  fi
+    # set pid
+    if [ -e $pid_file ]; then
+        echo "Instance of $(basename $0) already running!"
+        exit 1
+    else
+        create_pid
+    fi
 
-  # shutdown hooks
-  trap common_bashing_exit_hook EXIT
-  trap common_bashing_user_cancelled_hook SIGINT SIGHUP
+    # shutdown hooks
+    trap common_bashing_exit_hook EXIT
+    trap common_bashing_user_cancelled_hook SIGINT SIGHUP
 }
 
 ##
 function enforce_variable
 {
-  if [ -z "$(eval echo $`echo $1`)" ]; then
-    print_and_log "$2"
-    remove_pid_and_exit_in_error
-  fi
+    if [ -z "$(eval echo $`echo $1`)" ]; then
+        print_and_log "$2"
+        remove_pid_and_exit_in_error
+    fi
 }
 
 ##
 function verify_command {
-  command -v $1 >/dev/null 2>&1 || { print >&2 "I require $1 but it's not installed, exiting!"; remove_pid_and_exit_in_error; }
+    command -v $1 >/dev/null 2>&1 || { print >&2 "I require $1 but it's not installed, exiting!"; remove_pid_and_exit_in_error; }
 }
 
 ##
 function verify_dependencies
 {
-  for f in $dependencies
-  do
-    verify_command $f
-  done
+    for f in $dependencies
+    do
+        verify_command $f
+    done
 }
 
 function usages(){
-  echo "Usage: ece-local-builder -c <customer-builder-configuration>(require) -s skip system user creation (optional)"
+    echo "Usage: ece-local-builder -c <customer-builder-configuration>(require) -s skip system user creation (optional)"
 }
 
 ##
 function get_user_options
 {
-  for el in "$1"; do
-    if [ "$el" == "initialize" ]; then
-       do_initialize=1
-       print_and_log "Initializing builder configuration ..."
-    fi
-  done
-  while getopts ":i:c:u:p:g:Vsab" opt; do
-    case $opt in
-      c)
-        print_and_log "Customer builder configuration is given in ${OPTARG} ..."
-        provided_conf_file=${OPTARG}
-        add_customer=1
-        ;;
-      s)
-        print_and_log "Skip ${OPTARG} user creation ..."
-        given_skip_user_creation=1
-        ;;
-      a)
-        print_and_log "Adding builder to all system users ..."
-        given_all_system_users=1
-        ;;
-      b)
-        print_and_log "I will run ece-build for the first time after builder setup is finised."
-        first_build=1
-        ;;
-      V)
-        echo "Version:" $ece_scripts_version
-        exit 0
-        ;;
-      \?)
-        print_and_log "Invalid option: -$OPTARG" >&2
-        usages
-        remove_pid_and_exit_in_error
-        ;;
-      :)
-        print_and_log "Option -$OPTARG requires an argument." >&2
-        usages
-        remove_pid_and_exit_in_error
-        ;;
-    esac
-  done
+    for el in "$1"; do
+        if [ "$el" == "initialize" ]; then
+            do_initialize=1
+            print_and_log "Initializing builder configuration ..."
+        fi
+    done
+    while getopts ":i:c:u:p:g:Vsab" opt; do
+        case $opt in
+            c)
+                print_and_log "Customer builder configuration is given in ${OPTARG} ..."
+                provided_conf_file=${OPTARG}
+                add_customer=1
+                ;;
+            s)
+                print_and_log "Skip ${OPTARG} user creation ..."
+                given_skip_user_creation=1
+                ;;
+            a)
+                print_and_log "Adding builder to all system users ..."
+                given_all_system_users=1
+                ;;
+            b)
+                print_and_log "I will run ece-build for the first time after builder setup is finised."
+                first_build=1
+                ;;
+            V)
+                echo "Version:" $ece_scripts_version
+                exit 0
+                ;;
+            \?)
+                print_and_log "Invalid option: -$OPTARG" >&2
+                usages
+                remove_pid_and_exit_in_error
+                ;;
+            :)
+                print_and_log "Option -$OPTARG requires an argument." >&2
+                usages
+                remove_pid_and_exit_in_error
+                ;;
+        esac
+    done
 }
 
 ##
 function execute
 {
-  if [ $do_initialize -eq 1 ]; then
-     initialize
-     return
-  else
-local users
-    if [ $add_customer -eq 1 ]; then
-      if [ ! -d $root_dir ]; then
-         init
-      else
-        print_and_log "Builder configurations are already generated! So, Going to create the customer  builder ..."
-      fi
-      if [ $given_all_system_users -eq 1 ]; then
-        users=`ls -1 /home`
-        for user in $users
-          do
-            ensure_no_user_conflict $user $customer_name
-            add_customer $user $customer_name
-            setup_nginx $user $customer_name
-          done
-      else
-       ensure_no_user_conflict $builder_system_user $customer_name
-       add_customer $builder_system_user $customer_name
-       setup_nginx $builder_system_user $customer_name
-      fi
-      setup_maven
-      authorize_users
-      disable_host_key_checking $builder_system_user
-      if [ $first_build -eq 1 ]; then
-        run_ece_build
-      fi
+    if [ $do_initialize -eq 1 ]; then
+        initialize
+        return
     else
-      print_and_log "No valid action chosen, exiting!" >&2
-      remove_pid_and_exit_in_error
+        local users
+        if [ $add_customer -eq 1 ]; then
+            if [ ! -d $root_dir ]; then
+                init
+            else
+                print_and_log "Builder configurations are already generated! So, Going to create the customer  builder ..."
+            fi
+            if [ $given_all_system_users -eq 1 ]; then
+                users=`ls -1 /home`
+                for user in $users
+                do
+                    ensure_no_user_conflict $user $customer_name
+                    add_customer $user $customer_name
+                    setup_nginx $user $customer_name
+                done
+            else
+                ensure_no_user_conflict $builder_system_user $customer_name
+                add_customer $builder_system_user $customer_name
+                setup_nginx $builder_system_user $customer_name
+            fi
+            setup_maven
+            authorize_users
+            disable_host_key_checking $builder_system_user
+            if [ $first_build -eq 1 ]; then
+                run_ece_build
+            fi
+        else
+            print_and_log "No valid action chosen, exiting!" >&2
+            remove_pid_and_exit_in_error
+        fi
     fi
-  fi
 }
 
 
 function initialize
 {
-local configuration_dir=/etc/escenic
-if [ ! -d $configuration_dir ]; then
-  run mkdir $configuration_dir
-fi
-#Adding builder.conf file
-local builder_file=/etc/escenic/builder.conf
-tee > $builder_file << EOF
+    local configuration_dir=/etc/escenic
+    if [ ! -d $configuration_dir ]; then
+        run mkdir $configuration_dir
+    fi
+    #Adding builder.conf file
+    local builder_file=/etc/escenic/builder.conf
+    tee > $builder_file << EOF
 customer_name=customer-name
-technet_user=technet-username
-technet_password=technet-password
 maven_user=maven-username
 maven_password=maven-password
 git_url=ssh://git@git-ip-address/mycloud.git
-assemblytool_url=http://technet.escenic.com/downloads/release/57/assemblytool-2.0.7.zip
+assemblytool_url=http://maven.escenic.com/com/escenic/tools/assemblytool/2.0.7/assemblytool-2.0.7.zip
 local_mode=false
 auto_deploy=false
 ear_base_url=http://builder-ip-address:81
@@ -268,30 +257,30 @@ EOF
 ##
 function init
 {
- local assemblytool_dir
- local assemblytool_home
-  # create skel dir for user creation
-  if [ ! -d "$skel_dir" ]; then
-    mkdir -p  $skel_dir
-  fi
-
-  # setup assemblytool skel
-  assemblytool_dir=`echo $assemblytool_url | rev | cut -d'/' -f1 | cut -d'.' -f2- | rev`
-  assemblytool_home=$skel_dir/$assemblytool_dir
-  if [ ! -d "$assemblytool_home" ]; then
-    mkdir $assemblytool_home
-    
-    run wget --http-user=$technet_user --http-password=$technet_password $assemblytool_url -O $assemblytool_home/assemblytool.zip
-    run cd $assemblytool_home
-    run unzip assemblytool.zip
-    run rm -f assemblytool.zip
-    run ant -q initialize
-    echo "engine.root = ../engine/
-plugins = ../plugins" >> $assemblytool_home/assemble.properties
-    if [ ! -d $assemblytool_home/conf ]; then
-       make_dir $assemblytool_home/conf/layers
+    local assemblytool_dir
+    local assemblytool_home
+    # create skel dir for user creation
+    if [ ! -d "$skel_dir" ]; then
+        mkdir -p  $skel_dir
     fi
-    echo "######################################################
+
+    # setup assemblytool skel
+    assemblytool_dir=`echo $assemblytool_url | rev | cut -d'/' -f1 | cut -d'.' -f2- | rev`
+    assemblytool_home=$skel_dir/$assemblytool_dir
+    if [ ! -d "$assemblytool_home" ]; then
+        mkdir $assemblytool_home
+        
+        run wget --http-user=$maven_user --http-password=$maven_password $assemblytool_url -O $assemblytool_home/assemblytool.zip
+        run cd $assemblytool_home
+        run unzip assemblytool.zip
+        run rm -f assemblytool.zip
+        run ant -q initialize
+        echo "engine.root = ../engine/
+plugins = ../plugins" >> $assemblytool_home/assemble.properties
+        if [ ! -d $assemblytool_home/conf ]; then
+            make_dir $assemblytool_home/conf/layers
+        fi
+        echo "######################################################
 # Site Wide Nursery configuration file.
 ########################################################
 # The purpose of this file is to set up the nursery,
@@ -364,65 +353,65 @@ layer.08 = /layers/instance/Layer
 # Customer :: \"escenic.server\" specific layer
 layer.09 = /layers/server/Layer" > $assemblytool_home/conf/Nursery.properties
 
-   #Update default layer configurations
-   if [ ! -d  $assemblytool_home/conf/layers/default ]; then
-        make_dir $assemblytool_home/conf/layers/default
-        echo "# The Escenic default configuration is read from the classpath with a prefix of com/escenic/configuration/default
+        #Update default layer configurations
+        if [ ! -d  $assemblytool_home/conf/layers/default ]; then
+            make_dir $assemblytool_home/conf/layers/default
+            echo "# The Escenic default configuration is read from the classpath with a prefix of com/escenic/configuration/default
 \$class=neo.nursery.ResourceDepot
 prefix=com/escenic/configuration/default" > $assemblytool_home/conf/layers/default/Files.properties
 
-       echo "# This configuration layer consists of properties files
+            echo "# This configuration layer consists of properties files
 \$class=neo.nursery.PropertyFileConfigurator
 depot=./Files" > $assemblytool_home/conf/layers/default/Layer.properties
-  else
-       print_and_log "Default layer already exists no need to create again"
-  fi
-  #Update family layer configurations
-    if [ ! -d  $assemblytool_home/conf/layers/family ]; then
-        make_dir $assemblytool_home/conf/layers/family
-        echo "# The family configuration is read from the file system hierarchy standard for configuration
+        else
+            print_and_log "Default layer already exists no need to create again"
+        fi
+        #Update family layer configurations
+        if [ ! -d  $assemblytool_home/conf/layers/family ]; then
+            make_dir $assemblytool_home/conf/layers/family
+            echo "# The family configuration is read from the file system hierarchy standard for configuration
 \$class=neo.nursery.FileSystemDepot
 
 # The files are loaded from a subdirectory of /etc/escenic/engine/host
 #   either from the system property \"com.escenic.config.engine.family\"
 #   or the family name \"default\" if that system property is null
 fileSystemRoot = /etc/escenic/engine/family/\${com.escenic.config.engine.family \"default\"}" > $assemblytool_home/conf/layers/family/Files.properties
-     
-  echo "# This configuration layer consists of properties files
+            
+            echo "# This configuration layer consists of properties files
 \$class=neo.nursery.PropertyFileConfigurator
 depot=./Files" > $assemblytool_home/conf/layers/family/Layer.properties  
-    else
-       print_and_log "Default layer already exists no need to create again"
-    fi
-   #Update addon layer configurations
-    if [ ! -d  $assemblytool_home/conf/layers/addon ]; then
-        make_dir $assemblytool_home/conf/layers/addon
-        echo "# The addon configuration is read from the classpath with no prefix
+        else
+            print_and_log "Default layer already exists no need to create again"
+        fi
+        #Update addon layer configurations
+        if [ ! -d  $assemblytool_home/conf/layers/addon ]; then
+            make_dir $assemblytool_home/conf/layers/addon
+            echo "# The addon configuration is read from the classpath with no prefix
 \$class=neo.nursery.ResourceDepot" > $assemblytool_home/conf/layers/addon/Files.properties
 
-      echo "# This configuration layer consists of properties files
+            echo "# This configuration layer consists of properties files
 \$class=neo.nursery.PropertyFileConfigurator
 depot=./Files" > $assemblytool_home/conf/layers/addon/Layer.properties 
-    else
-       print_and_log "Addon layer already exists no need to create again"
-    fi
-   #Update common layer configurations
-    if [ ! -d  $assemblytool_home/conf/layers/common ]; then
-        make_dir $assemblytool_home/conf/layers/common
-        echo "# The common configuration is read from the file system hierarchy standard location for configuration files
+        else
+            print_and_log "Addon layer already exists no need to create again"
+        fi
+        #Update common layer configurations
+        if [ ! -d  $assemblytool_home/conf/layers/common ]; then
+            make_dir $assemblytool_home/conf/layers/common
+            echo "# The common configuration is read from the file system hierarchy standard location for configuration files
 \$class=neo.nursery.FileSystemDepot
 fileSystemRoot = /etc/escenic/engine/common/" > $assemblytool_home/conf/layers/common/Files.properties
 
-       echo "# This configuration layer consists of properties files
+            echo "# This configuration layer consists of properties files
 \$class=neo.nursery.PropertyFileConfigurator
 depot=./Files" > $assemblytool_home/conf/layers/common/Layer.properties
-    else
-       print_and_log "Common layer already exists no need to create again"
-    fi
-   #Update host layer configurations
-    if [ ! -d  $assemblytool_home/conf/layers/host ]; then
-        make_dir $assemblytool_home/conf/layers/host
-        echo "# The host configuration is read from the file system hierarchy standard for configuration
+        else
+            print_and_log "Common layer already exists no need to create again"
+        fi
+        #Update host layer configurations
+        if [ ! -d  $assemblytool_home/conf/layers/host ]; then
+            make_dir $assemblytool_home/conf/layers/host
+            echo "# The host configuration is read from the file system hierarchy standard for configuration
 \$class=neo.nursery.FileSystemDepot
 
 # The files are loaded from a subdirectory of /etc/escenic/engine/host
@@ -430,66 +419,66 @@ depot=./Files" > $assemblytool_home/conf/layers/common/Layer.properties
 #   * the environment variable \"HOSTNAME\" or \"COMPUTERNAME\"
 #   otherwise the default value of \"localhost\"
 fileSystemRoot = /etc/escenic/engine/host/\${hostname env:HOSTNAME env:COMPUTERNAME \"localhost\"}/" >  $assemblytool_home/conf/layers/host/Files.properties
-       echo "# This configuration layer consists of properties files
+            echo "# This configuration layer consists of properties files
 \$class=neo.nursery.PropertyFileConfigurator
 depot=./Files" > $assemblytool_home/conf/layers/host/Layer.properties
-    else
-       print_and_log "Host layer already exists no need to create again"
-    fi
-   #Update environment layer configuration
-     if [ ! -d $assemblytool_home/conf/layers/environment ]; then
-          make_dir  $assemblytool_home/conf/layers/environment
-          echo "\$class=neo.nursery.FileSystemDepot
+        else
+            print_and_log "Host layer already exists no need to create again"
+        fi
+        #Update environment layer configuration
+        if [ ! -d $assemblytool_home/conf/layers/environment ]; then
+            make_dir  $assemblytool_home/conf/layers/environment
+            echo "\$class=neo.nursery.FileSystemDepot
 fileSystemRoot = /etc/escenic/engine/environment/\${com.escenic.environment \"unknown\"}/" > $assemblytool_home/conf/layers/environment/Files.properties
-          echo "# This configuration layer consists of properties files
+            echo "# This configuration layer consists of properties files
 \$class=neo.nursery.PropertyFileConfigurator
 depot=./Files" > $assemblytool_home/conf/layers/environment/Layer.properties
-     else
-          print_and_log "Envirnoment layer already exists no need to create again"
-     fi
-   #Update instance layer configuration
-    if [ ! -d  $assemblytool_home/conf/layers/instance ]; then
-         make_dir  $assemblytool_home/conf/layers/instance
-         echo "\$class=neo.nursery.FileSystemDepot
+        else
+            print_and_log "Envirnoment layer already exists no need to create again"
+        fi
+        #Update instance layer configuration
+        if [ ! -d  $assemblytool_home/conf/layers/instance ]; then
+            make_dir  $assemblytool_home/conf/layers/instance
+            echo "\$class=neo.nursery.FileSystemDepot
 fileSystemRoot = /etc/escenic/engine/instance/\${com.escenic.instance \"default\"}" > $assemblytool_home/conf/layers/instance/Files.properties
-        echo "# This configuration layer consists of properties files
+            echo "# This configuration layer consists of properties files
 \$class=neo.nursery.PropertyFileConfigurator
 depot=./Files" > $assemblytool_home/conf/layers/instance/Layer.properties
-   else
-         print_and_log "Instance layer already exists no need to create again"
-   fi
-  #Update server layer configuration
-    if [ ! -d  $assemblytool_home/conf/layers/server ]; then
-         make_dir  $assemblytool_home/conf/layers/server
-         echo "# The host configuration is read from the file system hierarchy standard for configuration
+        else
+            print_and_log "Instance layer already exists no need to create again"
+        fi
+        #Update server layer configuration
+        if [ ! -d  $assemblytool_home/conf/layers/server ]; then
+            make_dir  $assemblytool_home/conf/layers/server
+            echo "# The host configuration is read from the file system hierarchy standard for configuration
 \$class=neo.nursery.FileSystemDepot
 
 # The files are loaded from a subdirectory of /etc/escenic/engine/host-instance
 #   named after the hostname and instance name it's running as.
 fileSystemRoot = /etc/escenic/engine/server/\${escenic.server \"default\"}/" > $assemblytool_home/conf/layers/server/Files.properties
-        echo "# This configuration layer consists of properties files
+            echo "# This configuration layer consists of properties files
 \$class=neo.nursery.PropertyFileConfigurator
 depot=./Files" > $assemblytool_home/conf/layers/server/Layer.properties
-   else
-       print_and_log "Server layer already exists no need to create again"
-   fi
-  #Update vosa layer configuration
-   if [ ! -d   $assemblytool_home/conf/layers/vosa ]; then
-       mkdir  $assemblytool_home/conf/layers/vosa
-       echo "\$class=neo.nursery.FileSystemDepot
+        else
+            print_and_log "Server layer already exists no need to create again"
+        fi
+        #Update vosa layer configuration
+        if [ ! -d   $assemblytool_home/conf/layers/vosa ]; then
+            mkdir  $assemblytool_home/conf/layers/vosa
+            echo "\$class=neo.nursery.FileSystemDepot
 fileSystemRoot = /etc/escenic/engine/vosa/" > $assemblytool_home/conf/layers/vosa/Files.properties
-       echo "# This configuration layer consists of properties files
+            echo "# This configuration layer consists of properties files
 \$class=neo.nursery.PropertyFileConfigurator
 depot=./Files" > $assemblytool_home/conf/layers/vosa/Layer.properties
-   else
-       print_and_log "Vosa layer already exists no need to create again"
-   fi
-  fi
+        else
+            print_and_log "Vosa layer already exists no need to create again"
+        fi
+    fi
 
-  # setup maven settings.xml skel
-  if [ ! -d "$m2_home" ]; then
-    mkdir $m2_home
-    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+    # setup maven settings.xml skel
+    if [ ! -d "$m2_home" ]; then
+        mkdir $m2_home
+        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <settings xmlns=\"http://maven.apache.org/settings/1.0.0\"
           xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"
           xsi:schemaLocation=\"http://maven.apache.org/SETTINGS/1.0.0
@@ -552,78 +541,78 @@ depot=./Files" > $assemblytool_home/conf/layers/vosa/Layer.properties
     <activeProfile>builder</activeProfile>
   </activeProfiles>
 </settings>" > $m2_home/settings.xml
-  fi
+    fi
 
-  # setup subversion config skel
-  if [ ! -d "$subversion_dir" ]; then
-    run mkdir $subversion_dir
-    echo "[groups]
+    # setup subversion config skel
+    if [ ! -d "$subversion_dir" ]; then
+        run mkdir $subversion_dir
+        echo "[groups]
 
 [global]
 # Password / passphrase caching parameters:
 store-passwords = yes
 store-plaintext-passwords = yes" > $subversion_dir/servers
-  fi
+    fi
 
-  # setup .vim.rc skel 
-  if [ ! -e "$skel_dir/.vimrc" ]; then
-    echo "set background=dark
+    # setup .vim.rc skel 
+    if [ ! -e "$skel_dir/.vimrc" ]; then
+        echo "set background=dark
 syntax on
 set nocompatible
 set backspace=2" > $skel_dir/.vimrc
-  fi
+    fi
 }
 
 ##
 function verify_builder_exist 
 {
-  if [ ! -d $root_dir ]; then
-    print_and_log "Builder has not been initialized, please run this script with the -i flag and provide a valid config file!"
-    remove_pid_and_exit_in_error
-  fi
+    if [ ! -d $root_dir ]; then
+        print_and_log "Builder has not been initialized, please run this script with the -i flag and provide a valid config file!"
+        remove_pid_and_exit_in_error
+    fi
 }
 
 ##
 function verify_user_options() {
-  if [ $add_customer -eq 1 ]; then
-      if [ -z $builder_system_user ]; then
-         builder_system_user=$customer_name
-      fi
-  else 
-      print_and_log "Don't you want to create customer builder. Missing some required options ..."
-      usages
-      remove_pid_and_exit_in_error
-  fi
+    if [ $add_customer -eq 1 ]; then
+        if [ -z $builder_system_user ]; then
+            builder_system_user=$customer_name
+        fi
+    else 
+        print_and_log "Don't you want to create customer builder. Missing some required options ..."
+        usages
+        remove_pid_and_exit_in_error
+    fi
 }
 
 ##
 function ensure_no_user_conflict
 {
-  if [ $given_skip_user_creation -eq 1 ]; then
-    if [  -z "$(getent passwd $1)" ]; then
-      print_and_log "User $1 does not exist but you want to skip user creation!!!! Are you gone nuts ...."
-      remove_pid_and_exit_in_error
-    fi
-    if [ ! -d /home/$1 ]; then
-     print_and_log "User $1 does not exist, but has a home folder!"
-     remove_pid_and_exit_in_error
-   fi
-     print_and_log "I will skipping builder system user creation ..."
-  else 
+    if [ $given_skip_user_creation -eq 1 ]; then
+        if [  -z "$(getent passwd $1)" ]; then
+            print_and_log "User $1 does not exist but you want to skip user creation!!!! Are you gone nuts ...."
+            remove_pid_and_exit_in_error
+        fi
+        if [ ! -d /home/$1 ]; then
+            print_and_log "User $1 does not exist, but has a home folder!"
+            remove_pid_and_exit_in_error
+        fi
+        print_and_log "I will skipping builder system user creation ..."
+    else 
 
-    if [ ! -z "$(getent passwd $1)" ]; then
-      print_and_log "User $1 already exist!"
-      remove_pid_and_exit_in_error
+        if [ ! -z "$(getent passwd $1)" ]; then
+            print_and_log "User $1 already exist!"
+            remove_pid_and_exit_in_error
+        fi
+        if [ -d /home/$1 ]; then
+            print_and_log "User $1 does not exist, but has a home folder!"
+            remove_pid_and_exit_in_error
+        fi
+        if [ -d /var/www/$2 ]; then
+            print_and_log "Project $2 does not exist, but has a web root under /var/www/$2"
+            remove_pid_and_exit_in_error
+        fi
     fi
-    if [ -d /home/$1 ]; then
-     print_and_log "User $1 does not exist, but has a home folder!"
-     remove_pid_and_exit_in_error
-   fi
-   if [ -d /var/www/$2 ]; then
-     print_and_log "Project $2 does not exist, but has a web root under /var/www/$2"
-     remove_pid_and_exit_in_error
-   fi
-fi
 }
 
 
@@ -631,17 +620,17 @@ fi
 function add_customer
 {
 
-# Check if user want's to skip user creation
-  if [ $given_skip_user_creation -eq 1 ];then
-       print_and_log " Skipping builder system user $1 creation ..."
-  else
-     run useradd -m -s /bin/bash $1
-  fi
-  git_protocol=`echo $git_url | cut -d':' -f1`
-  git_user=`echo $git_url | awk -F"//" '{print $2;}' | cut -d'@' -f1`
-  git_base=`echo $git_url | cut -d'@' -f2`
-  make_dir /home/$1/.build
-  echo "customer=$2
+    # Check if user want's to skip user creation
+    if [ $given_skip_user_creation -eq 1 ];then
+        print_and_log " Skipping builder system user $1 creation ..."
+    else
+        run useradd -m -s /bin/bash $1
+    fi
+    git_protocol=`echo $git_url | cut -d':' -f1`
+    git_user=`echo $git_url | awk -F"//" '{print $2;}' | cut -d'@' -f1`
+    git_base=`echo $git_url | cut -d'@' -f2`
+    make_dir /home/$1/.build
+    echo "customer=$2
 src_control=git
 git_user=$git_user
 git_protocol=$git_protocol
@@ -655,55 +644,61 @@ deploy_conf=$deploy_conf
 update_resources=$update_resources
 do_force=$do_force
 branch_name=$branch_name" > /home/$1/.build/build.conf
-  run chown $1:$1 /home/$1/.build/build.conf
-  run rsync -av $skel_dir/ /home/$1
-  run chown -R $1:$1 /home/$1
-  if [ ! -d /var/www/$1 ]; then
-    make_dir /var/www/$1
-    run chown www-data:www-data /var/www/$1
-  else
-    print_and_log "Failed to add web root /var/www/$1"
-  fi
-  if [ ! -h /var/www/$1/releases ]; then
-    run ln -s /home/$1/releases /var/www/$1/releases
-  else
-    print_and_log "Failed to add symlink for /var/www/$1/releases"
-    remove_pid_and_exit_in_error
-  fi
+    run chown $1:$1 /home/$1/.build/build.conf
+    run rsync -av $skel_dir/ /home/$1
+    run chown -R $1:$1 /home/$1
+    if [ ! -d /var/www/$1 ]; then
+        make_dir /var/www/$1
+        run chown www-data:www-data /var/www/$1
+    else
+        print_and_log "Failed to add web root /var/www/$1"
+    fi
+    if [ ! -h /var/www/$1/releases ]; then
+        run ln -s /home/$1/releases /var/www/$1/releases
+    else
+        print_and_log "Failed to add symlink for /var/www/$1/releases"
+        remove_pid_and_exit_in_error
+    fi
 }
 
 function setup_nginx
 {
-  local exists=$(dpkg -l | grep nginx)
-  if [ -z "$exists" ]; then
-     run apt-get -y install nginx
-  fi
-  if [ ! -d /etc/nginx/default-site ]; then
-    #We are trying to install in a fresh vm with out sdp.xml
-    run mkdir /etc/nginx/default-site
-    run rm /etc/nginx/sites-available/default
-    tee > /etc/nginx/sites-available/default << EOF
+    local exists=$(dpkg -l | grep nginx)
+    if [ -z "$exists" ]; then
+        run apt-get -y install nginx
+    fi
+    if [ ! -d /etc/nginx/default-site ]; then
+        #We are trying to install in a fresh vm with out sdp.xml
+        run mkdir /etc/nginx/default-site
+        run rm /etc/nginx/sites-available/default
+        tee > /etc/nginx/sites-available/default << EOF
 server {
   listen 81 default;
   include /etc/nginx/default-site/*.conf;
 }
 
 EOF
-  fi
+    fi
 
-  if [ ! -e /etc/nginx/default-site/$1.conf ]; then
-    echo "location /$2/releases/ {
+    if [ ! -e /etc/nginx/default-site/$1.conf ]; then
+        echo "location /$2/releases/ {
         alias /var/www/$1/releases/;
         expires modified +310s;
 }" > /etc/nginx/default-site/$1.conf
-  fi
-  service nginx restart
+    fi
+    service nginx restart
 }
 
 function disable_host_key_checking
 {
-local git_host=$(echo "$git_base" | cut -d '/' -f1)
-tee > /home/$1/.ssh/config << EOF
+    local git_host=$(echo "$git_base" | cut -d '/' -f1)
+    if [[ ! $(echo $git_host | grep ":" | wc -l ) -eq 0 ]]; then
+       old_ifs=$IFS
+       IFS=':' read host port <<< "$git_host"
+       IFS=$old_ifs
+       git_host=$host
+    fi
+    tee > /home/$1/.ssh/config << EOF
 Host $git_host
     StrictHostKeyChecking no
 EOF
@@ -712,10 +707,10 @@ chown $builder_system_user:$builder_system_user /home/$1/.ssh/config
 
 function setup_maven
 {
-local temdir=/tmp
-run wget --quiet $maven_download_url -O /tmp/$(basename $maven_download_url)
-run unzip /tmp/$(basename $maven_download_url) -d /usr/local/maven
-tee /etc/profile.d/envmaven.sh << EOF
+    local temdir=/tmp
+    run wget --quiet $maven_download_url -O /tmp/$(basename $maven_download_url)
+    run unzip /tmp/$(basename $maven_download_url) -d /usr/local/maven
+    tee /etc/profile.d/envmaven.sh << EOF
 M2_HOME=/usr/local/maven/$(echo "$(basename $maven_download_url)" | cut -d'-' -f1-3)
 M2=\$M2_HOME/bin
 PATH=\$M2:\$PATH:/usr/sbin/bin:/usr/local/sbin:/usr/sbin
@@ -726,62 +721,64 @@ run rm /tmp/$(basename $maven_download_url)
 
 function run_ece_build
 {
-run su - $builder_system_user -c 'ece-build'
+    run su - $builder_system_user -c 'ece-build'
 }
 
 function authorize_users
 {
-local home_dir=/home
-users=`ls -1 $home_dir`
-  if [ ! -d $home_dir/$builder_system_user/.ssh ];then
-    run mkdir -m 700 $home_dir/$builder_system_user/.ssh
-  fi
-  if [ ! -e $home_dir/$builder_system_user/.ssh/authorized_keys ]; then
-    run touch $home_dir/$builder_system_user/.ssh/authorized_keys
-  fi
-   for user in $users
-      do
+    local home_dir=/home
+    users=`ls -1 $home_dir`
+    if [ ! -d $home_dir/$builder_system_user/.ssh ];then
+        run mkdir -m 700 $home_dir/$builder_system_user/.ssh
+    fi
+    if [ ! -e $home_dir/$builder_system_user/.ssh/authorized_keys ]; then
+        run touch $home_dir/$builder_system_user/.ssh/authorized_keys
+    fi
+    for user in $users
+    do
         if [ "$user" == "$builder_system_user" ]; then
-          continue
+            continue
         fi
         if [ -e $home_dir/$user/.ssh/authorized_keys ]; then
-         cat $home_dir/$user/.ssh/authorized_keys >> $home_dir/$builder_system_user/.ssh/authorized_keys
+            cat $home_dir/$user/.ssh/authorized_keys >> $home_dir/$builder_system_user/.ssh/authorized_keys
         fi
-   done
-#special handling for the root user authorized keys
-  cat /root/.ssh/authorized_keys >> $home_dir/$builder_system_user/.ssh/authorized_keys
-  run chown -R $builder_system_user:$builder_system_user $home_dir/$builder_system_user/.ssh/
+    done
+    #special handling for the root user authorized keys
+    if [ -e /root/.ssh/authorized_keys ]; then
+      cat /root/.ssh/authorized_keys >> $home_dir/$builder_system_user/.ssh/authorized_keys
+    fi
+    run chown -R $builder_system_user:$builder_system_user $home_dir/$builder_system_user/.ssh/
 }
 
 ##
 function common_post_build {
-  run rm $pid_file
+    run rm $pid_file
 }
 
 ##
 function phase_startup {
-  verify_root_privilege
-  verify_scripts
-  verify_dependencies
+    verify_root_privilege
+    verify_scripts
+    verify_dependencies
 }
 
 function pre_setup_verify {
-if [ $do_initialize -ne 1 ]; then
-  verify_builder_conf
-  verify_user_options
-fi
+    if [ $do_initialize -ne 1 ]; then
+        verify_builder_conf
+        verify_user_options
+    fi
 }
 
 ##
 function phase_execute
 {
-  execute
+    execute
 }
 
 ##
 function phase_shutdown
 {
-  common_post_build
+    common_post_build
 }
 
 #####################################################
