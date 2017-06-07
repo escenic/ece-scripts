@@ -81,15 +81,15 @@ EOF
       set \$cors "\${cors}post";
     }
     if (\$cors = "trueget") {
-      add_header "Access-Control-Allow-Origin" "\$http_origin";
-      add_header "Access-Control-Allow-Credentials" "true";
-      add_header "Access-Control-Expose-Headers" "Link,X-ECE-Active-Connections,Location,ETag";
+      add_header "Access-Control-Allow-Origin" "\$http_origin" always;
+      add_header "Access-Control-Allow-Credentials" "true" always;
+      add_header "Access-Control-Expose-Headers" "Link,X-ECE-Active-Connections,Location,ETag" always;
     }
     if (\$cors = "truepost") {
-      add_header "Access-Control-Allow-Origin" "\$http_origin";
-      add_header "Access-Control-Allow-Credentials" "true";
+      add_header "Access-Control-Allow-Origin" "\$http_origin" always;
+      add_header "Access-Control-Allow-Credentials" "true" always;
       add_header "Access-Control-Expose-Headers"
-        "Link,X-ECE-Active-Connections,Location,ETag";
+        "Link,X-ECE-Active-Connections,Location,ETag" always;
     }
     if (\$cors = "trueoptions") {
       add_header 'Access-Control-Allow-Origin' "\$http_origin";
@@ -150,7 +150,7 @@ endpoints:
   escenic: ${fai_cue_backend_ece-/webservice/index.xml}
 EOF
       if [ -n "${fai_cue_backend_ng}" ]; then
-        echo "  newsgate: ${fai_cue_backend_ece}" >> "${file}"
+        echo "  newsgate: ${fai_cue_backend_ng}" >> "${file}"
       fi
     done
 

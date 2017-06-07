@@ -6,7 +6,7 @@ test_can_parse_yaml_conf_environment() {
   yaml_file=$(mktemp)
   local foo_java_home=/usr/lib/jvm/foo-java-sdk
   local environment_type=production
-  local foo_java_version=1.8
+  local foo_java_download_url=http://example.com/java-1.8.tar.gz
   local skip_password_checks=1
   local apt_pool=testing
   local mvn_repo1=repo1.example.com
@@ -21,7 +21,7 @@ test_can_parse_yaml_conf_environment() {
 environment:
   type: ${environment_type}
   java_home: ${foo_java_home}
-  java_version: ${foo_java_version}
+  java_download_url: ${foo_java_download_url}
   java_oracle_licence_accepted: true
   skip_password_checks: true
   conf_url: ${conf_url}
@@ -44,7 +44,7 @@ EOF
 
   unset java_home
   unset fai_environment
-  unset fai_java_version
+  unset fai_java_download_url
   unset fai_java_oracle_licence_accepted
   unset fai_maven_repositories
   unset fai_conf_url
@@ -55,9 +55,9 @@ EOF
 
   assertNotNull "Should set java_home" "${java_home}"
   assertEquals "Should set java_home" "${foo_java_home}" "${java_home}"
-  assertEquals "Should set fai_java_version" \
-               "${foo_java_version}" \
-               "${fai_java_version}"
+  assertEquals "Should set fai_java_download_url" \
+               "${foo_java_download_url}" \
+               "${fai_java_download_url}"
   assertEquals "Should set fai_java_oracle_licence_accepted" \
                1 \
                "${fai_java_oracle_licence_accepted}"

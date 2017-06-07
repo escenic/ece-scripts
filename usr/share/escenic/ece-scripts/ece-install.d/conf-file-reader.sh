@@ -295,10 +295,10 @@ _parse_yaml_conf_file_environment() {
     export fai_java_oracle_licence_accepted=1
   fi
 
-  local configured_java_version=
-  configured_java_version=$(_jq "${yaml_file}" .environment.java_version)
-  if [[ -n "${configured_java_version}" ]]; then
-    export fai_java_version=${configured_java_version}
+  local configured_java_download_url=
+  configured_java_download_url=$(_jq "${yaml_file}" .environment.java_download_url)
+  if [[ -n "${configured_java_download_url}" ]]; then
+    export fai_java_download_url=${configured_java_download_url}
   fi
 
   local configured_environment=

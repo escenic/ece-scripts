@@ -1,5 +1,5 @@
 Overview of =ece-install='s configuration options. Generated from the
-configuration file parser's unit tests @ Wed May 10 11:10:41 CEST 2017.
+configuration file parser's unit tests @ Fri May 26 13:20:40 CEST 2017.
 
 *** environment
 
@@ -7,7 +7,8 @@ configuration file parser's unit tests @ Wed May 10 11:10:41 CEST 2017.
 environment:
   type: ${environment_type}
   java_home: ${foo_java_home}
-  java_version: ${foo_java_version}
+  java_download_url: ${foo_java_download_url}
+  java_oracle_licence_accepted: true
   skip_password_checks: true
   conf_url: ${conf_url}
   apt:
@@ -31,7 +32,8 @@ environment:
 
 java_home=
 fai_environment=
-fai_server_java_version=
+fai_java_download_url=
+fai_java_oracle_licence_accepted=
 fai_maven_repositories=
 fai_conf_url=
 fai_package_rpm_base_url=
@@ -50,6 +52,8 @@ profiles:
     name: ${editor_name}
     redirect: ${editor_redirect}
     shutdown: ${editor_shutdown}
+    ear: ${editor_ear}
+    deploy_white_list: ${editor_deploy_white_list}
 #+end_src
 =ece-install.conf= equivalent:
 #+begin_src: text
@@ -59,6 +63,8 @@ fai_editor_port=
 fai_editor_shutdown=
 fai_editor_redirect=
 fai_editor_name=
+fai_editor_ear=
+fai_editor_deploy_white_list=
 
 #+end_src
 
@@ -140,6 +146,7 @@ profiles:
     port: ${db_port}
     drop_old_db_first: yes
     replication: yes
+    vendor: ${_db_vendor}
 #+end_src
 =ece-install.conf= equivalent:
 #+begin_src: text
@@ -154,6 +161,8 @@ fai_db_port=
 fai_db_ear=
 fai_db_drop_old_db_first=
 fai_db_replication=
+db_vendor=
+
 #+end_src
 
 *** cache
@@ -175,6 +184,28 @@ fai_cache_install=
 fai_cache_backends=
 fai_cache_port=
 fai_cache_conf_dir=
+
+#+end_src
+
+*** cue
+
+#+begin_src yaml
+profiles:
+  cue:
+    install: yes
+    backend_ece: ${cue_backend_ece}
+    backend_ng: ${cue_backend_ng}
+    cors_origins:
+      - ${cue_cors_origin1}
+      - ${cue_cors_origin2}
+#+end_src
+=ece-install.conf= equivalent:
+#+begin_src: text
+
+fai_cue_install=
+fai_cue_backend_ece=
+fai_cue_backend_ng=
+fai_cue_cors_origins=
 
 #+end_src
 
