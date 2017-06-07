@@ -68,9 +68,10 @@ _create_publication_parse_use_input() {
   ## already been parsed
   local user_options=$(
     getopt -o \
-           a:nd:es \
+           a:nd:est: \
            --long help \
            --long publication-domain: \
+           --long publication-type: \
            --long publication-aliases: \
            --long update-app-server-conf \
            --long update-ece-conf \
@@ -89,6 +90,9 @@ _create_publication_parse_use_input() {
         shift 1;;
       -d | --publication-domain)
         publication_domain="$2";
+        shift 2;;
+      -t | --publication-type)
+        publication_type="$2";
         shift 2;;
       -a | --publication-aliases)
         publication_aliases="$2";
@@ -285,10 +289,12 @@ EOF
 ## what's in _create_publication_parse_use_input
 complete_create_publication() {
   cat <<EOF
+--publication-aliases
+--publication-domain
+--publication-type
 --update-app-server-conf
 --update-ece-conf
 --update-nursery-conf
---publication-aliases
 --file
 --uri
 -a
