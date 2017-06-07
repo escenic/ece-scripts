@@ -3,7 +3,7 @@ function set_up_jdbc_library() {
   if [ -n "$jdbc_driver" -a -e "$jdbc_driver" ]; then
     make_ln $jdbc_driver
   elif [ $db_vendor = "mariadb" ]; then
-    local mariadb_jdbc_url=https://downloads.mariadb.org/f/mariadb-java-client-1.1.0/mariadb-java-client-1.1.0.jar
+    local mariadb_jdbc_url= https://downloads.mariadb.com/Connectors/java/connector-java-2.0.1/mariadb-java-client-2.0.1.jar
     print_and_log "Downloading MariaDB jdbc driver ${mariadb_jdbc_url}"
     local mariadb_jdbc_jar=${mariadb_jdbc_url##*/}
     download_uri_target_to_dir \
