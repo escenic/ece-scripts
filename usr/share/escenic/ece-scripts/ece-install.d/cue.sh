@@ -47,7 +47,7 @@ _cue_setup_cors_nginx_create_cors_setup_in_file() {
   local file=$1
   cat >> "${file}" <<EOF
 server {
-  location ~ "/(escenic|studio|webservice|webservice-extensions)/(.*)" {
+  location ~ "/(escenic|studio|webservice|webservice-extensions|live-center-presentation-webservice|live-center-editorial)/(.*)" {
 EOF
 
   for origin in $(_cue_setup_cors_get_allowed_origins); do
