@@ -5,9 +5,8 @@ function set_up_jdbc_library() {
   elif [ $db_vendor = "mariadb" ]; then
     print_and_log "Downloading MariaDB jdbc driver."
     download_uri_target_to_dir \
-        https://downloads.mariadb.org/f/mariadb-java-client-1.1.0/mariadb-java-client-1.1.0.jar/from/http:/ftp.heanet.ie/mirrors/mariadb \
+        https://downloads.mariadb.com/Connectors/java/connector-java-2.0.1/mariadb-java-client-2.0.1.jar \
         .
-    mv mariadb mariadb-java-client-1.1.0.jar
   else
     make_ln /usr/share/java/mysql-connector-java.jar      
   fi
