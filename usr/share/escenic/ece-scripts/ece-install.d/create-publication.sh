@@ -160,17 +160,31 @@ function create_the_publication() {
 
 ## $1 :: the instance name
 function ensure_that_instance_is_running() {
-  local ece_command="ece -i $1 -t $type status"
+  printf "$(get_id) Ensuring %s is up " "${1}"
+
+  local ece_command="ece -i $1 -t ${type-engine} status"
   if [ $(su - $ece_user -c "$ece_command" | grep UP | wc -l) -lt 1 ]; then
-    ece_command="ece -i $1 -t $type start"
+    ece_command="ece -i $1 -t ${type-engine1} start"
     su - $ece_user -c "$ece_command" 1>>$log 2>>$log
   fi
 
   # This is a hack, but this ensures that the ECE is bootstrapped
   # properly and can respond fast enough to the session setup for the
   # publication creation.
-  ece_command="ece -i $1 -t $type versions"
-  su - $ece_user -c "$ece_command" 1>>$log 2>>$log
-  sleep 60
+  ece_command="ece -i $1 -t ${type-engine} versions"
+
+  local wait_count=60
+  for ((i=0; i < ${wait_count}; i++)); do
+    printf "."
+    up=$(su - ${ece_user} -c "$ece_command" | grep -c content-engine)
+
+    if [ "${up}" -eq 1 ]; then
+      printf "it's up!\n"
+      break
+    fi
+
+    sleep 1
+  done
+
 }
 

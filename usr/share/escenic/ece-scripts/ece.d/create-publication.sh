@@ -202,6 +202,23 @@ _create_publication_create_publication_in_db() {
       "${ece_admin_uri}/do/publication/insert"
 }
 
+## Returns the index (1 based, XPATH likes it this way) of the
+## /Service/Service element under which we shall add the publication
+## Host elements (sa in /Service/Service/Engine/Host).
+##
+## $1 :: server.xml
+_create_publication_get_index_of_pub_service_element() {
+  local server_xml=$1
+
+  # We often set up (ece-install) two Engine/Service elements, one for
+  # each Engine, which again has its own HTTP connector to serve
+  # different webapps from different ports.
+  #
+  # If so (there's no need to have multiple Services to have multiple
+  # connectors), the correct <Service/> element for the publication
+  # <Host/> elements is the last Service element.
+  xmlstarlet sel -t -v 'count(/Server/Service)' "${server_xml}"
+}
 
 _create_publication_update_app_server_conf() {
   server_xml=/opt/tomcat-${instance}/conf/server.xml
@@ -209,11 +226,14 @@ _create_publication_update_app_server_conf() {
     return
   fi
 
+  local index=
+  index=$(_create_publication_get_index_of_pub_service_element "${server_xml}")
+
   local current_pub_conf_in_app_server=
   current_pub_conf_in_app_server=$(
     lookup_in_xml_file \
       "${server_xml}" \
-      "/Server/Service/Engine/Host/Context[@displayName='${publication}']" \
+      "/Server/Service[${index}]/Engine/Host/Context[@displayName='${publication}']" \
       2>/dev/null)
 
   if [ -n "${current_pub_conf_in_app_server}" ]; then
@@ -226,15 +246,15 @@ _create_publication_update_app_server_conf() {
     ed \
     -P \
     -L \
-    -s /Server/Service/Engine -t elem -n TMP -v '' \
-    -i /Server/Service/Engine/TMP -t attr -n name -v "${publication}.${HOSTNAME}" \
-    -i /Server/Service/Engine/TMP -t attr -n appBase -v "webapps-${publication}" \
-    -i /Server/Service/Engine/TMP -t attr -n autoDeploy -v "true" \
-    -i /Server/Service/Engine/TMP -t attr -n startStopThreads -v "0" \
+    -s /Server/Service[${index}]/Engine -t elem -n TMP -v '' \
+    -i /Server/Service[${index}]/Engine/TMP -t attr -n name -v "${publication}.${HOSTNAME}" \
+    -i /Server/Service[${index}]/Engine/TMP -t attr -n appBase -v "webapps-${publication}" \
+    -i /Server/Service[${index}]/Engine/TMP -t attr -n autoDeploy -v "true" \
+    -i /Server/Service[${index}]/Engine/TMP -t attr -n startStopThreads -v "0" \
     -r //TMP -v Host \
-    -s "/Server/Service/Engine/Host[@name='${publication}.${HOSTNAME}']" -t elem -n TMP -v "${publication}.${HOSTNAME}" \
+    -s "/Server/Service[${index}]/Engine/Host[@name='${publication}.${HOSTNAME}']" -t elem -n TMP -v "${publication}.${HOSTNAME}" \
     -r //TMP -v Alias \
-    -s "/Server/Service/Engine/Host[@name='${publication}.${HOSTNAME}']" -t elem -n TMP -v '' \
+    -s "/Server/Service[${index}]/Engine/Host[@name='${publication}.${HOSTNAME}']" -t elem -n TMP -v '' \
     -i //TMP -t attr -n displayName -v "${publication}" \
     -i //TMP -t attr -n docBase -v "${publication}" \
     -i //TMP -t attr -n path -v "" \
@@ -249,7 +269,7 @@ _create_publication_update_app_server_conf() {
       ed \
       -P \
       -L \
-      -s "/Server/Service/Engine/Host[@name='${publication}.${HOSTNAME}']" -t elem -n TMP -v "${an_alias}" \
+      -s "/Server/Service[${index}]/Engine/Host[@name='${publication}.${HOSTNAME}']" -t elem -n TMP -v "${an_alias}" \
       -r //TMP -v Alias \
       "${server_xml}"
   done

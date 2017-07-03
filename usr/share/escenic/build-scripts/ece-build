@@ -81,6 +81,7 @@ seo
 mobile-studio
 preview-editor
 live-center
+live
 revision-history"
 
 declare -A project_distributions=()
@@ -120,6 +121,7 @@ com.escenic:engine:zip"
 ["mobile-studio"]="com.escenic.plugins.mobile-studio:mobile-studio:zip"
 ["preview-editor"]="com.escenic.plugins.preview-editor:preview-editor:zip"
 ["live-center"]="com.escenic.plugins.live-center:live-center:zip"
+["live"]="com.escenic.plugins.live:live:zip"
 ["revision-history"]="com.escenic.plugins.revision-history:revision-history:zip"
 )
 
@@ -166,6 +168,7 @@ com.escenic.plugins.vcpeditor:vcpeditor:zip"
 ["mobile-studio"]="com.escenic.plugins.mobile-studio:mobile-studio:zip"
 ["preview-editor"]="com.escenic.plugins.preview-editor:preview-editor:zip"
 ["live-center"]="com.escenic.plugins.live-center:live-center:zip"
+["live"]="com.escenic.plugins.live:live:zip"
 ["revision-history"]="com.escenic.plugins.revision-history:revision-history:zip"
 )
 
