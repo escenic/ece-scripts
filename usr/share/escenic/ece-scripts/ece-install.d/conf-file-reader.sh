@@ -875,6 +875,12 @@ _parse_yaml_conf_file_cue() {
     export fai_cue_backend_ece=${install_cue_backend_ece}
   fi
 
+  local install_cue_backend_ece_local=
+  install_cue_backend_ece_local=$(_jq "${yaml_file}" .profiles.cue.backend_ece_local)
+  if [ -n "${install_cue_backend_ece_local}" ]; then
+    export fai_cue_backend_ece_local=${install_cue_backend_ece_local}
+  fi
+
   local install_cue_backend_ng=
   install_cue_backend_ng=$(_jq "${yaml_file}" .profiles.cue.backend_ng)
   if [ -n "${install_cue_backend_ng}" ]; then

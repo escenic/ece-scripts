@@ -103,7 +103,7 @@ EOF
     }
 
     proxy_set_header Host \$http_host;
-    proxy_pass ${fai_cue_backend_ece-${default_cue_backend_ece}};
+    proxy_pass ${fai_cue_backend_ece_local-${fai_cue_backend_ece-${default_cue_backend_ece}}};
   }
 EOF
 }
