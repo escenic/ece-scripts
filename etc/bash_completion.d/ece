@@ -57,7 +57,7 @@ _get_completions_for_ece_command()
     options="-i --instance -p --publication -r --publication-resource
              -t --type -u --user -w --password"
     resources="content-type feature layout layout-group image-version menu
-               security root-section-parameters"
+               section-feed security root-section-parameters"
     types="engine search analysis rmi-hub"
 
     # default completions is the list of commands
