@@ -196,6 +196,7 @@ profiles:
     backend_ece: ${cue_backend_ece}
     backend_ece_local: ${cue_backend_ece_local}
     backend_ng: ${cue_backend_ng}
+    backend_bridge: ${cue_backend_bridge}
     cors_origins:
       - ${cue_cors_origin1}
       - ${cue_cors_origin2}
@@ -207,6 +208,7 @@ fai_cue_install=
 fai_cue_backend_ece=
 fai_cue_backend_ece_local=
 fai_cue_backend_ng=
+fai_cue_backend_bridge=
 fai_cue_cors_origins=
 
 #+end_src

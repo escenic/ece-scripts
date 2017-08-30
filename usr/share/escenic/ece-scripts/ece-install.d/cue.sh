@@ -158,6 +158,10 @@ EOF
       if [ -n "${fai_cue_backend_ng}" ]; then
         echo "  newsgate: ${fai_cue_backend_ng}" >> "${file}"
       fi
+
+      if [ -n "${fai_cue_backend_bridge}" ]; then
+        echo "  bridge: ${fai_cue_backend_bridge}" >> "${file}"
+      fi
     done
 
   if [ "${on_debian_or_derivative-0}" -eq 1 ]; then

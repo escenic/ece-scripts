@@ -888,6 +888,12 @@ _parse_yaml_conf_file_cue() {
     export fai_cue_backend_ng=${install_cue_backend_ng}
   fi
 
+  local install_cue_backend_bridge=
+  install_cue_backend_bridge=$(_jq "${yaml_file}" .profiles.cue.backend_bridge)
+  if [ -n "${install_cue_backend_bridge}" ]; then
+    export fai_cue_backend_bridge=${install_cue_backend_bridge}
+  fi
+
   local count=0
   count=$(_jq "${yaml_file}" ".profiles.cue.cors_origins | length")
   for ((i = 0; i < count; i++)); do
