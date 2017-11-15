@@ -83,7 +83,7 @@ EOF
     if (\$cors = "trueget") {
       add_header "Access-Control-Allow-Origin" "\$http_origin" always;
       add_header "Access-Control-Allow-Credentials" "true" always;
-      add_header "Access-Control-Expose-Headers" "Link,X-ECE-Active-Connections,Location,ETag" always;
+      add_header "Access-Control-Expose-Headers" "Link,X-ECE-Active-Connections,Location,ETag,Allow" always;
     }
     if (\$cors = "truepost") {
       add_header "Access-Control-Allow-Origin" "\$http_origin" always;
@@ -157,6 +157,10 @@ endpoints:
 EOF
       if [ -n "${fai_cue_backend_ng}" ]; then
         echo "  newsgate: ${fai_cue_backend_ng}" >> "${file}"
+      fi
+
+      if [ -n "${fai_cue_backend_bridge}" ]; then
+        echo "  bridge: ${fai_cue_backend_bridge}" >> "${file}"
       fi
     done
 

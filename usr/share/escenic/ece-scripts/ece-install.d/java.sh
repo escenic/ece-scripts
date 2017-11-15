@@ -12,6 +12,8 @@ function _java_get_oracle_tarball_url() {
     grep "$(uname -s) x64" |
     grep .tar.gz |
     grep -v demos |
+    sort -r |
+    head -n1 |
     sed -n -r  's#.*filepath":"(.*)", "MD5".*#\1#p'
 }
 
@@ -25,6 +27,8 @@ function _java_get_oracle_rpm_url() {
     grep "$(uname -s) x64" |
     grep .rpm |
     grep -v demos |
+    sort -r |
+    head -n1 |
     sed -n -r  's#.*filepath":"(.*)", "MD5".*#\1#p'
 }
 

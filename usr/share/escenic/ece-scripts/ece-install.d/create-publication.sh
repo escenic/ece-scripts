@@ -72,8 +72,11 @@ function create_publication() {
         publication_war=${publication_name}.war
       fi
 
+      ## If the WAR was provided as a file outside the EAR
+      if [ -e "${publication_war}" ]; then
+        publication_war_to_use=${publication_war}
       ## If the WAR was provided in fai_publication_ear
-      if [ -e "${the_tmp_dir}/${publication_war}" ]; then
+      elif [ -e "${the_tmp_dir}/${publication_war}" ]; then
         publication_war_to_use=${the_tmp_dir}/${publication_war}
       else
         local file=$(get_content_engine_dir)/contrib/wars/demo-clean.war
