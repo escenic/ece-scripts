@@ -38,14 +38,14 @@ function set_varnish_port() {
     # systemd fragment:
     local file=/etc/systemd/system/varnish.service.d/custom-exec.conf
     mkdir -p "${file%/*}"
-    cat > "${file}" << 'EOF'
-    [Service]
+    cat > "${file}" <<EOF
+[Service]
 ExecStart=
-ExecStart=/usr/sbin/varnishd \
-  -a :${cache_port} \
-  -T localhost:6082 \
-  -f /etc/varnish/default.vcl \
-  -S /etc/varnish/secret \
+ExecStart=/usr/sbin/varnishd \\
+  -a :${cache_port} \\
+  -T localhost:6082 \\
+  -f /etc/varnish/default.vcl \\
+  -S /etc/varnish/secret \\
   -s malloc,256m
 EOF
   fi
