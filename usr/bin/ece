@@ -876,6 +876,9 @@ for el in $command; do
         edit)
             update_publication_resources "edit_first"
             ;;
+        create)
+            update_publication_resources "create_first"
+            ;;
         backup)
             backup_type
             ;;

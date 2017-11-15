@@ -53,6 +53,7 @@ parse_yaml_conf_file_or_source_if_sh_conf() {
   _parse_yaml_conf_file_assembly_tool "${yaml_file}"
   _parse_yaml_conf_file_restore "${yaml_file}"
   _parse_yaml_conf_file_cue "${yaml_file}"
+  _parse_yaml_conf_file_sse_proxy "${yaml_file}"
   _parse_yaml_conf_file_nfs_server "${yaml_file}"
   _parse_yaml_conf_file_nfs_client "${yaml_file}"
 }
@@ -295,10 +296,10 @@ _parse_yaml_conf_file_environment() {
     export fai_java_oracle_licence_accepted=1
   fi
 
-  local configured_java_version=
-  configured_java_version=$(_jq "${yaml_file}" .environment.java_version)
-  if [[ -n "${configured_java_version}" ]]; then
-    export fai_java_version=${configured_java_version}
+  local configured_java_download_url=
+  configured_java_download_url=$(_jq "${yaml_file}" .environment.java_download_url)
+  if [[ -n "${configured_java_download_url}" ]]; then
+    export fai_java_download_url=${configured_java_download_url}
   fi
 
   local configured_environment=
@@ -875,10 +876,22 @@ _parse_yaml_conf_file_cue() {
     export fai_cue_backend_ece=${install_cue_backend_ece}
   fi
 
+  local install_cue_backend_ece_local=
+  install_cue_backend_ece_local=$(_jq "${yaml_file}" .profiles.cue.backend_ece_local)
+  if [ -n "${install_cue_backend_ece_local}" ]; then
+    export fai_cue_backend_ece_local=${install_cue_backend_ece_local}
+  fi
+
   local install_cue_backend_ng=
   install_cue_backend_ng=$(_jq "${yaml_file}" .profiles.cue.backend_ng)
   if [ -n "${install_cue_backend_ng}" ]; then
     export fai_cue_backend_ng=${install_cue_backend_ng}
+  fi
+
+  local install_cue_backend_bridge=
+  install_cue_backend_bridge=$(_jq "${yaml_file}" .profiles.cue.backend_bridge)
+  if [ -n "${install_cue_backend_bridge}" ]; then
+    export fai_cue_backend_bridge=${install_cue_backend_bridge}
   fi
 
   local count=0
@@ -892,6 +905,57 @@ _parse_yaml_conf_file_cue() {
       export fai_cue_cors_origins=${cors_origin}
     fi
   done
+}
+
+_parse_yaml_conf_file_sse_proxy() {
+  local yaml_file=$1
+
+  local install_sse_proxy=no
+  install_sse_proxy=$(_jq "${yaml_file}" .profiles.sse_proxy.install)
+  if [[ "${install_sse_proxy}" == "yes" ||
+          "${install_sse_proxy}" == "true" ]]; then
+    export fai_sse_proxy_install=1
+  fi
+
+  local install_sse_proxy_exposed_host=
+  install_sse_proxy_exposed_host=$(_jq "${yaml_file}" .profiles.sse_proxy.exposed_host)
+  if [ -n "${install_sse_proxy_exposed_host}" ]; then
+    export fai_sse_proxy_exposed_host=${install_sse_proxy_exposed_host}
+  fi
+
+  local install_sse_proxy_exposed_port=
+  install_sse_proxy_exposed_port=$(_jq "${yaml_file}" .profiles.sse_proxy.exposed_port)
+  if [ -n "${install_sse_proxy_exposed_port}" ]; then
+    export fai_sse_proxy_exposed_port=${install_sse_proxy_exposed_port}
+  fi
+
+  local install_sse_proxy_ece_port=
+  install_sse_proxy_ece_port=$(_jq "${yaml_file}" .profiles.sse_proxy.ece_port)
+  if [ -n "${install_sse_proxy_ece_port}" ]; then
+    export fai_sse_proxy_ece_port=${install_sse_proxy_ece_port}
+  fi
+
+  local install_sse_proxy_ece_redirect=
+  install_sse_proxy_ece_redirect=$(_jq "${yaml_file}" .profiles.sse_proxy.ece_redirect)
+  if [ -n "${install_sse_proxy_ece_redirect}" ]; then
+    export fai_sse_proxy_ece_redirect=${install_sse_proxy_ece_redirect}
+  fi
+
+  local sse_backends=
+  local sse_backends_count=0
+  sse_backends_count=$(_jq "${yaml_file}" ".profiles.sse_proxy.backends | length")
+  for ((i = 0; i < sse_backends_count; i++)); do
+    local uri=
+    local user=
+    local password=
+    uri=$(_jq "${yaml_file}" .profiles.sse_proxy.backends["${i}"].uri)
+    user=$(_jq "${yaml_file}" .profiles.sse_proxy.backends["${i}"].user)
+    password=$(_jq "${yaml_file}" .profiles.sse_proxy.backends["${i}"].password)
+    sse_backends="${uri} ${user} ${password}
+${sse_backends}"
+  done
+  export fai_sse_proxy_backends=${sse_backends}
+
 }
 
 _jq() {

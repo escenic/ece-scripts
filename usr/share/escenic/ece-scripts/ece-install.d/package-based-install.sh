@@ -106,16 +106,32 @@ _install_configured_escenic_packages_rpm() {
       arch=${fai_package_arch_map[${package}]}
     fi
 
+    print "Downloading ${package}-${version}.${arch}.rpm ..."
     local rpm_url=${fai_package_rpm_base_url-http://yum.escenic.com/rpm}/${package}-${version}.${arch}.rpm
-
     local rpm_file="${download_dir}/${rpm_url##*/}"
-    run wget \
-        --http-user "${fai_package_rpm_user}" \
-        --http-password "${fai_package_rpm_password}" \
-        --continue \
-        --quiet \
-        --output-document "${rpm_file}" \
-        "${rpm_url}"
+    wget \
+      --http-user "${fai_package_rpm_user}" \
+      --http-password "${fai_package_rpm_password}" \
+      --continue \
+      --quiet \
+      --output-document "${rpm_file}" \
+      "${rpm_url}" &>> "${log}" || {
+
+      log "Couldn't download ${package} using ${rpm_url}"
+      # Since some packages, with various logic, have been moved to to
+      # a cue sub directory (2017), we'll try again with 'cue'
+      # appended to the base URL:
+      local rpm_url=${fai_package_rpm_base_url-http://yum.escenic.com/rpm}/cue/${package}-${version}.${arch}.rpm
+      local rpm_file="${download_dir}/${rpm_url##*/}"
+      log "Trying to download ${package} using ${rpm_url} instead"
+      run wget \
+          --http-user "${fai_package_rpm_user}" \
+          --http-password "${fai_package_rpm_password}" \
+          --continue \
+          --quiet \
+          --output-document "${rpm_file}" \
+          "${rpm_url}"
+    }
 
     if ! is_rpm_already_installed "${rpm_file}"; then
       run rpm -Uvh "${rpm_file}"

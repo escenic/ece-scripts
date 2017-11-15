@@ -8,7 +8,8 @@ function install_memory_cache()
 
   install_packages_if_missing "memcached"
   if [ $on_redhat_or_derivative -eq 1 ]; then
-    run service memcached restart
+    run systemctl enable memcached
+    run systemctl start memcached
   fi
   
   assert_commands_available memcached

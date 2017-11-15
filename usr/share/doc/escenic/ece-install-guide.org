@@ -253,13 +253,12 @@ escenic-related purposes.
 You can ensure that *ece-install* is not executed accidentally by
 creating a *lock file*. Simply create a file with this path:
 #+BEGIN_SRC text
-/var/lock/ece-install.lock
+/var/run/escenic/ece-install.lock
 #+END_SRC
 
 If this file is present then *ece-install* will fail fast as follows:
 #+BEGIN_SRC text
-The lock file is present: /var/lock/ece-install.lock and
-ece-install will therefore refuse to run.
+/var/run/escenic/ece-install.lock exists, I'll exit.
 #+END_SRC
 
 The lock file does not need to contain anything, it just needs to exist.

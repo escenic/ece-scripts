@@ -47,6 +47,9 @@ function update_publication_resources() {
     menu)
       url=${url}/${publication}/escenic/plugin/menu
       ;;
+    section-feed)
+      url=${url}/${publication}/escenic/plugin/section-feed
+      ;;
     security)
       url=${url}/${publication}/escenic/plugin/community/security
       ;;
@@ -70,8 +73,13 @@ function update_publication_resources() {
 
     run cd $tmp_dir;
 
-    # adding auth credentials for the appserver (if set)
-    run wget $wget_appserver_auth $url -O ${resource}
+    if [[ "${command}" == edit ]]; then
+      # adding auth credentials for the appserver (if set)
+      run wget $wget_appserver_auth $url -O ${resource}
+    elif [[ "${command}" == create ]]; then
+      touch "${resource}"
+    fi
+
     md5sum ${resource} > ${resource}.md5sum
     exit_on_error "md5sum ${resource}"
 

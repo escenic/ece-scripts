@@ -87,6 +87,7 @@ webapps_in_standard_webapps_list="
   video-webservice-extensions
   poll-ws
   note-webservice
+  menu-webservice
   preview-editor-ws
   mobile-studio
   mobile-webservice

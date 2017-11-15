@@ -6,7 +6,7 @@ test_can_parse_yaml_conf_environment() {
   yaml_file=$(mktemp)
   local foo_java_home=/usr/lib/jvm/foo-java-sdk
   local environment_type=production
-  local foo_java_version=1.8
+  local foo_java_download_url=http://example.com/java-1.8.tar.gz
   local skip_password_checks=1
   local apt_pool=testing
   local mvn_repo1=repo1.example.com
@@ -21,7 +21,7 @@ test_can_parse_yaml_conf_environment() {
 environment:
   type: ${environment_type}
   java_home: ${foo_java_home}
-  java_version: ${foo_java_version}
+  java_download_url: ${foo_java_download_url}
   java_oracle_licence_accepted: true
   skip_password_checks: true
   conf_url: ${conf_url}
@@ -44,7 +44,7 @@ EOF
 
   unset java_home
   unset fai_environment
-  unset fai_java_version
+  unset fai_java_download_url
   unset fai_java_oracle_licence_accepted
   unset fai_maven_repositories
   unset fai_conf_url
@@ -55,9 +55,9 @@ EOF
 
   assertNotNull "Should set java_home" "${java_home}"
   assertEquals "Should set java_home" "${foo_java_home}" "${java_home}"
-  assertEquals "Should set fai_java_version" \
-               "${foo_java_version}" \
-               "${fai_java_version}"
+  assertEquals "Should set fai_java_download_url" \
+               "${foo_java_download_url}" \
+               "${fai_java_download_url}"
   assertEquals "Should set fai_java_oracle_licence_accepted" \
                1 \
                "${fai_java_oracle_licence_accepted}"
@@ -385,7 +385,9 @@ EOF
 
 test_can_parse_yaml_conf_cue() {
   local cue_backend_ece=http://ece.example.com
+  local cue_backend_ece_local=http://localhost:8080
   local cue_backend_ng=http://ng.example.com
+  local cue_backend_bridge=http://bridge.example.com
   local cue_cors_origin1=editor.example.com
   local cue_cors_origin2=cue.example.com
 
@@ -397,7 +399,9 @@ profiles:
   cue:
     install: yes
     backend_ece: ${cue_backend_ece}
+    backend_ece_local: ${cue_backend_ece_local}
     backend_ng: ${cue_backend_ng}
+    backend_bridge: ${cue_backend_bridge}
     cors_origins:
       - ${cue_cors_origin1}
       - ${cue_cors_origin2}
@@ -405,15 +409,74 @@ EOF
 
   unset fai_cue_install
   unset fai_cue_backend_ece
+  unset fai_cue_backend_ece_local
   unset fai_cue_backend_ng
+  unset fai_cue_backend_bridge
   unset fai_cue_cors_origins
 
   parse_yaml_conf_file_or_source_if_sh_conf "${yaml_file}"
   assertNotNull "Should set fai_cue_install" "${fai_cue_install}"
   assertEquals "Should set fai_cue_install" 1 "${fai_cue_install}"
   assertEquals "fai_cue_backend_ece" "${cue_backend_ece}" "${fai_cue_backend_ece}"
+  assertEquals "fai_cue_backend_ece_local" "${cue_backend_ece_local}" "${fai_cue_backend_ece_local}"
   assertEquals "fai_cue_backend_ng" "${cue_backend_ng}" "${fai_cue_backend_ng}"
+  assertEquals "fai_cue_backend_bridge" "${cue_backend_bridge}" "${fai_cue_backend_bridge}"
   assertEquals "fai_cue_cors_origins" "${cue_cors_origin1} ${cue_cors_origin2}" "${fai_cue_cors_origins}"
+
+  rm -rf "${yaml_file}"
+}
+
+test_can_parse_yaml_conf_sse_proxy() {
+  local exposed_port=80
+  local exposed_host=proxy.example.com
+  local sse_proxy_ece_port=8083
+  local sse_proxy_ece_redirect=8443
+  local sse_proxy_backend1_uri=http://foo
+  local sse_proxy_backend1_user=foo
+  local sse_proxy_backend1_password=p
+  local sse_proxy_backend2_uri=http://bar
+  local sse_proxy_backend2_user=bar
+  local sse_proxy_backend2_password=b
+
+  local yaml_file=
+  yaml_file=$(mktemp)
+  cat > "${yaml_file}" <<EOF
+---
+profiles:
+  sse_proxy:
+    install: yes
+    exposed_host: ${exposed_host}
+    exposed_port: ${exposed_port}
+    ece_port: ${sse_proxy_ece_port}
+    ece_redirect: ${sse_proxy_ece_redirect}
+    backends:
+      - uri: ${sse_proxy_backend1_uri}
+        user: ${sse_proxy_backend1_user}
+        password: ${sse_proxy_backend1_password}
+      - uri: ${sse_proxy_backend2_uri}
+        user: ${sse_proxy_backend2_user}
+        password: ${sse_proxy_backend2_password}
+EOF
+
+  unset fai_sse_proxy_backends
+  unset fai_sse_proxy_ece_port
+  unset fai_sse_proxy_ece_redirect
+  unset fai_sse_proxy_exposed_host
+  unset fai_sse_proxy_exposed_port
+  unset fai_sse_proxy_install
+
+  sse_proxy_backends="${sse_proxy_backend2_uri} ${sse_proxy_backend2_user} ${sse_proxy_backend2_password}
+${sse_proxy_backend1_uri} ${sse_proxy_backend1_user} ${sse_proxy_backend1_password}
+"
+
+  parse_yaml_conf_file_or_source_if_sh_conf "${yaml_file}"
+  assertNotNull "Should set fai_sse_install" "${fai_sse_proxy_install}"
+  assertEquals "Should set fai_sse_proxy_install" 1 "${fai_sse_proxy_install}"
+  assertEquals "Should set fai_sse_proxy_exposed_host" "${exposed_host}" "${fai_sse_proxy_exposed_host}"
+  assertEquals "Should set fai_sse_proxy_exposed_port" "${exposed_port}" "${fai_sse_proxy_exposed_port}"
+  assertEquals "Should set fai_sse_proxy_ece_port" "${sse_proxy_ece_port}" "${fai_sse_proxy_ece_port}"
+  assertEquals "Should set fai_sse_proxy_ece_redirect" "${sse_proxy_ece_redirect}" "${fai_sse_proxy_ece_redirect}"
+  assertEquals "Should set fai_sse_proxy_backends" "${sse_proxy_backends}" "${fai_sse_proxy_backends}"
 
   rm -rf "${yaml_file}"
 }
@@ -1204,7 +1267,7 @@ tearDown() {
 }
 
 main() {
-  . "$(dirname "$0")"/shunit2/source/2.1/src/shunit2
+  . "$(dirname "$0")"/shunit2/shunit2
 }
 
 main "$@"

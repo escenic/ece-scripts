@@ -1,14 +1,38 @@
 # -*- mode: sh; sh-shell: bash; -*-
 
-function install_oracle_java() {
-  local default_java_version=1.8
-  local _java_version_with_build_number=${fai_java_version-${fai_server_java_version-8u131-b11}}
-  _java_version=${_java_version_with_build_number%-*}
-  sun_java_bin_url=http://download.oracle.com/otn-pub/java/jdk/6u39-b04/jdk-6u39-linux-i586.bin
-  if [[ $(uname -m) == "x86_64" ]]; then
-    sun_java_bin_url=http://download.oracle.com/otn-pub/java/jdk/${_java_version_with_build_number}/d54c1d3a095b4ff2b6607d096fa80163/jdk-${_java_version}-linux-x64.rpm
+oracle_jdk_download_url=http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html
+
+function _java_get_oracle_tarball_url() {
+  if [ -n "${fai_java_download_url-""}" ]; then
+    echo "${fai_java_download_url}"
+    return
   fi
 
+  curl -s  "${oracle_jdk_download_url}" |
+    grep "$(uname -s) x64" |
+    grep .tar.gz |
+    grep -v demos |
+    sort -r |
+    head -n1 |
+    sed -n -r  's#.*filepath":"(.*)", "MD5".*#\1#p'
+}
+
+function _java_get_oracle_rpm_url() {
+  if [ -n "${fai_java_download_url-""}" ]; then
+    echo "${fai_java_download_url}"
+    return
+  fi
+
+  curl -s  "${oracle_jdk_download_url}" |
+    grep "$(uname -s) x64" |
+    grep .rpm |
+    grep -v demos |
+    sort -r |
+    head -n1 |
+    sed -n -r  's#.*filepath":"(.*)", "MD5".*#\1#p'
+}
+
+function install_oracle_java() {
   if _java_is_sun_java_already_installed; then
     print_and_log "Oracle Java is already installed on $HOSTNAME"
     _java_update_java_env_from_java_bin
@@ -23,6 +47,9 @@ function install_oracle_java() {
       "Conf: fai_java_oracle_licence_accepted=1"
     remove_pid_and_exit_in_error
   fi
+
+  local sun_java_bin_url=
+  sun_java_bin_url=$(_java_get_oracle_tarball_url)
 
   if [ "${on_debian_or_derivative-0}" -eq 1 ]; then
     _install_oracle_java_debian
@@ -108,10 +135,7 @@ function _download_oracle_file() {
   local uri=$1
   local target_file=$2
 
-  print_and_log \
-    "Downloading Oracle Java" \
-    "${_java_version_with_build_number}" \
-    "from download.oracle.com ..."
+  print_and_log "Downloading Oracle Java from download.oracle.com ..."
 
   run wget \
       --no-cookies \
@@ -153,8 +177,12 @@ function _install_oracle_java_debian() {
 
 function _install_oracle_java_redhat() {
   print_and_log "Downloading & installing Oracle JDK RPM ..."
-  local file_name=${download_dir}/${sun_java_bin_url##*/}
-  _download_oracle_file "${sun_java_bin_url}" "${file_name}"
+
+  local oracle_java_rpm_url=
+  oracle_java_rpm_url=$(_java_get_oracle_rpm_url)
+
+  local file_name=${download_dir}/${oracle_java_rpm_url##*/}
+  _download_oracle_file "${oracle_java_rpm_url}" "${file_name}"
 
   if ! is_rpm_already_installed "${file_name}"; then
     run rpm -Uvh "${file_name}"
@@ -162,10 +190,10 @@ function _install_oracle_java_redhat() {
 
   _java_update_java_env_from_jdk_rpm "${file_name}"
 
-  local version=$(java -version 2>&1 | grep version | cut -d'"' -f2)
+  local version=
+  version=$(java -version 2>&1 | grep version | cut -d'"' -f2)
   print_and_log "Oracle Java $version is now installed"
 
   add_next_step "By using Oracle Java, you must accept this license: " \
-    "http://www.oracle.com/technetwork/java/javase/terms/license/"
+                "http://www.oracle.com/technetwork/java/javase/terms/license/"
 }
-

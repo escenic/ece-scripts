@@ -3,7 +3,7 @@ function set_up_jdbc_library() {
   if [ -n "$jdbc_driver" -a -e "$jdbc_driver" ]; then
     make_ln $jdbc_driver
   elif [ $db_vendor = "mariadb" ]; then
-    local mariadb_jdbc_url=https://downloads.mariadb.org/f/mariadb-java-client-1.1.0/mariadb-java-client-1.1.0.jar
+    local mariadb_jdbc_url=https://downloads.mariadb.com/Connectors/java/connector-java-2.0.1/mariadb-java-client-2.0.1.jar
     print_and_log "Downloading MariaDB jdbc driver ${mariadb_jdbc_url}"
     local mariadb_jdbc_jar=${mariadb_jdbc_url##*/}
     download_uri_target_to_dir \
@@ -296,6 +296,23 @@ EOF
                proxyPort="443"
                scheme="https"
     />
+EOF
+
+  if [[ ${fai_editor_install-0} -eq 1 ||
+        ${fai_presentation_install-0} -eq 1 ]]; then
+    cat >> $tomcat_base/conf/server.xml <<EOF
+    <Connector port="${fai_sse_proxy_ece_port-8083}"
+               protocol="HTTP/1.1"
+               connectionTimeout="20000"
+               URIEncoding="UTF-8"
+               compression="off"
+               redirectPort="${fai_sse_proxy_ece_redirect-8443}"
+               proxyPort="${fai_sse_proxy_exposed_port-80}"
+    />
+EOF
+  fi
+
+  cat >> $tomcat_base/conf/server.xml <<EOF
     <Engine name="Catalina" defaultHost="localhost" jvmRoute="jvm1">
       <Valve className="org.apache.catalina.valves.AccessLogValve"
              prefix="access."

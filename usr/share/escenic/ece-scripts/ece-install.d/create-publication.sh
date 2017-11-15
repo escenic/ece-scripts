@@ -35,8 +35,8 @@ function _create_publication_if_passed_extract_ear_to_dir() {
     if [[ -n "${fai_builder_http_user}" && \
             -n "${fai_builder_http_password}" ]]; then
       wget_auth="
-          --http-user \"${fai_builder_http_user}\"
-          --http-password \"${fai_builder_http_password}\"
+          --http-user "${fai_builder_http_user}"
+          --http-password "${fai_builder_http_password}"
         "
     fi
     download_uri_target_to_dir $fai_publication_ear $download_dir
@@ -62,10 +62,9 @@ function create_publication() {
     ensure_that_instance_is_running ${fai_publication_use_instance-$default_ece_intance_name}
     for el in ${fai_publication_domain_mapping_list}; do
       # the entries in the fai_publication_domain_mapping_list are on
-      # the form: <publication[,pub.war]>#<domain>[#<alias1>[,<alias2>]]
+      # the form: <publication[,pub.war][,type]>#<domain>[#<alias1>[,<alias2>]]
       IFS='#' read publication domain aliases <<< "$el"
-      IFS=',' read publication_name publication_war <<< "${publication}"
-      <<< "$publication"
+      IFS=',' read publication_name publication_war publication_type <<< "${publication}"
 
       # this is the default case were the WAR is called the same as
       # the publication name with the .war suffix.
@@ -73,8 +72,11 @@ function create_publication() {
         publication_war=${publication_name}.war
       fi
 
+      ## If the WAR was provided as a file outside the EAR
+      if [ -e "${publication_war}" ]; then
+        publication_war_to_use=${publication_war}
       ## If the WAR was provided in fai_publication_ear
-      if [ -e "${the_tmp_dir}/${publication_war}" ]; then
+      elif [ -e "${the_tmp_dir}/${publication_war}" ]; then
         publication_war_to_use=${the_tmp_dir}/${publication_war}
       else
         local file=$(get_content_engine_dir)/contrib/wars/demo-clean.war
@@ -84,7 +86,7 @@ function create_publication() {
       create_the_publication \
         "${publication_name}" \
         "${publication_war_to_use}" \
-        "${publication_type}" \
+        "${publication_type-default}" \
         "${domain}" \
         "${aliases}"
     done
@@ -161,17 +163,31 @@ function create_the_publication() {
 
 ## $1 :: the instance name
 function ensure_that_instance_is_running() {
-  local ece_command="ece -i $1 -t $type status"
+  printf "$(get_id) Ensuring %s is up " "${1}"
+
+  local ece_command="ece -i $1 -t ${type-engine} status"
   if [ $(su - $ece_user -c "$ece_command" | grep UP | wc -l) -lt 1 ]; then
-    ece_command="ece -i $1 -t $type start"
+    ece_command="ece -i $1 -t ${type-engine1} start"
     su - $ece_user -c "$ece_command" 1>>$log 2>>$log
   fi
 
   # This is a hack, but this ensures that the ECE is bootstrapped
   # properly and can respond fast enough to the session setup for the
   # publication creation.
-  ece_command="ece -i $1 -t $type versions"
-  su - $ece_user -c "$ece_command" 1>>$log 2>>$log
-  sleep 60
+  ece_command="ece -i $1 -t ${type-engine} versions"
+
+  local wait_count=60
+  for ((i=0; i < ${wait_count}; i++)); do
+    printf "."
+    up=$(su - ${ece_user} -c "$ece_command" | grep -c content-engine)
+
+    if [ "${up}" -eq 1 ]; then
+      printf "it's up!\n"
+      break
+    fi
+
+    sleep 1
+  done
+
 }
 

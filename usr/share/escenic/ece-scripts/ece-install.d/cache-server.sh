@@ -42,7 +42,7 @@ function set_varnish_port() {
     [Service]
 ExecStart=
 ExecStart=/usr/sbin/varnishd \
-  -a :80 \
+  -a :${cache_port} \
   -T localhost:6082 \
   -f /etc/varnish/default.vcl \
   -S /etc/varnish/secret \
@@ -73,7 +73,6 @@ include "compression.vcl";
 include "robots-on-beta.vcl";
 include "cookie-cleaner.vcl";
 include "caching-policies.vcl";
-include "varnish-hacks.vcl";
 include "redirects.vcl";
 include "cache-statistics.vcl";
 include "error-pages.vcl";
@@ -477,18 +476,6 @@ EOF
   # at the end of the vcl_deliver above.
 }
 
-function create_varnish_conf_hacks() {
-  local file=${varnish_conf_dir}/varnish-hacks.vcl
-  cat > $file <<EOF
-sub vcl_deliver {
-  /* It seems that Varnish changes the Date header and the age header
-   * becomes wrong because of this. For this reason, we set the Age
-   * header to 0 to be standards compliant. */
-  set resp.http.Age = "0";
-}
-EOF
-}
-
 function get_from_domain() {
   if [[ $1 == "^www." ]]; then
     echo $1 | sed 's/^www.//g'
@@ -594,7 +581,6 @@ function create_varnish_conf() {
   create_varnish_conf_robots_on_beta
   create_varnish_conf_cookie_cleaner
   create_varnish_conf_caching_policies
-  create_varnish_conf_hacks
   create_varnish_conf_redirects
   create_varnish_conf_cache_statistics
   create_varnish_conf_error_pages

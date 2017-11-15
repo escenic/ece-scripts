@@ -343,6 +343,13 @@ function create_packages() {
       $f
   done
 
+  # Mark everything the package provides in /etc as a conf file
+  find "${target_dir}" -type f |
+    egrep "etc|conf" |
+    egrep -v "DEBIAN|/doc/" |
+    sed "s#${target_dir}##" \
+        > "${debian_dir}/conffiles"
+
   # fix permissions
   if [ -e $debian_dir/postinst ]; then
     run chmod 755 $debian_dir/postinst

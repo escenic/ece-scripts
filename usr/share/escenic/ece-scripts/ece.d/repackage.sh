@@ -10,7 +10,7 @@
 USR_SHARE_DIR=/usr/share/escenic
 
 get_installed_packages_war_list() {
-  find "${USR_SHARE_DIR}/escenic-"* -maxdepth 1 -name "webapps" -type d | \
+  find -L "${USR_SHARE_DIR}/escenic-"* -maxdepth 1 -name "webapps" -type d | \
     while read -r webapps_dir; do
       find "${webapps_dir}" -name "*.war" -type f
     done
@@ -21,44 +21,44 @@ get_installed_packages_war_name_list() {
 }
 
 get_installed_packages_lib_list() {
-  find "${USR_SHARE_DIR}/escenic-"* -maxdepth 1 -name "lib" -type d | \
+  find -L "${USR_SHARE_DIR}/escenic-"* -maxdepth 1 -name "lib" -type d | \
     while read -r lib_dir; do
       find "${lib_dir}" -name "*.jar" -type f
     done
 }
 
 get_installed_packages_webservice_extensions_list() {
-  find "${USR_SHARE_DIR}/escenic-"* -maxdepth 1 \
+  find -L "${USR_SHARE_DIR}/escenic-"* -maxdepth 1 \
        -name "webservice-extensions" -type d
 }
 
 get_installed_packages_webservice_list() {
-  find "${USR_SHARE_DIR}/escenic-"* -maxdepth 1 \
+  find -L "${USR_SHARE_DIR}/escenic-"* -maxdepth 1 \
        -name "webservice" -type d
 }
 
 get_installed_packages_studio_list() {
-  find "${USR_SHARE_DIR}/escenic-"* -maxdepth 1 \
+  find -L "${USR_SHARE_DIR}/escenic-"* -maxdepth 1 \
        -name "studio" -type d
 }
 
 get_installed_package_webservice_war() {
-  find "${USR_SHARE_DIR}/escenic-content-engine-"* -maxdepth 2 \
+  find -L "${USR_SHARE_DIR}/escenic-content-engine-"* -maxdepth 2 \
        -name "webservice.war" -type f
 }
 
 get_installed_package_studio_war() {
-  find "${USR_SHARE_DIR}/escenic-content-engine-"* -maxdepth 2 \
+  find -L "${USR_SHARE_DIR}/escenic-content-engine-"* -maxdepth 2 \
        -name "studio.war" -type f
 }
 
 get_installed_package_webservice_extensions_war() {
-  find "${USR_SHARE_DIR}/escenic-content-engine-"* -maxdepth 2 \
+  find -L "${USR_SHARE_DIR}/escenic-content-engine-"* -maxdepth 2 \
        -name "webservice-extensions.war" -type f
 }
 
 get_installed_package_content_engine_war_list() {
-  find "${USR_SHARE_DIR}/escenic-content-engine-"* -maxdepth 2 \
+  find -L "${USR_SHARE_DIR}/escenic-content-engine-"* -maxdepth 2 \
        -name "*.war" -type f
 }
 

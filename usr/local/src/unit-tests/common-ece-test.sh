@@ -54,7 +54,7 @@ tearDown() {
 }
 
 main() {
-  . "$(dirname "$0")"/shunit2/source/2.1/src/shunit2
+  . "$(dirname "$0")"/shunit2/shunit2
 }
 
 main "$@"

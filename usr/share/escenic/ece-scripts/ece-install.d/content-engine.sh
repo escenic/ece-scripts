@@ -773,7 +773,7 @@ function install_ece_third_party_packages
       xmlstarlet
     "
 
-    install_sun_java_on_redhat
+    install_oracle_java
   fi
 
   install_packages_if_missing $packages
