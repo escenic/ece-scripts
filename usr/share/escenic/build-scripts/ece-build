@@ -232,7 +232,7 @@ function init
   else
     create_pid
   fi
-  
+
   trap common_bashing_exit_hook_with_log_recap EXIT
   trap common_bashing_user_cancelled_hook SIGINT SIGHUP
 }
@@ -275,12 +275,12 @@ function run_wrapper() {
   fi
 
   "${@}" 1>>$log 2>>$log
-  
+
   local RETVAL=$?
   if [ $RETVAL -ne 0 ]; then
     print_and_log "The command <${@}> run as user $USER $(red FAILED)" \
       "(the command exited with code ${code}), I'll exit now :-("
-    exit 1 
+    exit 1
   fi
 }
 
@@ -292,7 +292,7 @@ function fetch_configuration
   else
     print_and_log "Your user is missing the $conf_file, exiting!"
     exit 1
-  fi 
+  fi
 }
 
 ##
@@ -304,18 +304,18 @@ function verify_configuration {
     src_control=svn
 
   fi
-  if [[ "$src_control" = "svn" ]]; then 
+  if [[ "$src_control" = "svn" ]]; then
 
     enforce_variable svn_base "Your $conf_file is missing the variable 'svn_base', exiting!"
     enforce_variable svn_user "Your $conf_file is missing the variable 'svn_user', exiting!"
-    
+
     enforce_variable svn_password "Your $conf_file is missing the variable 'svn_password', exiting!"
-    
+
     # append a / to svn_base if not present
     [[ $svn_base != */ ]] && svn_base="$svn_base"/
 
   elif [[ "$src_control" = "git" ]]; then
-    
+
     if [ -z $git_protocol ]; then
       log "No protocol chosen for git, I will assume that you are using https!"
       git_protocol=https
@@ -334,7 +334,7 @@ function verify_configuration {
     if [[ ! -z $jira_base_url ]]; then
       enforce_variable jira_user "Your $conf_file is missing the variable 'jira_user', exiting!"
       enforce_variable jira_password "Your $conf_file is missing the variable 'jira_password', exiting!"
-    fi    
+    fi
   else
     print_and_log "The chosen source control system $src_control is NOT supported, exiting!"
     exit 1
@@ -365,7 +365,7 @@ function verify_command {
 }
 
 ##
-function verify_java 
+function verify_java
 {
   if !dpkg-query -W sun-java6-jdk > /dev/null 2>&1; then
     print_and_log "Required package sun-java6-jdk is not installed, exiting!"
@@ -509,7 +509,7 @@ function verify_assemblytool
   fi
 }
 
-## 
+##
 function clean_customer_home
 {
   # clean up plugin directory if it exists
@@ -519,7 +519,7 @@ function clean_customer_home
     make_dir $plugin_dir
   fi
 
-  # remove engine symlink if it exists 
+  # remove engine symlink if it exists
   if [ -h "$engine_root_dir" ]; then
     run_wrapper rm -f $engine_root_dir
   fi
@@ -594,7 +594,7 @@ function git_checkout
     git_path="-b $branch_name"
   fi
 
-  
+
   if [ -d $project_src_master_dir ]; then
     cd $project_src_master_dir
     git show-ref --quiet --verify "refs/heads/master"
@@ -642,7 +642,7 @@ function git_checkout
     git_path="-b $branch_name"
   fi
 }
-## Git update repository 
+## Git update repository
 function update_repository
 {
   run_wrapper git remote update
@@ -669,14 +669,14 @@ function checkout_repo
 function clean_up
 {
   run_wrapper git clean -d -x -f
-  run_wrapper git checkout * 
+  run_wrapper git checkout *
 }
 
 ##
 function project_verify_assembly
 {
   if [[ "$src_control" = "svn" ]]; then
-    run_wrapper svn update --quiet --non-interactive --set-depth infinity $project_src_dir/pom.xml $project_src_dir/project-assembly 
+    run_wrapper svn update --quiet --non-interactive --set-depth infinity $project_src_dir/pom.xml $project_src_dir/project-assembly
   fi
   if [ ! -d $project_assembly_dir ]; then
     print_and_log "Your project does not contain the project-assembly module and is thereby not certified to use the ece-builder, exiting!"
@@ -846,14 +846,14 @@ function fetch_distributions
   if [ ! -d $dists_root_dir ]; then
     run_wrapper mkdir -p $dists_root_dir
   fi
-  
+
   # iterate over all distributions in the project
   for f in ${!project_distributions[@]};
   do
 
     # extract the version from the list of project distributions
     local dist_version=${project_distributions["$f"]}
-    
+
     # double check that the version isn't null
     if [[ ! $dist_version = "" ]]; then
 
@@ -871,7 +871,7 @@ function fetch_distributions
         local artifact_pattern=$f
         local artifact_version=$dist_version
         local target_path=$dists_root_dir
-       
+
          if [ "$dist_version" == "trunk-SNAPSHOT" ] || [ "$dist_version" = "develop-SNAPSHOT" ]; then
           for h in ${maven_snapshot_coordinates["$f"]};
           do
@@ -884,7 +884,7 @@ function fetch_distributions
             local dist_path=`mvn_coordinate_to_url ${h}:$dist_version`
             request_distribution $dist_path
           done
-        fi 
+        fi
 
         if [ -e $dists_tmp_dir/distribution.zip ]; then
           run_wrapper cd $dists_tmp_dir
@@ -929,7 +929,7 @@ function fetch_distributions
             log "Distribution $artifact_pattern-$artifact_version sucessfully added."
           else
             print_and_log "Download failed! The distribution named $f with relative path - $dist_path could not be found in any of the repositories. This must be handled by an operator."
-            exit 1 
+            exit 1
           fi
         fi
       fi
@@ -951,7 +951,7 @@ function request_distribution
       local ret_val=$?
       if [ $ret_val -eq 0 ]; then
         download_distribution http://maven.escenic.com/unstable/$dist_path
-      fi      
+      fi
     fi
   fi
 }
@@ -987,7 +987,7 @@ function download_distribution
   if [ -d $dists_tmp_dir ]; then
     run_wrapper rm -rf $dists_tmp_dir
   fi
- 
+
   # re-create tmp directory
   run_wrapper mkdir -p $dists_tmp_dir
 
@@ -1047,9 +1047,9 @@ function symlink_ece_components
     version=${project_distributions["$f"]}
     if [[ ! $version = "" ]]; then
       if [[ "$f" = "engine" ]]; then
-        run_wrapper ln -s $dists_root_dir/$f-$version $engine_root_dir 
+        run_wrapper ln -s $dists_root_dir/$f-$version $engine_root_dir
       else
-        run_wrapper ln -s $dists_root_dir/$f-$version $plugin_dir/$f 
+        run_wrapper ln -s $dists_root_dir/$f-$version $plugin_dir/$f
       fi
     fi
   done
@@ -1123,7 +1123,7 @@ function verify_maven_proxy
   fi
 }
 
-## 
+##
 function svn_checkout
 {
   run_wrapper svn checkout --quiet --non-interactive --depth infinity --username $svn_user --password $svn_password $svn_base$svn_path $project_src_dir/.
@@ -1149,7 +1149,7 @@ function symlink_project_assembly
   # global classpath
   if [ -e "$project_assembly_target_dir/lib" ]; then
     for f in $(ls -d $project_assembly_target_dir/lib/* | grep .jar);
-    do 
+    do
       run_wrapper ln -s $f $assemblytool_lib_dir;
     done
   fi
@@ -1220,17 +1220,17 @@ function add_distributions_to_ear
 }
 
 ##
-function publish_ear 
+function publish_ear
 {
   resulting_ear=$customer-$release_label-rev$revision-$build_date.ear
-  if [ -e $assemblytool_root_dir/dist/engine.ear ]; then 
+  if [ -e $assemblytool_root_dir/dist/engine.ear ]; then
     run_wrapper cp $assemblytool_root_dir/dist/engine.ear $release_dir/$resulting_ear
-    
+
     # remove old style latest link
     if [ -e $release_dir/latest ]; then
       run_wrapper rm -f $release_dir/latest
     fi
-    
+
     # add new latest.ear link
     run_wrapper ln -fs $release_dir/$resulting_ear $release_dir/$customer-$release_label-latest.ear
   else
@@ -1239,12 +1239,12 @@ function publish_ear
   fi
 }
 
-## Creates deb and rpm package for machines specified in 
+## Creates deb and rpm package for machines specified in
 ## <project>/server-admin directory.
 ##
 ## This function takes two parameters. It can be called like below
 ## make_conf_package <machine> <project_configuration_directory>
-##  
+##
 function make_conf_package() {
    local machine=$1
    local conf_dir=$2
@@ -1328,31 +1328,81 @@ EOF
     fi
 
     run_wrapper dpkg-deb --build $target_dir
-    mv ${target_dir}.deb $target_dir/${package_name}-${package_version}.deb
+    local deb=${target_dir}/${package_name}-${package_version}.deb 
+    run_wrapper mv "${target_dir}".deb "${deb}"
 
-    if [[ -x /usr/bin/alien && -x /usr/bin/fakeroot ]]; then
-      (
-        run_wrapper cd $target_dir
-        run_wrapper fakeroot alien --keep-version --to-rpm --scripts \
-          ${package_name}-${package_version}.deb
-      )
-    else
-      print_and_log "You must have 'alien' and 'fakeroot' installed to create RPMs"
-    fi
+    _make_conf_package_rpm "${deb}" "${target_dir}"
 
     # move the machine's DEB and RPM packges to the release directory
     run_wrapper mv $target_dir/*.{deb,rpm} $release_dir/
     local release_version=${package_name}-${package_version}
     # adding latest links for conf packages
     run_wrapper ln -sf $release_dir/$release_version.deb $release_dir/vosa-conf-${machine}-1-${customer}-${release_label}-latest.deb
-    run_wrapper ln -sf $release_dir/vosa-conf-${machine}-1_${customer//-/_}_${release_label//-/_}-r${revision}.noarch.rpm \
-                       $release_dir/vosa-conf-${machine}-1_${customer//-/_}_${release_label//-/_}-latest.noarch.rpm
+    run_wrapper ln -sf $release_dir/vosa-conf-${machine}-1_${customer//-/_}_${release_label//-/_}_r${revision/-/_}.x86_64.rpm \
+                       $release_dir/vosa-conf-${machine}-1_${customer//-/_}_${release_label//-/_}-latest.x86_64.rpm
+
 
     # remove work directory
     run_wrapper rm -rf $target_dir
-    
-    #Let´s print the package links 
+
+    #Let´s print the package links
 }
+
+function _make_conf_package_rpm() {
+    local deb=$1
+    local target_dir=$2 
+    declare -a remove_dir_list=(
+    "/"
+    "/etc/"
+    "/etc/default/"
+    "/etc/escenic/"
+    "/etc/init.d/"
+    "/usr/"
+    "/usr/bin/"
+    "/usr/share/"
+    "/usr/share/escenic/"
+    )
+
+    if [[ ! -x /usr/bin/alien || ! -x /usr/bin/fakeroot ]]; then
+        print_and_log "You must have 'alien' and 'fakeroot' installed to create RPMs"
+        return
+    fi
+
+    local tmp_dir=
+    tmp_dir=$(mktemp -d)
+
+    local dir=
+    dir=$(
+    LC_ALL=C fakeroot \
+        alien \
+        --to-rpm \
+        --scripts \
+        --generate \
+        --keep-version "${deb}" \
+        2> /dev/null |
+        sed -r 's#Directory (.*) prepared.#\1#')
+    (
+    cd "${dir}" || exit 1
+    for el in "${remove_dir_list[@]}"; do
+        sed -r -i "s#(%dir \"${el}\"\$)##" -- *.spec
+    done
+    sed -i 's#^%config #%config(noreplace) #' -- *.spec
+
+    file=$(
+    LC_ALL=C fakeroot \
+        rpmbuild \
+        -bb ./*.spec \
+        --root /. \
+        --buildroot "$(pwd)"/ \
+        2> /dev/null |
+        sed -n -r "s#Wrote: (.*)#\1#p")
+
+    run_wrapper mv "${file}" "${target_dir}"
+    )
+
+    run_wrapper rm -r "${tmp_dir}"
+}
+
 ## This function prints the debian package links for the given machine
 ## Call print_deb_package_link <machine>
 function print_deb_package_link() {
@@ -1365,7 +1415,7 @@ function print_deb_package_link() {
 function print_rpm_package_link() {
   local machine=$1
   print_and_log "--- .rpm configuration package for $machine machine  ---"
-  print_and_log "$ear_base_url/$customer/releases/vosa-conf-${machine}-1_${customer//-/_}_${release_label//-/_}-r${revision}.noarch.rpm"
+  print_and_log "$ear_base_url/$customer/releases/vosa-conf-${machine}-1_${customer//-/_}_${release_label//-/_}_r${revision/-/_}.x86_64.rpm"
 }
 
 ## creates DEB and RPM packages with the server configuration for all
@@ -1377,11 +1427,11 @@ function print_rpm_package_link() {
 ## If <project>/server-admin doesn't exist, the method simply returns.
 function create_machine_conf_packages() {
   local conf_dir=$project_src_dir/server-admin
-  
+
   if [ ! -d $conf_dir ]; then
     return
   fi
-  
+
  # As both control run same function
  #if [[ "$src_control" = svn ]]; then
     #generate_new_changelog
@@ -1417,7 +1467,7 @@ function create_machine_conf_packages() {
     make_conf_package $package_for_machine $conf_dir
     print_deb_package_link $package_for_machine
     print_rpm_package_link $package_for_machine
-  else 
+  else
     print_and_log "We have not found any conf directory for the desired machine `$package_for_machine` under $conf_dir ! Please check the machine name is correct"
     print_and_log "I will not generate any configuration packages then! Please set the package_for_machine correclty!"
   fi
@@ -1429,7 +1479,7 @@ function generate_new_changelog() {
   (
     cd ${project_src_dir}
     local previous_revision=PREV
-    
+
     if [[ "$src_control" = "svn" ]]; then
     previous_revision=$(
       ls $release_dir/vosa-conf-*-${release_label}-*.deb 2>/dev/null | \
@@ -1455,9 +1505,9 @@ function generate_new_changelog() {
     local from_option=""
     if [ -n "${previous_revision}" ]; then
       from_option="--from $previous_revision"
-    fi  
+    fi
 
-    if [[ "$src_control" = "svn" ]]; then 
+    if [[ "$src_control" = "svn" ]]; then
     	run_wrapper generate-changelog \
     	  --project $(basename $svn_base) \
     	  --user $svn_user \
@@ -1466,7 +1516,7 @@ function generate_new_changelog() {
     	  --to $revision
     elif [[ "$src_control" = "git" ]]; then
         # --project git repo name and branch
-	if [[ ! -z $jira_base_url ]]; then 
+	if [[ ! -z $jira_base_url ]]; then
     	run_wrapper generate-git-changelog \
     	  --project $(basename $git_base)/$branch_name \
     	  --user $jira_user \
@@ -1478,25 +1528,25 @@ function generate_new_changelog() {
     	run_wrapper generate-git-changelog \
     	  --project $(basename $git_base)/$branch_name \
     	  ${from_option} \
-    	  --to $revision 
+    	  --to $revision
 	fi
-    fi    
+    fi
 
   )
 }
 
 ## Generates the /etc/hosts file for the given machine.
-## 
+##
 ## $1 :: the machine name
 ## $2 :: the server-admin directory
 function get_etc_hosts_for_machine() {
   if [ -z "$1" -o -z "$2" ]; then
     return
   fi
-  
+
   local instance=$1
   local files_dir=$2
-  
+
   if [ ! -d $files_dir/common/etc/hosts.d ]; then
     return
   fi
@@ -1521,7 +1571,7 @@ EOF
   if [ -d ${files_dir}/${instance}/etc/hosts.d ]; then
     find_dirs="$find_dirs ${files_dir}/${instance}/etc/hosts.d"
   fi
-  
+
   find  \
     $find_dirs \
     -maxdepth 1 \
@@ -1609,7 +1659,7 @@ function phase_release
     add_distributions_to_ear
     publish_ear
   else
-    print_and_log "Creation of .ear file skipped as requested!"    
+    print_and_log "Creation of .ear file skipped as requested!"
   fi
   create_machine_conf_packages
   print_result
@@ -1633,7 +1683,7 @@ local conf_deploy_opts="--conf"
   fi
 
   if [ "$deploy_conf" == "rpm" ]; then
-    ece-deploy $conf_deploy_opts ~/releases/vosa-conf-${package_for_machine}-1_${customer}_${release_label}-latest.noarch.rpm
+    ece-deploy $conf_deploy_opts ~/releases/vosa-conf-${package_for_machine}-1_${customer}_${release_label}-latest.x86_64.rpm
   fi
 }
 
