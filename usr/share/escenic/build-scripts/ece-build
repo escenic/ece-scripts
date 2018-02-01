@@ -83,6 +83,7 @@ preview-editor
 live-center
 live
 archive
+language-pack
 revision-history"
 
 declare -A project_distributions=()
@@ -124,6 +125,7 @@ com.escenic:engine:zip"
 ["live-center"]="com.escenic.plugins.live-center:live-center:zip"
 ["live"]="com.escenic.plugins.live:live:zip"
 ["archive"]="com.escenic.plugins.archive:cue-archive:zip"
+["language-pack"]="com.escenic.plugins.language-pack:language-pack:zip"
 ["revision-history"]="com.escenic.plugins.revision-history:revision-history:zip"
 )
 
@@ -172,6 +174,7 @@ com.escenic.plugins.vcpeditor:vcpeditor:zip"
 ["live-center"]="com.escenic.plugins.live-center:live-center:zip"
 ["live"]="com.escenic.plugins.live:live:zip"
 ["archive"]="com.escenic.plugins.archive:cue-archive:zip"
+["language-pack"]="com.escenic.plugins.language-pack:language-pack:zip"
 ["revision-history"]="com.escenic.plugins.revision-history:revision-history:zip"
 )
 
