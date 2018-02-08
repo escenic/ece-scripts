@@ -174,8 +174,10 @@ _cue_configure_debian() {
   dpkg -l 'cue-web-*' |
     awk '/cue-web/{print $2}' |
     while read -r package; do
-      print_and_log "Configuring the CUE editor: ${package} ..."
-      run dpkg-reconfigure "${package}"
+      if [[ "$(dpkg -l "${package}" | grep ^ii)" ]]; then
+        print_and_log "Configuring the CUE editor: ${package} ..."
+        run dpkg-reconfigure "${package}"
+      fi
     done
 }
 
