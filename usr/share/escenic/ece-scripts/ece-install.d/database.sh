@@ -544,8 +544,12 @@ EOF
   fi
 }
 
-function check_mysql_is_running(){
-  netstat -nlp | grep -q -c -w mysqld
+function check_mysql_is_running() {
+  if [ -x $(which mysqladmin &> /dev/null) ]; then
+    mysqladmin -h "${db_host}" status 2>/dev/null |  grep -q -c -w Uptime
+  else
+    netstat -nlp | grep -q -c -w mysqld
+  fi
 }
 
 function create_schema() {
