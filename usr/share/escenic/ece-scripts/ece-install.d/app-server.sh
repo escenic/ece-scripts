@@ -149,7 +149,6 @@ function set_up_app_server() {
 <?xml version='1.0' encoding='utf-8'?>
 <Server port="$shutdown_port" shutdown="SHUTDOWN">
   <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
-  <Listener className="org.apache.catalina.core.JasperListener" />
   <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
   <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
 
@@ -315,7 +314,7 @@ EOF
   cat >> $tomcat_base/conf/server.xml <<EOF
     <Engine name="Catalina" defaultHost="localhost" jvmRoute="jvm1">
       <Valve className="org.apache.catalina.valves.AccessLogValve"
-             prefix="access."
+             prefix="access"
              suffix=".log"
              pattern="common"/>
       <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
@@ -345,7 +344,7 @@ EOF
                />
     <Engine name="Catalina" defaultHost="localhost" jvmRoute="jvm1">
       <Valve className="org.apache.catalina.valves.AccessLogValve"
-             prefix="access-publications."
+             prefix="access-publications"
              suffix=".log"
              pattern="common"
              />
@@ -478,8 +477,6 @@ EOF
 
 function set_up_logging() {
   print_and_log "Setting up Tomcat to use log4j ..."
-  log4j_download_the_tomcat_juli_libraries_and_copy_these_to_cl
-  log4j_ensure_java_util_logging_is_not_doing_anything
   log4j_create_configuration_file
 }
 
@@ -601,30 +598,3 @@ EOF
   fi
 }
 
-## libraries needed for overriding the default logging framework in
-## Tomcat.
-function log4j_download_the_tomcat_juli_libraries_and_copy_these_to_cl() {
-  log "Downloading Tomcat libraries to override java.util.Logging ..."
-  local libraries="tomcat-juli-adapters.jar tomcat-juli.jar"
-  local tomcat_base_uri=$(dirname $(get_tomcat_download_url))
-  for el in $libraries; do
-    download_uri_target_to_dir \
-      $tomcat_base_uri/extras/$el \
-      $download_dir
-    local file=$download_dir/$(basename $el)
-  done
-
-  run cp $download_dir/tomcat-juli-adapters.jar $tomcat_home/lib/
-  run cp $download_dir/tomcat-juli.jar $tomcat_home/bin/
-  # we don't copy the log4j JAR as this is provided with ECE and EAE.
-}
-
-function log4j_ensure_java_util_logging_is_not_doing_anything() {
-  log "Ensure java.util.Logging is put to rest ..."
-  local file=$tomcat_base/conf/logging.properties
-  if [ -e $file ]; then
-    run rm $file
-  else
-    log $file "doesn't exist, strange"
-  fi
-}
