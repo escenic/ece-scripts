@@ -1412,6 +1412,10 @@ function _make_conf_package_rpm() {
     "/usr/bin/"
     "/usr/share/"
     "/usr/share/escenic/"
+    "/home/"
+    "/home/ngdb/"
+    "/home/ngio/"
+    "/home/ngx/"
     )
 
     if [[ ! -x /usr/bin/alien || ! -x /usr/bin/fakeroot ]]; then
