@@ -47,7 +47,12 @@ function get_user_home_directory() {
 ## Will return 1 if the system has Sun/Oracle Java installed.
 function has_oracle_java_installed() {
   local java_bin_list=$(
-    find /usr/lib/jvm -maxdepth 3 -name java -type f -executable)
+    find /usr/lib/jvm \
+         -maxdepth 3 \
+         -name java \
+         -type f \
+         -executable \
+         2>/dev/null)
 
   for java_bin in ${java_bin_list}; do
     local hit=$(${java_bin} -version 2>&1 > /dev/null | grep HotSpot | wc -l)
@@ -140,7 +145,7 @@ function get_tomcat_download_url() {
     url=$tomcat_download
   else
     url=$(
-        curl -s http://tomcat.apache.org/download-70.cgi | \
+        curl -s http://tomcat.apache.org/download-90.cgi | \
             grep tar.gz | \
             head -1 | \
             cut -d'"' -f2
