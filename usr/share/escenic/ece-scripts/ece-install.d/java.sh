@@ -14,7 +14,7 @@ function _java_get_oracle_tarball_url() {
     grep -v demos |
     sort -r |
     head -n1 |
-    sed -n -r  's#.*filepath":"(.*)", "MD5".*#\1#p'
+    sed -n -r  's#.*filepath":"(.*)",[ ]*"MD5".*#\1#p'
 }
 
 function _java_get_oracle_rpm_url() {
