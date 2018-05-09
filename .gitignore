@@ -1,2 +1,2 @@
-*.dockerfile
+*.dockerfile.test
 usr/local/src/unit-tests/shunit2

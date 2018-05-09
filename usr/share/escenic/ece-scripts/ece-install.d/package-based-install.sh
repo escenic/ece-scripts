@@ -56,10 +56,7 @@ _install_configured_escenic_packages_apt() {
     fi
   done
 
-  run apt-get install ${apt_opts} \
-      --assume-yes \
-      --force-yes \
-      ${escenic_deb_packages-escenic-content-engine}
+  install_packages_if_missing "${escenic_deb_packages-escenic-content-engine}"
 }
 
 _install_configured_escenic_packages_deb() {
@@ -137,4 +134,59 @@ _install_configured_escenic_packages_rpm() {
       run rpm -Uvh "${rpm_file}"
     fi
   done
+}
+
+is_package_source_only_3rd_party() {
+  [[ "${fai_package_only_3rd_party-0}" -eq 1 ]]
+}
+
+is_package_source_only_proprietary() {
+  [[ "${fai_package_only_proprietary-0}" -eq 1 ]]
+}
+
+## Will return 0 if the package list is installable according to the
+## mode ece-install runs in. The two modes available are: proriatary
+## (only install CCI/Escenic software) and 3rdparty (only install free
+## and open source software).
+##
+## If neither install mode has been selected, the method will return
+## 0.
+##
+## $@ :: a list of package names
+##
+##  Will return 1 on empty list.
+is_package_list_installable() {
+  local package_list=$*
+
+  if [ -z "${package_list}" ]; then
+    return 1
+  fi
+
+  if is_package_source_only_proprietary; then
+    for el in ${package_list}; do
+      if [[ "${el}" == escenic* ||
+              "${el}" == vosa* ||
+              "${el}" == spore ||
+              "${el}" == cue* ]]; then
+        continue
+      else
+        log "$(basename "$0") runs in proprietary install mode only," \
+            "so it'll not install 3rd party package=${el}"
+        return 1
+      fi
+    done
+  elif is_package_source_only_3rd_party; then
+    for el in ${package_list}; do
+      if [[ "${el}" == escenic* ||
+              "${el}" == vosa* ||
+              "${el}" == spore ||
+              "${el}" == cue* ]]; then
+        log "$(basename "$0") runs in 3rd party install mode only," \
+            "so it'll not install proprietary package=${el}"
+        return 1
+      else
+        continue
+      fi
+    done
+  fi
 }

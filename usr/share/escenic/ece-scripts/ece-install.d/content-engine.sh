@@ -718,6 +718,13 @@ function set_up_instance_specific_nursery_configuration() {
 # servers in the architecture.
 function install_ece_third_party_packages
 {
+  if is_package_source_only_proprietary; then
+    log "$(basename "$0") runs in proprietary install mode only," \
+        "so it'll not install 3rd party packages in" \
+        "${BASH_SOURCE[0]}::${FUNCNAME[0]}()"
+    return
+  fi
+
   run_hook install_ece_third_party_packages.preinst
   print_and_log "Installing 3rd party packages needed by $type instances"
 
@@ -866,6 +873,12 @@ function _repackage_deploy_and_restart_type()
 
 function assemble_deploy_and_restart_type()
 {
+  if is_package_source_only_3rd_party; then
+    log "$(basename "$0") runs in 3rd party only mode, skipping" \
+        "${BASH_SOURCE[0]}::${FUNCNAME[0]}()"
+    return
+  fi
+
   set_correct_permissions
 
   if [ "${fai_package_enabled-0}" -eq 1 ]; then

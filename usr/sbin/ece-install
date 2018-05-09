@@ -165,6 +165,13 @@ function get_content_engine_dir() {
 
 function download_escenic_components()
 {
+    if [ "${fai_package_only_3rd_party-0}" -eq 1 ]; then
+      log "$(basename "$0") runs in 3rd party install mode only," \
+          "so it'll not install any Escenic components" \
+          "${FUNCNAME[0]}"
+      return
+    fi
+
     if [ $ece_software_setup_completed -eq 1 ]; then
         return
     fi
@@ -260,6 +267,10 @@ function install_packages_if_missing() {
       one_time_apt_update_done=1
     fi
 
+    if ! is_package_list_installable "${@}"; then
+      return
+    fi
+
     if [ $force_packages -eq 1 ]; then
       run apt-get install $apt_opts --assume-yes --force-yes $@
     else
@@ -268,6 +279,9 @@ function install_packages_if_missing() {
   elif [ $on_redhat_or_derivative -eq 1 ]; then
     # since some versions of yum use --assume-yes and some use
     # --assumeyes (!), we use the short form, -y, here
+    if ! is_package_list_installable "${@}"; then
+      return
+    fi
     run yum install -y $@
   fi
 }
@@ -939,33 +953,9 @@ function leave_trail() {
   echo "$@" >> $ece_install_trail_file
 }
 
-function read_user_input() {
-  for el in "$@"; do
-    if [ $el = "-v" -o $el = "--verbose" ]; then
-      debug=1
-    elif [ $el = "-V" -o $el = "--version" ]; then
-      echo "Version:" $ece_scripts_version
-      exit 0
-    elif [ $el = "-f" -o $el = "--conf-file" ]; then
-      next_is_conf_file=1
-    elif [[ -n $next_is_conf_file && $next_is_conf_file -eq 1 ]]; then
-      conf_file=$el
-      case ${conf_file} in
-        /*)
-          ;;
-        *)
-          conf_file=$(pwd)/${conf_file}
-          ;;
-      esac
-
-      next_is_conf_file=0
-    fi
-  done
-}
-
 function main() {
-    read_user_input "$@"
     init
+    read_user_input "$@"
     assert_correct_runtime_environment
 
     print_and_log "Full Automatic Install (FAI)."
