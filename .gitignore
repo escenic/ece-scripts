@@ -1,1 +1,2 @@
+*.dockerfile
 usr/local/src/unit-tests/shunit2
