@@ -11,17 +11,13 @@ main() {
   project_dir="$(dirname "$0")/../../../.."
 
   for el in "$(dirname "$0")"/*.dockerfile; do
-    cp  "${el}" "${project_dir}/$(basename "${el}").test"
-  done
-
-  cd "${project_dir}" || exit 1
-  for el in *.dockerfile.test; do
+    cd "${project_dir}" || exit 1
     docker build \
            --build-arg ECE_APT_USER="${ECE_APT_USER}" \
            --build-arg ECE_APT_PASSWORD="${ECE_APT_PASSWORD}" \
            --no-cache \
            --file "${el}" \
-           --tag escenic/ece-scripts-test:latest .
+           --tag ${HOSTNAME}/$(basename "$el" .dockerfile):latest .
   done
 }
 

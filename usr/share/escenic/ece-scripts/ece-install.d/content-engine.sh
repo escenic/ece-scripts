@@ -758,12 +758,13 @@ function install_ece_third_party_packages
       ant-contrib
       ant-optional
       libapr1
-      libtcnative-1
       libmysql-java
+      libtcnative-1
       libxml2-utils
       memcached
-      xml-twig-tools
+      procps
       wget
+      xml-twig-tools
       xmlstarlet
     "
   elif [ $on_redhat_or_derivative -eq 1 ]; then
@@ -775,6 +776,7 @@ function install_ece_third_party_packages
       libxml2
       memcached
       mysql-connector-java
+      procps-ng
       tomcat-native
       wget
       xmlstarlet

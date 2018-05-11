@@ -35,5 +35,15 @@ packages: \n\
 run sed -r -i "s#stretch main#stretch main contrib non-free#" \
     /etc/apt/sources.list
 
-run bash -x /usr/sbin/ece-install --only-3rd-party -f /root/ece-install.yaml
-# run bash -x /usr/sbin/ece-install --only-proprietary -f /root/ece-install.yaml
+run apt-get update && \
+    apt-get --yes install curl gnupg
+
+run curl --silent http://apt.escenic.com/repo.key | apt-key add -
+
+# official Escenic & CUE releases
+run echo "deb http://${ECE_APT_USER}:${ECE_APT_PASSWORD}@apt.escenic.com stable main non-free" \
+    >> /etc/apt/sources.list
+
+# latest stable releases of the cloud tools, like ece and ece-install
+run echo "deb http://apt.escenic.com shiba main non-free" \
+    >> /etc/apt/sources.list
