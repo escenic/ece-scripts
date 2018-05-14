@@ -1,0 +1,24 @@
+#! /usr/bin/env bash
+
+## author: torstein@escenic.com
+set -o errexit
+set -o nounset
+set -o pipefail
+shopt -s nullglob
+
+main() {
+  local project_dir=
+  project_dir="$(dirname "$0")/../../../.."
+
+  for el in "$(dirname "$0")"/*.dockerfile; do
+    cd "${project_dir}" || exit 1
+    docker build \
+           --build-arg ECE_APT_USER="${ECE_APT_USER}" \
+           --build-arg ECE_APT_PASSWORD="${ECE_APT_PASSWORD}" \
+           --no-cache \
+           --file "${el}" \
+           --tag ${HOSTNAME}/$(basename "$el" .dockerfile):latest .
+  done
+}
+
+main "$@"
