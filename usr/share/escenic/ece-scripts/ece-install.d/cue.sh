@@ -83,7 +83,7 @@ EOF
     if (\$cors = "trueget") {
       add_header "Access-Control-Allow-Origin" "\$http_origin" always;
       add_header "Access-Control-Allow-Credentials" "true" always;
-      add_header "Access-Control-Expose-Headers" "Link,X-ECE-Active-Connections,Location,ETag,Allow" always;
+      add_header "Access-Control-Expose-Headers" "Link,X-ECE-Active-Connections,Location,ETag,Allow,WWW-Authenticate" always;
     }
     if (\$cors = "truepost") {
       add_header "Access-Control-Allow-Origin" "\$http_origin" always;
