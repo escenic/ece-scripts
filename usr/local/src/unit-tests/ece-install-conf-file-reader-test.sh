@@ -1161,6 +1161,33 @@ EOF
   rm -rf "${yaml_file}"
 }
 
+test_can_parse_yaml_conf_editor_install_multi_profiles_1_instead_of_boolean() {
+  local yaml_file=
+  yaml_file=$(mktemp)
+  cat > "${yaml_file}" <<EOF
+---
+profiles:
+  editor:
+    install: 1
+  search:
+    install: 1
+  db:
+    install: no
+EOF
+
+  unset fai_editor_install
+  unset fai_search_install
+  unset fai_db_install
+
+  parse_yaml_conf_file_or_source_if_sh_conf "${yaml_file}"
+  assertNotNull "Should set fai_editor_install" "${fai_editor_install}"
+  assertEquals "Should set fai_editor_install" 1 "${fai_editor_install}"
+  assertEquals "Should set fai_search_install" 1 "${fai_search_install}"
+  assertNull "Should not have set fai_db_install" "${fai_db_install}"
+
+  rm -rf "${yaml_file}"
+}
+
 test_can_parse_yaml_conf_cache() {
   local cache_port=80
   local cache_conf_dir=/opt/etc/varnish

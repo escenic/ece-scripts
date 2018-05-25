@@ -131,19 +131,24 @@ _parse_yaml_conf_file_publications() {
     # publications.
     #
     # FYI: It's safe to re-run creation for existing publications.
-    if [[ "${create}" == true || "${create}" == yes ]]; then
+    if [[ "${create}" == true ||
+            "${create}" == yes ||
+            "${create}" == 1 ]]; then
       export fai_publication_create=1
     fi
     if [[ "${update_nursery_conf}" == true ||
-            "${update_nursery_conf}" == yes ]]; then
+            "${update_nursery_conf}" == yes ||
+            "${update_nursery_conf}" == 1 ]]; then
       export fai_publication_update_nursery_conf=1
     fi
     if [[ "${update_ece_conf}" == true ||
-            "${update_ece_conf}" == yes ]]; then
+            "${update_ece_conf}" == yes ||
+            "${update_ece_conf}" == 1 ]]; then
       export fai_publication_update_ece_conf=1
     fi
     if [[ "${update_app_server_conf}" == true ||
-            "${update_app_server_conf}" == yes ]]; then
+            "${update_app_server_conf}" == yes ||
+            "${update_app_server_conf}" == 1 ]]; then
       export fai_publication_update_app_server_conf=1
     fi
 
@@ -231,7 +236,8 @@ _parse_yaml_conf_file_editor() {
   local install_editor=no
   install_editor=$(_jq "${yaml_file}" .profiles.editor.install)
   if [[ "${install_editor}" == "yes" ||
-          "${install_editor}" == "true" ]]; then
+          "${install_editor}" == "true" ||
+          "${install_editor}" == 1 ]]; then
     export fai_editor_install=1
   fi
 
@@ -292,7 +298,8 @@ _parse_yaml_conf_file_environment() {
   configured_java_oracle_licence_accepted=$(
     _jq "${yaml_file}" .environment.java_oracle_licence_accepted)
   if [[ "${configured_java_oracle_licence_accepted}" == "yes" ||
-          "${configured_java_oracle_licence_accepted}" == "true" ]]; then
+          "${configured_java_oracle_licence_accepted}" == "true" ||
+          "${configured_java_oracle_licence_accepted}" == 1 ]]; then
     export fai_java_oracle_licence_accepted=1
   fi
 
@@ -317,7 +324,8 @@ _parse_yaml_conf_file_environment() {
   local configured_deb_not_apt=
   configured_deb_not_apt=$(_jq "${yaml_file}" .environment.deb.escenic.use_deb_not_apt)
   if [[ "${configured_deb_not_apt}" == "yes" ||
-          "${configured_deb_not_apt}" == "true" ]]; then
+          "${configured_deb_not_apt}" == "true" ||
+          "${configured_deb_not_apt}" == 1 ]]; then
     export fai_package_deb_not_apt=1
   fi
 
@@ -337,7 +345,8 @@ _parse_yaml_conf_file_environment() {
   skip_password_checks=$(
     _jq "${yaml_file}" .environment.skip_password_checks)
   if [[ "${skip_password_checks}" == "yes" ||
-          "${skip_password_checks}" == "true" ]]; then
+          "${skip_password_checks}" == "true" ||
+          "${skip_password_checks}" == 1 ]]; then
     export fai_skip_password_checks=1
   fi
 
@@ -366,7 +375,8 @@ _parse_yaml_conf_file_monitoring() {
   local install_monitoring=
   install_monitoring=$(_jq "${yaml_file}" .profiles.monitoring.install)
   if [[ "${install_monitoring}" == "yes" ||
-          "${install_monitoring}" == "true" ]]; then
+          "${install_monitoring}" == "true" ||
+          "${install_monitoring}" == 1 ]]; then
     export fai_monitoring_install=1
   fi
 }
@@ -377,7 +387,8 @@ _parse_yaml_conf_file_assembly_tool() {
   local install_assembly_tool=
   install_assembly_tool=$(_jq "${yaml_file}" .profiles.assembly_tool.install)
   if [[ "${install_assembly_tool}" == "yes" ||
-          "${install_assembly_tool}" == "true" ]]; then
+          "${install_assembly_tool}" == "true" ||
+          "${install_assembly_tool}" == 1 ]]; then
     export fai_assembly_tool_install=1
   fi
 }
@@ -388,7 +399,8 @@ _parse_yaml_conf_file_nfs_server() {
   local install_nfs=
   install_server_nfs=$(_jq "${yaml_file}" .profiles.nfs_server.install)
   if [[ "${install_server_nfs}" == "yes" ||
-          "${install_server_nfs}" == "true" ]]; then
+          "${install_server_nfs}" == "true" ||
+          "${install_server_nfs}" == 1 ]]; then
     export fai_nfs_server_install=1
   fi
 
@@ -423,7 +435,8 @@ _parse_yaml_conf_file_nfs_client() {
   local install_client_nfs=
   install_client_nfs=$(_jq "${yaml_file}" .profiles.nfs_client.install)
   if [[ "${install_client_nfs}" == "yes" ||
-          "${install_client_nfs}" == "true" ]]; then
+          "${install_client_nfs}" == "true" ||
+          "${install_client_nfs}" == 1 ]]; then
     export fai_nfs_client_install=1
   fi
 
@@ -458,7 +471,8 @@ _parse_yaml_conf_file_presentation() {
   local install_presentation=no
   install_presentation=$(_jq "${yaml_file}" .profiles.presentation.install)
   if [[ "${install_presentation}" == "yes" ||
-          "${install_presentation}" == "true" ]]; then
+          "${install_presentation}" == "true" ||
+          "${install_presentation}" == 1 ]]; then
     export fai_presentation_install=1
   fi
 
@@ -527,21 +541,24 @@ _parse_yaml_conf_file_search() {
   local install_search=no
   install_search=$(_jq "${yaml_file}" .profiles.search.install)
   if [[ "${install_search}" == "yes" ||
-          "${install_search}" == "true" ]]; then
+          "${install_search}" == "true" ||
+          "${install_search}" == 1 ]]; then
     export fai_search_install=1
   fi
 
   local search_legacy=no
   search_legacy=$(_jq "${yaml_file}" .profiles.search.legacy)
   if [[ "${search_legacy}" == "yes" ||
-          "${search_legacy}" == "true" ]]; then
+          "${search_legacy}" == "true" ||
+          "${search_legacy}" == 1 ]]; then
     export fai_search_legacy=1
   fi
 
   local search_for_editor=no
   search_for_editor=$(_jq "${yaml_file}" .profiles.search.for_editor)
   if [[ "${search_for_editor}" == "yes" ||
-          "${search_for_editor}" == "true" ]]; then
+          "${search_for_editor}" == "true" ||
+          "${search_for_editor}" == 1 ]]; then
     export fai_search_for_editor=1
   fi
 
@@ -594,7 +611,8 @@ _parse_yaml_conf_file_cache() {
   local install_cache=no
   install_cache=$(_jq "${yaml_file}" .profiles.cache.install)
   if [[ "${install_cache}" == "yes" ||
-          "${install_cache}" == "true" ]]; then
+          "${install_cache}" == "true" ||
+          "${install_cache}" == 1 ]]; then
     export fai_cache_install=1
   fi
 
@@ -629,7 +647,8 @@ _parse_yaml_conf_file_analysis() {
   local install_analysis=no
   install_analysis=$(_jq "${yaml_file}" .profiles.analysis.install)
   if [[ "${install_analysis}" == "yes" ||
-          "${install_analysis}" == "true" ]]; then
+          "${install_analysis}" == "true" ||
+          "${install_analysis}" == 1 ]]; then
     export fai_analysis_install=1
   fi
 
@@ -670,54 +689,62 @@ _parse_yaml_conf_file_restore() {
   local pre_wipe_solr=no
   pre_wipe_solr=$(_jq "${yaml_file}" .profiles.restore.pre_wipe_solr)
   if [[ "${pre_wipe_solr}" == "yes" ||
-          "${pre_wipe_solr}" == "true" ]]; then
+          "${pre_wipe_solr}" == "true" ||
+          "${pre_wipe_solr}" == 1 ]]; then
     export fai_restore_pre_wipe_solr=1
   fi
   local pre_wipe_logs=no
   pre_wipe_logs=$(_jq "${yaml_file}" .profiles.restore.pre_wipe_logs)
   if [[ "${pre_wipe_logs}" == "yes" ||
-          "${pre_wipe_logs}" == "true" ]]; then
+          "${pre_wipe_logs}" == "true" ||
+          "${pre_wipe_logs}" == 1 ]]; then
     export fai_restore_pre_wipe_logs=1
   fi
   local pre_wipe_cache=no
   pre_wipe_cache=$(_jq "${yaml_file}" .profiles.restore.pre_wipe_cache)
   if [[ "${pre_wipe_cache}" == "yes" ||
-          "${pre_wipe_cache}" == "true" ]]; then
+          "${pre_wipe_cache}" == "true" ||
+          "${pre_wipe_cache}" == 1 ]]; then
     export fai_restore_pre_wipe_cache=1
   fi
 
   local pre_wipe_crash=no
   pre_wipe_crash=$(_jq "${yaml_file}" .profiles.restore.pre_wipe_crash)
   if [[ "${pre_wipe_crash}" == "yes" ||
-          "${pre_wipe_crash}" == "true" ]]; then
+          "${pre_wipe_crash}" == "true" ||
+          "${pre_wipe_crash}" == 1 ]]; then
     export fai_restore_pre_wipe_crash=1
   fi
 
   local pre_wipe_all=no
   pre_wipe_all=$(_jq "${yaml_file}" .profiles.restore.pre_wipe_all)
   if [[ "${pre_wipe_all}" == "yes" ||
-          "${pre_wipe_all}" == "true" ]]; then
+          "${pre_wipe_all}" == "true" ||
+          "${pre_wipe_all}" == 1 ]]; then
     export fai_restore_pre_wipe_all=1
   fi
 
   local from_backup=no
   from_backup=$(_jq "${yaml_file}" .profiles.restore.from_backup)
   if [[ "${from_backup}" == "yes" ||
-          "${from_backup}" == "true" ]]; then
+          "${from_backup}" == "true" ||
+          "${from_backup}" == 1 ]]; then
     export fai_restore_from_backup=1
   fi
 
   local data_files=no
   data_files=$(_jq "${yaml_file}" .profiles.restore.data_files)
   if [[ "${data_files}" == "yes" ||
-          "${data_files}" == "true" ]]; then
+          "${data_files}" == "true" ||
+          "${data_files}" == 1 ]]; then
     export fai_restore_data_files=1
   fi
 
   local data_db=no
   data_db=$(_jq "${yaml_file}" .profiles.restore.db)
   if [[ "${data_db}" == "yes" ||
-          "${data_db}" == "true" ]]; then
+          "${data_db}" == "true" ||
+          "${data_db}" == 1 ]]; then
     export fai_restore_db=1
   fi
 
@@ -725,7 +752,8 @@ _parse_yaml_conf_file_restore() {
   software_binaries=$(
     _jq "${yaml_file}" .profiles.restore.software_binaries)
   if [[ "${software_binaries}" == "yes" ||
-          "${software_binaries}" == "true" ]]; then
+          "${software_binaries}" == "true" ||
+          "${software_binaries}" == 1 ]]; then
     export fai_restore_software_binaries=1
   fi
 
@@ -733,7 +761,8 @@ _parse_yaml_conf_file_restore() {
   configuration=$(
     _jq "${yaml_file}" .profiles.restore.configuration)
   if [[ "${configuration}" == "yes" ||
-          "${configuration}" == "true" ]]; then
+          "${configuration}" == "true" ||
+          "${configuration}" == 1 ]]; then
     export fai_restore_configuration=1
   fi
 
@@ -751,28 +780,32 @@ _parse_yaml_conf_file_db() {
   local install_db=no
   install_db=$(_jq "${yaml_file}" .profiles.db.install)
   if [[ "${install_db}" == "yes" ||
-          "${install_db}" == "true" ]]; then
+          "${install_db}" == "true" ||
+          "${install_db}" == 1 ]]; then
     export fai_db_install=1
   fi
 
   local db_master=no
   db_master=$(_jq "${yaml_file}" .profiles.db.master)
   if [[ "${db_master}" == "yes" ||
-          "${db_master}" == "true" ]]; then
+          "${db_master}" == "true" ||
+          "${db_master}" == 1 ]]; then
     export fai_db_master=1
   fi
 
   local db_drop_old_db_first=no
   db_drop_old_db_first=$(_jq "${yaml_file}" .profiles.db.drop_old_db_first)
   if [[ "${db_drop_old_db_first}" == "yes" ||
-          "${db_drop_old_db_first}" == "true" ]]; then
+          "${db_drop_old_db_first}" == "true" ||
+          "${db_drop_old_db_first}" == 1 ]]; then
     export fai_db_drop_old_db_first=1
   fi
 
   local db_replication=no
   db_replication=$(_jq "${yaml_file}" .profiles.db.replication)
   if [[ "${db_replication}" == "yes" ||
-          "${db_replication}" == "true" ]]; then
+          "${db_replication}" == "true" ||
+          "${db_replication}" == 1 ]]; then
     export fai_db_replication=1
   fi
 
@@ -825,7 +858,8 @@ _parse_yaml_conf_file_analysis_db() {
   local install_db=no
   install_analysis_db=$(_jq "${yaml_file}" .profiles.analysis_db.install)
   if [[ "${install_analysis_db}" == "yes" ||
-          "${install_analysis_db}" == "true" ]]; then
+          "${install_analysis_db}" == "true" ||
+          "${install_analysis_db}" == 1 ]]; then
     export fai_analysis_db_install=1
   fi
 
@@ -866,7 +900,8 @@ _parse_yaml_conf_file_cue() {
   local install_cue=no
   install_cue=$(_jq "${yaml_file}" .profiles.cue.install)
   if [[ "${install_cue}" == "yes" ||
-          "${install_cue}" == "true" ]]; then
+          "${install_cue}" == "true" ||
+          "${install_cue}" == 1 ]]; then
     export fai_cue_install=1
   fi
 
@@ -913,7 +948,8 @@ _parse_yaml_conf_file_sse_proxy() {
   local install_sse_proxy=no
   install_sse_proxy=$(_jq "${yaml_file}" .profiles.sse_proxy.install)
   if [[ "${install_sse_proxy}" == "yes" ||
-          "${install_sse_proxy}" == "true" ]]; then
+          "${install_sse_proxy}" == "true" ||
+          "${install_sse_proxy}" == 1 ]]; then
     export fai_sse_proxy_install=1
   fi
 
