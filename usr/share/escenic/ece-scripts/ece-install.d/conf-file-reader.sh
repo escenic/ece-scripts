@@ -277,6 +277,12 @@ _parse_yaml_conf_file_editor() {
     export fai_editor_ear=${install_editor_ear}
   fi
 
+  local install_editor_heap_size=
+  install_editor_heap_size=$(_jq "${yaml_file}" .profiles.editor.heap_size)
+  if [ -n "${install_editor_heap_size}" ]; then
+    export fai_editor_heap_size=${install_editor_heap_size}
+  fi
+
   local install_editor_deploy_white_list=
   install_editor_deploy_white_list=$(
     _jq "${yaml_file}" .profiles.editor.deploy_white_list)
@@ -513,6 +519,12 @@ _parse_yaml_conf_file_presentation() {
     export fai_presentation_ear=${install_presentation_ear}
   fi
 
+  local install_presentation_heap_size=
+  install_presentation_heap_size=$(_jq "${yaml_file}" .profiles.presentation.heap_size)
+  if [ -n "${install_presentation_heap_size}" ]; then
+    export fai_presentation_heap_size=${install_presentation_heap_size}
+  fi
+
   local install_presentation_environment=
   install_presentation_environment=$(
     _jq "${yaml_file}" .profiles.presentation.environment)
@@ -602,6 +614,12 @@ _parse_yaml_conf_file_search() {
   install_search_indexer_ws_uri=$(_jq "${yaml_file}" .profiles.search.indexer_ws_uri)
   if [ -n "${install_search_indexer_ws_uri}" ]; then
     export fai_search_indexer_ws_uri=${install_search_indexer_ws_uri}
+  fi
+
+  local install_search_heap_size=
+  install_search_heap_size=$(_jq "${yaml_file}" .profiles.search.heap_size)
+  if [ -n "${install_search_heap_size}" ]; then
+    export fai_search_heap_size=${install_search_heap_size}
   fi
 }
 
