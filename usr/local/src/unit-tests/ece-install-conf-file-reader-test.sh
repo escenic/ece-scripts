@@ -95,6 +95,7 @@ test_can_parse_yaml_conf_editor() {
   local editor_host=edapp1
   local editor_ear=http://builder/engine.ear
   local editor_deploy_white_list=foo
+  local editor_heap_size=512
 
   local yaml_file=
   yaml_file=$(mktemp)
@@ -110,6 +111,7 @@ profiles:
     shutdown: ${editor_shutdown}
     ear: ${editor_ear}
     deploy_white_list: ${editor_deploy_white_list}
+    heap_size: ${editor_heap_size}
 EOF
 
   unset fai_editor_install
@@ -119,6 +121,7 @@ EOF
   unset fai_editor_name
   unset fai_editor_ear
   unset fai_editor_deploy_white_list
+  unset fai_editor_heap_size
 
   parse_yaml_conf_file_or_source_if_sh_conf "${yaml_file}"
   assertNotNull "Should set fai_editor_install" "${fai_editor_install}"
@@ -129,6 +132,7 @@ EOF
   assertEquals "Should set fai_editor_redirect" "${editor_redirect}" "${fai_editor_redirect}"
   assertEquals "Should set fai_editor_name" "${editor_name}" "${fai_editor_name}"
   assertEquals "Should set fai_editor_ear" "${editor_ear}" "${fai_editor_ear}"
+  assertEquals "Should set fai_editor_heap_size" "${editor_heap_size}" "${fai_editor_heap_size}"
   assertEquals "Should set fai_editor_deploy_white_list" \
                "${editor_deploy_white_list}" \
                "${fai_editor_deploy_white_list}"
@@ -146,6 +150,7 @@ test_can_parse_yaml_conf_presentation() {
   local presentation_environment=testing
   local presentation_deploy_white_list=foo
   local presentation_search_indexer_ws_uri=http://engine1/indexer-webservice/index/
+  local presentation_heap_size=512
 
   local yaml_file=
   yaml_file=$(mktemp)
@@ -163,6 +168,7 @@ profiles:
     shutdown: ${presentation_shutdown}
     deploy_white_list: ${presentation_deploy_white_list}
     search_indexer_ws_uri: ${presentation_search_indexer_ws_uri}
+    heap_size: ${presentation_heap_size}
 EOF
 
   unset fai_presentation_ear
@@ -174,11 +180,15 @@ EOF
   unset fai_presentation_shutdown
   unset fai_presentation_deploy_white_list
   unset fai_presentation_search_indexer_ws_uri
+  unset fai_presentation_heap_size
 
   parse_yaml_conf_file_or_source_if_sh_conf "${yaml_file}"
   assertNotNull "Should set fai_presentation_install" "${fai_presentation_install}"
   assertEquals "Should set fai_presentation_install" 1 "${fai_presentation_install}"
   assertEquals "Should set fai_presentation_ear" "${presentation_ear}" "${fai_presentation_ear}"
+  assertEquals "Should set fai_presentation_heap_zize" \
+               "${presentation_heap_size}" \
+               "${fai_presentation_heap_size}"
   assertEquals "Should set fai_presentation_environment" \
                "${presentation_environment}" \
                "${fai_presentation_environment}"
@@ -218,6 +228,7 @@ test_can_parse_yaml_conf_search() {
   local search_legacy=1
   local search_ear=http://builder/engine.ear
   local search_indexer_ws_uri=http://engine/indexer-webservice/index/
+  local search_heap_size=512
 
   local yaml_file=
   yaml_file=$(mktemp)
@@ -235,6 +246,7 @@ profiles:
     name: ${search_name}
     redirect: ${search_redirect}
     shutdown: ${search_shutdown}
+    heap_size: ${search_heap_size}
 EOF
 
   unset fai_search_install
@@ -247,6 +259,7 @@ EOF
   unset fai_search_for_editor
   unset fai_search_ear
   unset fai_search_indexer_ws_uri
+  unset fai_search_heap_size
 
   parse_yaml_conf_file_or_source_if_sh_conf "${yaml_file}"
   assertNotNull "Should set fai_search_install" "${fai_search_install}"
@@ -261,6 +274,7 @@ EOF
   assertEquals "Should set fai_search_for_editor" "${search_for_editor}" "${fai_search_for_editor}"
   assertEquals "Should set fai_search_ear" "${search_ear}" "${fai_search_ear}"
   assertEquals "Should set fai_search_indexer_ws_uri" "${search_indexer_ws_uri}" "${fai_search_indexer_ws_uri}"
+  assertEquals "Should set fai_search_heap_size" "${search_heap_size}" "${fai_search_heap_size}"
 
   rm -rf "${yaml_file}"
 }
@@ -1144,6 +1158,33 @@ profiles:
     install: yes
   search:
     install: yes
+  db:
+    install: no
+EOF
+
+  unset fai_editor_install
+  unset fai_search_install
+  unset fai_db_install
+
+  parse_yaml_conf_file_or_source_if_sh_conf "${yaml_file}"
+  assertNotNull "Should set fai_editor_install" "${fai_editor_install}"
+  assertEquals "Should set fai_editor_install" 1 "${fai_editor_install}"
+  assertEquals "Should set fai_search_install" 1 "${fai_search_install}"
+  assertNull "Should not have set fai_db_install" "${fai_db_install}"
+
+  rm -rf "${yaml_file}"
+}
+
+test_can_parse_yaml_conf_editor_install_multi_profiles_1_instead_of_boolean() {
+  local yaml_file=
+  yaml_file=$(mktemp)
+  cat > "${yaml_file}" <<EOF
+---
+profiles:
+  editor:
+    install: 1
+  search:
+    install: 1
   db:
     install: no
 EOF
