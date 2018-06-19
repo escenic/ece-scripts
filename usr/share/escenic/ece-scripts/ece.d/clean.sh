@@ -17,4 +17,7 @@ function clean_up() {
       fi
     done
   fi
+
+  print "Cleaning up EARs in ${cache_dir} ..."
+  find  "${cache_dir}" -name "*.ear" -delete 2>/dev/null
 }
