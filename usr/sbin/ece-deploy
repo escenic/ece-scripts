@@ -503,6 +503,9 @@ function remember_state() {
 
   print_and_log "Remembering all files from the current version of" \
     vosa-conf-$HOSTNAME "..."
+
+  OFS=$IFS
+  IFS=$'\n'
   dpkg -L vosa-conf-$HOSTNAME | while read f; do
     local dir=${1}/vosa-conf-${HOSTNAME}/$(dirname $f)
     make_dir $dir
@@ -517,6 +520,7 @@ function remember_state() {
     fi
     cp $f $dir/
   done
+  IFS=$OFS
 }
 
 function print_summary() {
