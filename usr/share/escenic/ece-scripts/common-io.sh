@@ -63,11 +63,9 @@ function set_conf_file_value() {
 ##
 ## $@ :: a list of directories
 function make_dir() {
-  for el in $@; do
-    if [ ! -d $el ]; then
-      run mkdir -p $el
-    fi
-  done
+  while read -r el; do
+    mkdir -p "${el}"
+  done <<< "${@}"
 }
 
 ### remove_dir
