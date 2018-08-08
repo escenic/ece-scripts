@@ -503,24 +503,20 @@ function remember_state() {
 
   print_and_log "Remembering all files from the current version of" \
     vosa-conf-$HOSTNAME "..."
-
-  OFS=$IFS
-  IFS=$'\n'
   dpkg -L vosa-conf-$HOSTNAME | while read f; do
-    local dir=${1}/vosa-conf-${HOSTNAME}/$(dirname $f)
+    local dir=${1}/vosa-conf-${HOSTNAME}/$(dirname "$f")
     make_dir $dir
-    if [ -d $f ]; then
+    if [ -d "$f" ]; then
       continue
     fi
-    if [ ! -e $f ]; then
-      print_and_log $(yellow WARNING) $f "was installed with the" \
+    if [ ! -e "$f" ]; then
+      print_and_log $(yellow WARNING) "$f" "was installed with the" \
         "vosa-conf-$HOSTNAME package," \
         "however, it's not present on $HOSTNAME."
       continue
     fi
-    cp $f $dir/
+    cp "$f" "$dir/"
   done
-  IFS=$OFS
 }
 
 function print_summary() {
