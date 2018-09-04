@@ -2,7 +2,7 @@ function set_up_jdbc_library() {
   print_and_log "Setting up the jdbc driver"
   if [ -n "$jdbc_driver" -a -e "$jdbc_driver" ]; then
     make_ln $jdbc_driver
-  elif [ ! -z "$db_vendor" ] ; then
+  elif [ -n "$db_vendor" ] ; then
     local jdbc_url=${fai_jdbc_url-${default_jdbc_url}}
     print_and_log "Downloading jdbc driver ${jdbc_url}"
     local jdbc_jar=${jdbc_url##*/}
