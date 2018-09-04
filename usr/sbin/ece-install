@@ -53,6 +53,9 @@ ece_scripts_version="straight-from-github"
 # Set the default database vendor. Possible values are mariadb and percona
 db_vendor=mariadb
 
+# Set default jdbc driver URL
+default_jdbc_url=https://downloads.mariadb.com/Connectors/java/connector-java-2.2.6/mariadb-java-client-2.2.6.jar
+
 ## Map with package name to version entries. The version can be empty.
 declare -A fai_package_map
 ## Map with package name to arch entries. The arch can be empty.
