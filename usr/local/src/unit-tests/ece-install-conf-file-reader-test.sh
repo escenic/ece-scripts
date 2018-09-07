@@ -12,6 +12,7 @@ test_can_parse_yaml_conf_environment() {
   local mvn_repo1=repo1.example.com
   local mvn_repo2=repo2.example.com
   local conf_url=http://build.example.com/machine-conf-1.2.3.deb
+  local jdbc_url=http://build.example.com/db-java-client-1.2.3.jar
   local rpm_base_url=http://unstable.yum.escenic.com/rpm
   local deb_base_url=http://unstable.apt.escenic.com
   local deb_not_apt=1
@@ -25,6 +26,7 @@ environment:
   java_oracle_licence_accepted: true
   skip_password_checks: true
   conf_url: ${conf_url}
+  jdbc_url: ${jdbc_url}
   apt:
     escenic:
       pool: ${apt_pool}
@@ -48,6 +50,7 @@ EOF
   unset fai_java_oracle_licence_accepted
   unset fai_maven_repositories
   unset fai_conf_url
+  unset fai_jdbc_url
   unset fai_package_rpm_base_url
   unset fai_package_deb_not_apt
 
@@ -74,6 +77,7 @@ EOF
                "${mvn_repo1} ${mvn_repo2}" \
                "${fai_maven_repositories}"
   assertEquals "Should set fai_conf_url" "${conf_url}" "${fai_conf_url}"
+  assertEquals "Should set fai_jdbc_url" "${jdbc_url}" "${fai_jdbc_url}"
   assertEquals "Should set fai_package_rpm_base_url" \
                "${rpm_base_url}" \
                "${fai_package_rpm_base_url}"

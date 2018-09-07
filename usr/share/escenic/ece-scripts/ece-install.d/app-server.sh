@@ -2,15 +2,15 @@ function set_up_jdbc_library() {
   print_and_log "Setting up the jdbc driver"
   if [ -n "$jdbc_driver" -a -e "$jdbc_driver" ]; then
     make_ln $jdbc_driver
-  elif [ $db_vendor = "mariadb" ]; then
-    local mariadb_jdbc_url=https://downloads.mariadb.com/Connectors/java/connector-java-2.0.1/mariadb-java-client-2.0.1.jar
-    print_and_log "Downloading MariaDB jdbc driver ${mariadb_jdbc_url}"
-    local mariadb_jdbc_jar=${mariadb_jdbc_url##*/}
+  elif [ -n "$db_vendor" ] ; then
+    local jdbc_url=${fai_jdbc_url-${default_jdbc_url}}
+    print_and_log "Downloading jdbc driver ${jdbc_url}"
+    local jdbc_jar=${jdbc_url##*/}
     download_uri_target_to_dir \
-      "${mariadb_jdbc_url}" \
+      "${jdbc_url}" \
       "${download_dir}" \
-      "${mariadb_jdbc_jar}"
-    run cp "${download_dir}/${mariadb_jdbc_jar}" "${tomcat_base}/lib"
+      "${jdbc_jar}"
+    run cp "${download_dir}/${jdbc_jar}" "${tomcat_base}/lib"
   else
     make_ln /usr/share/java/mysql-connector-java.jar      
   fi
@@ -141,6 +141,7 @@ function set_up_app_server() {
   run sed -i "s#${old}#${new}#g" $file
 
   local jdbc_package_name=com.mysql.jdbc.Driver
+  local database_connection_url="jdbc:mysql://${db_host}:${db_port}/${db_schema}?autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=UTF-8&amp;characterSetResults=UTF-8"
   if [ ! -z $db_vendor ] && [ $db_vendor = "mariadb" ]; then
     jdbc_package_name=org.mariadb.jdbc.Driver
   fi
@@ -179,7 +180,7 @@ EOF
         username="${db_user}"
         password="${db_password}"
         driverClassName="${jdbc_package_name}"
-        url="jdbc:mysql://${db_host}:${db_port}/${db_schema}?autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=UTF-8&amp;characterSetResults=UTF-8"
+        url="${database_connection_url}"
         removeAbandoned="true"
         removeAbandonedTimeout="120"
         logAbandoned="true"
@@ -214,7 +215,7 @@ EOF
         username="${db_user}"
         password="${db_password}"
         driverClassName="${jdbc_package_name}"
-        url="jdbc:mysql://${db_host}:${db_port}/${db_schema}?autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=UTF-8&amp;characterSetResults=UTF-8"
+        url="${database_connection_url}"
         removeAbandoned="true"
         removeAbandonedTimeout="120"
         logAbandoned="true"
@@ -241,7 +242,7 @@ EOF
         username="${db_user}"
         password="${db_password}"
         driverClassName="${jdbc_package_name}"
-        url="jdbc:mysql://${db_host}:${db_port}/${db_schema}?autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=UTF-8&amp;characterSetResults=UTF-8"
+        url="${database_connection_url}"
         removeAbandoned="true"
         removeAbandonedTimeout="120"
         logAbandoned="true"
@@ -264,7 +265,7 @@ EOF
         username="${db_user}"
         password="${db_password}"
         driverClassName="${jdbc_package_name}"
-        url="jdbc:mysql://${db_host}:${db_port}/${db_schema}?autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=UTF-8&amp;characterSetResults=UTF-8"
+        url="${database_connection_url}"
         removeAbandoned="true"
         removeAbandonedTimeout="120"
         logAbandoned="true"

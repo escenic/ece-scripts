@@ -18,6 +18,7 @@ environment:
   java_version: ${foo_java_version}
   skip_password_checks: true
   conf_url: ${conf_url}
+  jdbc_url: ${jdbc_url}
   apt:
     escenic:
       pool: ${apt_pool}
@@ -32,6 +33,7 @@ environment:
 - `ece-install.conf` equivalent: `fai_server_java_version`
 - `ece-install.conf` equivalent: `fai_maven_repositories`
 - `ece-install.conf` equivalent: `fai_conf_url`
+- `ece-install.conf` equivalent: `fai_jdbc_url`
 
 ## editor
 
