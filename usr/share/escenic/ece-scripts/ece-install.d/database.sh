@@ -557,11 +557,7 @@ function create_schema() {
     # dropped it above before running the SQL scripts.
   if [ $db_product = "mysql" ]; then
     if ! $(check_mysql_is_running) ; then
-      if [[ "${db_vendor}" == mariadb ]]; then
- 	run service mariadb start
-      else
- 	run service mysql start
-      fi
+      run service mysql start
     fi
     print_and_log "Creating DB $db_schema on $HOSTNAME ..."
     mysql -h $db_host << EOF
