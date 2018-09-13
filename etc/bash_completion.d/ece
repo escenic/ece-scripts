@@ -21,7 +21,9 @@ _get_sub_commands_for_ece() {
       package
       remove-old-log-files
       repackage
-      restart start
+      restart
+      run
+      start
       status
       stop
       threaddump

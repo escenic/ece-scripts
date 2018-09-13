@@ -810,6 +810,10 @@ for el in $command; do
         start)
             start_type
             ;;
+        run)
+            export run_in_fg=1
+            start_type
+            ;;
         status)
             print "$(get_status)"
             ;;
