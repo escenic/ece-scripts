@@ -1,3 +1,4 @@
 *.dockerfile.test
 *.ignore
 usr/local/src/unit-tests/shunit2
+*.idea

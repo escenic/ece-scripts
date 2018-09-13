@@ -373,6 +373,12 @@ _parse_yaml_conf_file_environment() {
   if [ -n "${configured_conf_url}" ]; then
     export fai_conf_url=${configured_conf_url}
   fi
+
+  local configured_jdbc_url=
+  configured_jdbc_url=$(_jq "${yaml_file}" .environment.jdbc_url)
+  if [ -n "${configured_jdbc_url}" ]; then
+    export fai_jdbc_url=${configured_jdbc_url}
+  fi
 }
 
 _parse_yaml_conf_file_monitoring() {

@@ -11,6 +11,7 @@ environment:
   java_oracle_licence_accepted: true
   skip_password_checks: true
   conf_url: ${conf_url}
+  jdbc_url: ${jdbc_url}
   apt:
     escenic:
       pool: ${apt_pool}
@@ -36,6 +37,7 @@ fai_java_download_url=
 fai_java_oracle_licence_accepted=
 fai_maven_repositories=
 fai_conf_url=
+fai_jdbc_url=
 fai_package_rpm_base_url=
 fai_package_deb_not_apt=
 

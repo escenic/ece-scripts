@@ -1391,9 +1391,16 @@ EOF
     for machine in $machine_list; do 
       print_and_log "http://builder.vizrtsaas.com/$customer/releases/vosa-conf-${machine}-${package_version}.deb"
     done
+
+    # formatting revision to match with generated rpm package
+    local rev=$(
+      printf "%s\n" "${release_label}-r${revision}" |
+      sed -r 's#-#_#g' |
+      sed -r 's#(.*)_(.*)#\1-\2#')
+
     print_and_log "--- .rpm configuration packages ---"
     for machine in $machine_list; do
-      print_and_log "http://builder.vizrtsaas.com/$customer/releases/vosa-conf-${machine}-1_${customer//-/_}_${release_label//-/_}-r${revision}.x86_64.rpm"
+      print_and_log "http://builder.vizrtsaas.com/$customer/releases/vosa-conf-${machine}-1_${customer//-/_}_${rev}.x86_64.rpm"
     done
   fi
 }
