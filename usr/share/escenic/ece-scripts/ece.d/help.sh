@@ -48,6 +48,7 @@ The following commands are available:
    log            the type's log4j log **)
    outlog         the $id script log (system out log)
    restart        restarts the type
+   run            runs type in the foregrand. Useful for containers.
    start          starts the type
    status         checks if the type is running
    stop           stops the type

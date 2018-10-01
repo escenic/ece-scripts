@@ -63,7 +63,11 @@ function start_type() {
 
       export CATALINA_PID=$pid_file
       export CATALINA_OUT=$(get_catalina_out_file)
-      run $tomcat_home/bin/catalina.sh start
+      if [ ${run_in_fg-0} -eq 0 ]; then
+        run $tomcat_home/bin/catalina.sh start
+      else
+        exec ${tomcat_home}/bin/catalina.sh run
+      fi
       ;;
     oc4j)
       export OC4J_JVM_ARGS=$ece_args
