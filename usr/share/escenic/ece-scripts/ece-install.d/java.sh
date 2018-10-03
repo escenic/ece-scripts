@@ -8,7 +8,7 @@ function _java_get_oracle_tarball_url() {
     return
   fi
 
-  curl -s  "${oracle_jdk_download_url}" |
+  wget --quiet --output-document - "${oracle_jdk_download_url}" |
     grep "$(uname -s) x64" |
     grep .tar.gz |
     grep -v demos |
