@@ -447,6 +447,7 @@ EOF
 test_can_parse_yaml_conf_sse_proxy() {
   local exposed_port=80
   local exposed_host=proxy.example.com
+  local sse_proxy_ece_name=engine1
   local sse_proxy_ece_port=8083
   local sse_proxy_ece_redirect=8443
   local sse_proxy_backend1_uri=http://foo
@@ -465,6 +466,7 @@ profiles:
     install: yes
     exposed_host: ${exposed_host}
     exposed_port: ${exposed_port}
+    ece_name: ${sse_proxy_ece_name}
     ece_port: ${sse_proxy_ece_port}
     ece_redirect: ${sse_proxy_ece_redirect}
     backends:
@@ -477,6 +479,7 @@ profiles:
 EOF
 
   unset fai_sse_proxy_backends
+  unset fai_sse_proxy_ece_name
   unset fai_sse_proxy_ece_port
   unset fai_sse_proxy_ece_redirect
   unset fai_sse_proxy_exposed_host
@@ -492,6 +495,7 @@ ${sse_proxy_backend1_uri} ${sse_proxy_backend1_user} ${sse_proxy_backend1_passwo
   assertEquals "Should set fai_sse_proxy_install" 1 "${fai_sse_proxy_install}"
   assertEquals "Should set fai_sse_proxy_exposed_host" "${exposed_host}" "${fai_sse_proxy_exposed_host}"
   assertEquals "Should set fai_sse_proxy_exposed_port" "${exposed_port}" "${fai_sse_proxy_exposed_port}"
+  assertEquals "Should set fai_sse_proxy_ece_name" "${sse_proxy_ece_name}" "${fai_sse_proxy_ece_name}"
   assertEquals "Should set fai_sse_proxy_ece_port" "${sse_proxy_ece_port}" "${fai_sse_proxy_ece_port}"
   assertEquals "Should set fai_sse_proxy_ece_redirect" "${sse_proxy_ece_redirect}" "${fai_sse_proxy_ece_redirect}"
   assertEquals "Should set fai_sse_proxy_backends" "${sse_proxy_backends}" "${fai_sse_proxy_backends}"

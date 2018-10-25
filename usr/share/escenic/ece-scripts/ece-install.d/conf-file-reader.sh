@@ -989,6 +989,12 @@ _parse_yaml_conf_file_sse_proxy() {
     export fai_sse_proxy_exposed_port=${install_sse_proxy_exposed_port}
   fi
 
+  local install_sse_proxy_ece_name=
+  install_sse_proxy_ece_name=$(_jq "${yaml_file}" .profiles.sse_proxy.ece_name)
+  if [ -n "${install_sse_proxy_ece_name}" ]; then
+    export fai_sse_proxy_ece_name=${install_sse_proxy_ece_name}
+  fi
+
   local install_sse_proxy_ece_port=
   install_sse_proxy_ece_port=$(_jq "${yaml_file}" .profiles.sse_proxy.ece_port)
   if [ -n "${install_sse_proxy_ece_port}" ]; then

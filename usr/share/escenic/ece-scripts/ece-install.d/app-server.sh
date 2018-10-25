@@ -302,6 +302,8 @@ EOF
 
   if [[ ${fai_editor_install-0} -eq 1 ||
         ${fai_presentation_install-0} -eq 1 ]]; then
+
+    if [[ $(basename "$tomcat_base" | grep -c "${fai_sse_proxy_ece_name-engine1}") -ne 0 ]]; then
     cat >> $tomcat_base/conf/server.xml <<EOF
     <Connector port="${fai_sse_proxy_ece_port-8083}"
                protocol="HTTP/1.1"
@@ -312,6 +314,8 @@ EOF
                proxyPort="${fai_sse_proxy_exposed_port-80}"
     />
 EOF
+    fi
+
   fi
 
   cat >> $tomcat_base/conf/server.xml <<EOF
