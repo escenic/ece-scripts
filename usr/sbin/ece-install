@@ -973,6 +973,7 @@ function main() {
       install_profile_number=$PROFILE_UN_INSTALL
       un_install_everything
       no_fai_profile=0
+      fai_un_install_everything=0
     fi
 
     # some profiles, like DB slave might need the NFS client, hence we
@@ -981,66 +982,77 @@ function main() {
       install_profile_number=$PROFILE_NFS_CLIENT
       install_nfs_client
       no_fai_profile=0
+      fai_nfs_client_install=0
     fi
 
     if [ ${fai_all_install-0} -eq 1 ]; then
         install_profile_number=$PROFILE_ALL_IN_ONE
         install_all_in_one_environment
         no_fai_profile=0
+        fai_all_install=0
     fi
 
     if [ ${fai_db_install-0} -eq 1 ]; then
         install_profile_number=$PROFILE_DB_SERVER
         install_database_server
         no_fai_profile=0
+        fai_db_install=0
     fi
 
     if [ ${fai_editor_install-0} -eq 1 ]; then
         install_profile_number=$PROFILE_EDITORIAL_SERVER
         install_editorial_server
         no_fai_profile=0
-    fi
-
-    if [ ${fai_search_install-0} -eq 1 ]; then
-        install_profile_number=$PROFILE_SEARCH_SERVER
-        install_search_server
-        no_fai_profile=0
-    fi
-
-    if [ ${fai_wf_install-0} -eq 1 ]; then
-        install_profile_number=$PROFILE_WIDGET_FRAMEWORK
-        install_widget_framework
-        no_fai_profile=0
+        fai_editor_install=0
     fi
 
     if [ ${fai_presentation_install-0} -eq 1 ]; then
         install_profile_number=$PROFILE_PRESENTATION_SERVER
         install_presentation_server
         no_fai_profile=0
+        fai_presentation_install=0
+    fi
+
+    if [ ${fai_search_install-0} -eq 1 ]; then
+        install_profile_number=$PROFILE_SEARCH_SERVER
+        install_search_server
+        no_fai_profile=0
+        fai_search_install=0
+    fi
+
+    if [ ${fai_wf_install-0} -eq 1 ]; then
+        install_profile_number=$PROFILE_WIDGET_FRAMEWORK
+        install_widget_framework
+        no_fai_profile=0
+        fai_wf_install=0
     fi
 
     if [ ${fai_cache_install-0} -eq 1 ]; then
         install_profile_number=$PROFILE_CACHE_SERVER
         install_cache_server
         no_fai_profile=0
+        fai_cache_install=0
     fi
 
     if [ ${fai_publication_create-0} -eq 1 ]; then
         install_profile_number=$PROFILE_CREATE_PUBLICATION
         create_publication
         no_fai_profile=0
+        fai_publication_create=0
     fi
 
     if [ ${fai_restore_from_backup-0} -eq 1 ]; then
         install_profile_number=$PROFILE_RESTORE_FROM_BACKUP
         restore_from_backup
         no_fai_profile=0
+        fai_restore_from_backup=0
     fi
 
     if [ ${fai_rmi_install-0} -eq 1 ]; then
         install_profile_number=$PROFILE_RMI_HUB
         install_rmi_hub
         no_fai_profile=0
+        fai_rmi_install=0
     fi
 
 
@@ -1048,6 +1060,7 @@ function main() {
       install_profile_number=$PROFILE_ANALYSIS_DB_SERVER
       install_database_server
       no_fai_profile=0
+      fai_analysis_db_install=0
     fi
 
     # Important that the EAE is installed after all, editor and
@@ -1059,12 +1072,14 @@ function main() {
         install_profile_number=$PROFILE_ANALYSIS_SERVER
         install_analysis_server
         no_fai_profile=0
+        fai_analysis_install=0
     fi
 
     if [ ${fai_nfs_server_install-0} -eq 1 ]; then
       install_profile_number=$PROFILE_NFS_SERVER
       install_nfs_server
       no_fai_profile=0
+      fai_nfs_server_install=0
     fi
 
     # checking for VIP profile last so that ece-install can (if so
@@ -1074,27 +1089,32 @@ function main() {
       install_profile_number=$PROFILE_VIP_PROVIDER
       install_vip_provider
       no_fai_profile=0
+      fai_vip_install=0
     fi
 
     if [ ${fai_db_daily_backup-0} -eq 1 ]; then
       install_profile_number=$PROFILE_DB_BACKUP_SERVER
       install_db_backup_server
       no_fai_profile=0
+      fai_db_daily_backup=0
     fi
 
     if [ ${fai_assembly_tool_install-0} -eq 1 ]; then
       set_up_assembly_tool
       no_fai_profile=0
+      fai_assembly_tool_install=0
     fi
 
     if [ "${fai_cue_install-0}" -eq 1 ]; then
       install_cue
       no_fai_profile=0
+      fai_cue_install=0
     fi
 
     if [ "${fai_sse_proxy_install-0}" -eq 1 ]; then
       install_sse_proxy
       no_fai_profile=0
+      fai_sse_proxy_install=0
     fi
 
     if [ $no_fai_profile -eq 1 ]; then
