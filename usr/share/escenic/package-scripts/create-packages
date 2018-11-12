@@ -365,15 +365,81 @@ function create_packages() {
   mv ${target_dir}.deb $target_dir/${package_name}-${package_version}.deb
 
   if [[ -x /usr/bin/alien && -x /usr/bin/fakeroot ]]; then
-    (
-      cd $target_dir
-      run fakeroot alien --keep-version --to-rpm --scripts \
-        ${package_name}-${package_version}.deb
-    )
+    convert_deb_to_rpm "${target_dir}/${package_name}-${package_version}.deb"
   else
     print_and_log "You must have 'alien' and 'fakeroot' installed to create RPMs"
     exit 1
   fi
+}
+
+## $1 :: the deb file
+convert_deb_to_rpm() {
+  local deb=$1
+
+  # These directories should be removed from _all_ our packages.
+  declare -a remove_dir_list=(
+    "/"
+    "/etc/"
+    "/etc/bash_completion.d/"
+    "/etc/default/"
+    "/etc/init.d/"
+    "/usr/"
+    "/usr/bin/"
+    "/usr/sbin/"
+    "/usr/share/"
+    "/usr/share/doc/"
+  )
+
+  # These directories need to reside in _one_ of our packages. The one
+  # package most suitable for this is escenic-common-scripts:
+  if [[ $(basename "${deb}") != escenic-common-scripts* ]]; then
+    remove_dir_list+=(
+      "/etc/escenic/"
+      "/usr/share/doc/escenic/"
+      "/usr/share/escenic/"
+      "/usr/share/escenic/ece-scripts/"
+    )
+  fi
+
+  local tmp_dir=
+  tmp_dir=$(mktemp -d)
+
+  (
+    cd "${tmp_dir}" || exit 1
+    local dir=
+    dir=$(
+      LC_ALL=C fakeroot \
+            alien \
+            --to-rpm \
+            --scripts \
+            --generate \
+            --keep-version "${deb}" \
+            2> /dev/null |
+        sed -r 's#Directory (.*) prepared.#\1#')
+    (
+      cd "${dir}" || exit 1
+      for el in "${remove_dir_list[@]}"; do
+        sed -r -i "s#(%dir \"${el}\"\$)##" -- *.spec
+      done
+      sed -i 's#^%config #%config(noreplace) #' -- *.spec
+
+      file=$(
+        LC_ALL=C fakeroot \
+              rpmbuild \
+              -bb ./*.spec \
+              --root /. \
+              --buildroot "$(pwd)"/ \
+              2> /dev/null |
+          sed -n -r "s#Wrote: (.*)#\1#p")
+
+      local target_file=
+      target_file="$(dirname "${deb}")/$(basename "${file}")"
+      mv "${file}" "${target_file}"
+      echo "${target_file}"
+    )
+  )
+
+  rm -r "${tmp_dir}"
 }
 
 function list_packages() {
