@@ -365,10 +365,7 @@ function create_packages() {
   mv ${target_dir}.deb $target_dir/${package_name}-${package_version}.deb
 
   if [[ -x /usr/bin/alien && -x /usr/bin/fakeroot ]]; then
-    (
-      cd $target_dir
-      convert_deb_to_rpm "${package_name}-${package_version}.deb"
-    )
+    convert_deb_to_rpm "${target_dir}/${package_name}-${package_version}.deb"
   else
     print_and_log "You must have 'alien' and 'fakeroot' installed to create RPMs"
     exit 1
@@ -379,17 +376,30 @@ function create_packages() {
 convert_deb_to_rpm() {
   local deb=$1
 
+  # These directories should be removed from _all_ our packages.
   declare -a remove_dir_list=(
     "/"
     "/etc/"
+    "/etc/bash_completion.d/"
     "/etc/default/"
-    "/etc/escenic/"
     "/etc/init.d/"
     "/usr/"
     "/usr/bin/"
+    "/usr/sbin/"
     "/usr/share/"
-    "/usr/share/escenic/"
+    "/usr/share/doc/"
   )
+
+  # These directories need to reside in _one_ of our packages. The one
+  # package most suitable for this is escenic-common-scripts:
+  if [[ $(basename "${deb}") != escenic-common-scripts* ]]; then
+    remove_dir_list+=(
+      "/etc/escenic/"
+      "/usr/share/doc/escenic/"
+      "/usr/share/escenic/"
+      "/usr/share/escenic/ece-scripts/"
+    )
+  fi
 
   local tmp_dir=
   tmp_dir=$(mktemp -d)
@@ -405,8 +415,7 @@ convert_deb_to_rpm() {
             --generate \
             --keep-version "${deb}" \
             2> /dev/null |
-        sed -r 's#Directory (.*) prepared.#\1#'
-       )
+        sed -r 's#Directory (.*) prepared.#\1#')
     (
       cd "${dir}" || exit 1
       for el in "${remove_dir_list[@]}"; do
