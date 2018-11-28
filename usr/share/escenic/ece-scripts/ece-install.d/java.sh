@@ -23,13 +23,13 @@ function _java_get_oracle_rpm_url() {
     return
   fi
 
-  curl -s  "${oracle_jdk_download_url}" |
+  wget --quiet --output-document - "${oracle_jdk_download_url}" |
     grep "$(uname -s) x64" |
     grep .rpm |
     grep -v demos |
     sort -r |
     head -n1 |
-    sed -n -r  's#.*filepath":"(.*)", "MD5".*#\1#p'
+    sed -n -r  's#.*filepath":"(.*)",[ ]*"MD5".*#\1#p'
 }
 
 function install_oracle_java() {
