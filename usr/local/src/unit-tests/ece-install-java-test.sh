@@ -8,6 +8,13 @@ test_can_get_oracle_tarball_url() {
   assertNotNull "Should be able to get Oracle URL"  "${actual}"
 }
 
+test_can_get_oracle_rpm_url() {
+  local actual=
+  actual=$(_java_get_oracle_rpm_url)
+  assertNotNull "Should be able to get Oracle RPM URL"  "${actual}"
+  assertTrue "[[ ${actual} == http*rpm ]]"
+}
+
 ## @override shunit2
 setUp() {
   source "$(dirname "$0")/../../../share/escenic/ece-scripts/ece-install.d/java.sh"
