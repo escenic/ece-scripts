@@ -132,7 +132,7 @@ function create_global_solr_configuration() {
     print_and_log "${file} already exists, not touching it"
   else
     print "Creating global solr config in ${file} ..."
-    run mv ${solr_dir}/bin/solr.in.sh "${file}"
+    run cp ${solr_dir}/bin/solr.in.sh "${file}"
     cat >> ${file} <<EOF
 ## Added by $(basename $0) @ $(date)
 SOLR_HOME=${escenic_data_dir/solr}
@@ -150,7 +150,7 @@ function setup_solr_init_d_script() {
   fi
 
   print_and_log "Setting up init.d script: ${init_d_file}"
-  run mv "${solr_dir}/bin/init.d/solr" "${init_d_file}"
+  run cp "${solr_dir}/bin/init.d/solr" "${init_d_file}"
   run sed -i "s#RUNAS=\"solr\"#RUNAS=\"${ece_user}\"#" "${init_d_file}"
   run chmod 755 "${init_d_file}"
 
