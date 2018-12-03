@@ -670,8 +670,8 @@ EOF
   fi
 
   file=$common_nursery_dir/com/escenic/webstart/StudioConfig.properties
-
-  cat >> $file <<EOF
+  if [ -w "${file}" ]; then
+    cat >> "${file}" <<EOF
 # This font have been tested and works with (at least): English,
 # Norwegian & Tamil. The font comes with (at least) MS Office and OS X
 # 10.5 and up.
@@ -684,7 +684,7 @@ property.com.escenic.studio.font.windowsvista=Arial Unicode MS
 # We want to speed up downloading studio
 property.jnlp.packEnabled=true
 EOF
-
+  fi
   set_up_search_client_nursery_conf
 }
 

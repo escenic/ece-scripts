@@ -592,11 +592,20 @@ merge_all_studio_plugins() {
   if [ ! -e "${war}" ]; then
     ## The EAR doesn't contain the war, copy it from the installed
     ## package.
-    cp "$(get_installed_package_studio_war)" "${war}"
+    local installed_studio_war=
+    installed_studio_war="$(get_installed_package_studio_war)"
+    if [ -n "${installed_studio_war}" ]; then
+      cp "${installed_studio_war}" "${war}"
+    fi
   fi
-  merge_all_plugins_with_studio_war \
-    "${war}" \
-    "$(get_installed_packages_studio_list)"
+
+  ## studio.war was removed ECE7, so don't merge it if it can't be
+  ## found.
+  if [[ -n "${war}" && -r "${war}" ]]; then
+    merge_all_plugins_with_studio_war \
+      "${war}" \
+      "$(get_installed_packages_studio_list)"
+  fi
 }
 
 exit_if_no_os_packages_are_installed() {
