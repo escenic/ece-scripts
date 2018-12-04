@@ -1,0 +1,95 @@
+#! /usr/bin/env bash
+
+# by torstein@escenic.com
+
+set -o errexit
+# set -o nounset
+set -o pipefail
+
+show_help_and_exit() {
+  cat <<EOF
+Usage: ${BASH_SOURCE[0]} [OPTIONS]
+
+OPTIONS
+  -h, --help   Don't panic.
+EOF
+}
+
+read_user_input() {
+  local OPTS=
+  OPTS=$(getopt \
+           -o p:h \
+           --long help \
+           --long publication: \
+           -n 'parse-options' \
+           -- "$@")
+  if [ $? != 0 ] ; then
+    echo "Failed parsing options." >&2
+    exit 1
+  fi
+  eval set -- "$OPTS"
+
+  while true; do
+    case "$1" in
+      -h | --help )
+        show_help_and_exit;
+        break;;
+      -p | --publication )
+        publication=$2
+        shift 2;;
+      -- )
+        shift;
+        break ;;
+      * )
+        break ;;
+    esac
+  done
+
+  machines=$*
+}
+
+verify_machine() {
+  local machine=$1
+
+  local urls="
+    http://${machine}:8080/escenic-admin/
+    http://${machine}:8080/webservice/index.xml
+    http://${machine}/cue-web/
+    http://${machine}/webservice/index.xml
+    http://centy:8080/indexer-webservice/
+  "
+  for url in ${urls}; do
+    printf "Checking %s ... " "${url}"
+    curl --user "${publication}_admin:admin" \
+         --output /dev/null \
+         --silent \
+         --fail \
+         --head \
+         "${url}" || {
+      printf "%s" "NOT OK"
+    }
+    echo ''
+  done
+
+  sse_endpoints="
+    http://proxy.${machine}
+  "
+  for sse_endpoint in ${sse_endpoints}; do
+    printf "Checking %s ... " "${sse_endpoint}"
+    curl --max-time 1 -v "${sse_endpoint}" 2>&1 |
+      grep -q text/event-stream || {
+      printf "%s" "NOT OK"
+    }
+    echo ''
+  done
+}
+
+
+main() {
+  read_user_input "$@"
+  for machine in ${machines}; do
+    verify_machine "${machine}"
+  done
+}
+
+main "$@"
