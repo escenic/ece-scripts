@@ -239,6 +239,7 @@ _parse_yaml_conf_file_editor() {
           "${install_editor}" == "true" ||
           "${install_editor}" == 1 ]]; then
     export fai_editor_install=1
+    export fai_editor_port=${default_app_server_port}
   fi
 
   local install_editor_name=
@@ -307,6 +308,32 @@ _parse_yaml_conf_file_environment() {
           "${configured_java_oracle_licence_accepted}" == "true" ||
           "${configured_java_oracle_licence_accepted}" == 1 ]]; then
     export fai_java_oracle_licence_accepted=1
+  fi
+
+  local configured_security_configure_firewall=
+  configured_security_configure_firewall=$(
+    _jq "${yaml_file}" .environment.security.configure_firewall)
+  if [[ "${configured_security_configure_firewall}" == "yes" ||
+          "${configured_security_configure_firewall}" == "true" ||
+          "${configured_security_configure_firewall}" == 1 ]]; then
+    export fai_security_configure_firewall=1
+  elif [[ "${configured_security_configure_firewall}" == "no" ||
+          "${configured_security_configure_firewall}" == "false" ||
+          "${configured_security_configure_firewall}" == 0 ]]; then
+    export fai_security_configure_firewall=0
+  fi
+
+  local configured_security_selinux=
+  configured_security_selinux=$(
+    _jq "${yaml_file}" .environment.security.configure_selinux)
+  if [[ "${configured_security_selinux}" == "yes" ||
+          "${configured_security_selinux}" == "true" ||
+          "${configured_security_selinux}" == 1 ]]; then
+    export fai_security_configure_selinux=1
+  elif [[ "${configured_security_selinux}" == "no" ||
+          "${configured_security_selinux}" == "false" ||
+          "${configured_security_selinux}" == 0 ]]; then
+    export fai_security_configure_selinux=0
   fi
 
   local configured_java_download_url=
@@ -486,6 +513,7 @@ _parse_yaml_conf_file_presentation() {
           "${install_presentation}" == "true" ||
           "${install_presentation}" == 1 ]]; then
     export fai_presentation_install=1
+    export fai_presentation_port=${default_app_server_port}
   fi
 
   local install_presentation_name=

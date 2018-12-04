@@ -27,6 +27,9 @@ environment:
   skip_password_checks: true
   conf_url: ${conf_url}
   jdbc_url: ${jdbc_url}
+  security:
+    configure_firewall: true
+    configure_selinux: true
   apt:
     escenic:
       pool: ${apt_pool}
@@ -37,7 +40,6 @@ environment:
   rpm:
     escenic:
       base_url: ${rpm_base_url}
-
   maven:
     repositories:
       - ${mvn_repo1}
@@ -53,6 +55,8 @@ EOF
   unset fai_jdbc_url
   unset fai_package_rpm_base_url
   unset fai_package_deb_not_apt
+  unset fai_security_configure_selinux
+  unset fai_security_configure_firewall
 
   parse_yaml_conf_file_or_source_if_sh_conf "${yaml_file}"
 
@@ -64,6 +68,12 @@ EOF
   assertEquals "Should set fai_java_oracle_licence_accepted" \
                1 \
                "${fai_java_oracle_licence_accepted}"
+  assertEquals "Should set fai_security_configure_firewall" \
+               1 \
+               "${fai_security_configure_firewall}"
+  assertEquals "Should set fai_security_configure_selinux" \
+               1 \
+               "${fai_security_configure_selinux}"
   assertEquals "Should set fai_environment (type)" \
                "${environment_type}" \
                "${fai_environment}"
