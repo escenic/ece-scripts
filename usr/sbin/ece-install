@@ -288,6 +288,7 @@ function install_packages_if_missing() {
       return
     fi
     run yum install -y $@
+    leave_trail trail_installed_packages="$*"
   fi
 }
 
@@ -308,7 +309,7 @@ function install_common_os_packages()
   fi
 
   # These packages may be removed after ece-install is finished
-  leave_trail trail_ok_to_remove_after_install="bc xml2 ${git_package}"
+  leave_trail trail_ok_to_remove_after_install="${packages} ${git_package}"
 
   install_packages_if_missing $packages $git_package
   assert_commands_available lsb_release curl host wget git unzip html2
