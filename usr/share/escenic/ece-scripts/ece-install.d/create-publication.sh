@@ -165,16 +165,16 @@ function create_the_publication() {
 function ensure_that_instance_is_running() {
   printf "$(get_id) Ensuring %s is up " "${1}"
 
-  local ece_command="ece -i $1 -t ${type-engine} status"
+  local ece_command="ece -i $1 status"
   if [ $(su - $ece_user -c "$ece_command" | grep UP | wc -l) -lt 1 ]; then
-    ece_command="ece -i $1 -t ${type-engine1} start"
+    ece_command="ece -i $1 start"
     su - $ece_user -c "$ece_command" 1>>$log 2>>$log
   fi
 
   # This is a hack, but this ensures that the ECE is bootstrapped
   # properly and can respond fast enough to the session setup for the
   # publication creation.
-  ece_command="ece -i $1 -t ${type-engine} versions"
+  ece_command="ece -i $1 versions"
 
   local wait_count=60
   for ((i=0; i < ${wait_count}; i++)); do

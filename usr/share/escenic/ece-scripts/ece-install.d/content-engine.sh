@@ -846,6 +846,8 @@ function is_using_conf_archive(){
 
 function _repackage_deploy_and_restart_type()
 {
+  print_and_log "Repacking, deploying and restarting ${instance_name} ..."
+
   if [ "$(is_using_conf_archive)" -eq 1 ]; then
     local ece_command="
       ece \
@@ -871,6 +873,10 @@ function _repackage_deploy_and_restart_type()
 
   su - "${ece_user}" -c "${ece_command}" &>> "${log}"
   exit_on_error "su - ${ece_user} -c ${ece_command}"
+
+  if [[ "${type}" == engine ]]; then
+    ensure_that_instance_is_running "${instance_name}"
+  fi
 }
 
 function assemble_deploy_and_restart_type()
