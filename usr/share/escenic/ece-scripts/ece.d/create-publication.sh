@@ -121,6 +121,7 @@ _create_publication_parse_use_input() {
   else
     download_uri_target_to_dir "${file}" "${_create_publication_tmp_dir}"
     publication_war="${_create_publication_tmp_dir}/${file##*/}"
+    run chown "${ece_user}:" "${publication_war}"
   fi
 }
 

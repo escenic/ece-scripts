@@ -274,7 +274,7 @@ function install_packages_if_missing() {
       return
     fi
 
-    leave_trail trail_installed_packages="$*"
+    leave_trail trail_package_installed="$*"
 
     if [ $force_packages -eq 1 ]; then
       run apt-get install $apt_opts --assume-yes --force-yes $@
@@ -288,7 +288,7 @@ function install_packages_if_missing() {
       return
     fi
     run yum install -y $@
-    leave_trail trail_installed_packages="$*"
+    leave_trail trail_package_installed="$*"
   fi
 }
 
@@ -309,7 +309,7 @@ function install_common_os_packages()
   fi
 
   # These packages may be removed after ece-install is finished
-  leave_trail trail_ok_to_remove_after_install="${packages} ${git_package}"
+  leave_trail trail_package_ok_to_remove_after_install="${packages} ${git_package}"
 
   install_packages_if_missing $packages $git_package
   assert_commands_available lsb_release curl host wget git unzip html2
@@ -867,8 +867,8 @@ function common_post_install() {
   if [ ${fai_system_info_skip-0} -eq 1 ]; then
       install_system_info
   fi
-  set_correct_permissions
 
+  set_correct_permissions
   print_status_and_next_steps
 }
 
