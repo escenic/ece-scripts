@@ -965,6 +965,7 @@ function main() {
     print_and_log "All user input will be read from $conf_file"
 
     common_pre_install
+    hooks_run_preinst
     perform_dry_run_if_applicable
 
     no_fai_profile=1
@@ -1124,6 +1125,7 @@ function main() {
     fi
 
     common_post_install
+    hooks_run_postinst
 }
 
 main "$@"

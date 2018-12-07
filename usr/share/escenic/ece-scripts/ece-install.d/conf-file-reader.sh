@@ -49,6 +49,7 @@ parse_yaml_conf_file_or_source_if_sh_conf() {
   _parse_yaml_conf_file_publications "${yaml_file}"
   _parse_yaml_conf_file_packages "${yaml_file}"
   _parse_yaml_conf_file_environment "${yaml_file}"
+  _parse_yaml_conf_file_hooks "${yaml_file}"
   _parse_yaml_conf_file_monitoring "${yaml_file}"
   _parse_yaml_conf_file_assembly_tool "${yaml_file}"
   _parse_yaml_conf_file_restore "${yaml_file}"
@@ -379,6 +380,34 @@ _parse_yaml_conf_file_environment() {
   if [ -n "${configured_jdbc_url}" ]; then
     export fai_jdbc_url=${configured_jdbc_url}
   fi
+}
+
+_parse_yaml_conf_file_hooks() {
+  local yaml_file=$1
+
+  local count=0
+  count=$(_jq "${yaml_file}" ".hooks.preinst | length")
+  for ((i = 0; i < count; i++)); do
+    local preinst=
+    preinst=$(_jq "${yaml_file}" .hooks.preinst["${i}"])
+    if [ -n "${fai_hooks_preinst}" ]; then
+      export fai_hooks_preinst=${fai_hooks_preinst}" "${preinst}
+    else
+      export fai_hooks_preinst=${preinst}
+    fi
+  done
+
+  local count=0
+  count=$(_jq "${yaml_file}" ".hooks.postinst | length")
+  for ((i = 0; i < count; i++)); do
+    local postinst=
+    postinst=$(_jq "${yaml_file}" .hooks.postinst["${i}"])
+    if [ -n "${fai_hooks_postinst}" ]; then
+      export fai_hooks_postinst=${fai_hooks_postinst}" "${postinst}
+    else
+      export fai_hooks_postinst=${postinst}
+    fi
+  done
 }
 
 _parse_yaml_conf_file_monitoring() {

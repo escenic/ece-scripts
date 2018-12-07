@@ -401,6 +401,43 @@ EOF
   rm -rf "${yaml_file}"
 }
 
+test_can_parse_yaml_conf_hooks() {
+  local preinst_script1=/usr/local/sbin/add-apt-proxy-conf.sh
+  local preinst_script2=/usr/local/sbin/download-jdk-from-local-build-server.sh
+  local postinst_script1=/usr/local/sbin/patch-nginx-conf.sh
+  local postinst_script2=/root/import-users.sh
+
+  local yaml_file=
+  yaml_file=$(mktemp)
+  cat > "${yaml_file}" <<EOF
+---
+hooks:
+  preinst:
+    - ${preinst_script1}
+    - ${preinst_script2}
+  postinst:
+    - ${postinst_script1}
+    - ${postinst_script2}
+EOF
+
+  unset fai_hooks_preinst
+  unset fai_hooks_postinst
+  parse_yaml_conf_file_or_source_if_sh_conf "${yaml_file}"
+
+  assertNotNull "Should set fai_hooks_preinst" "${fai_hooks_preinst}"
+  assertNotNull "Should set fai_hooks_postinst" "${fai_hooks_postinst}"
+  assertEquals \
+    "fai_hooks_preinst" \
+    "${preinst_script1} ${preinst_script2}" \
+    "${fai_hooks_preinst}"
+  assertEquals \
+    "fai_hooks_postinst" \
+    "${postinst_script1} ${postinst_script2}" \
+    "${fai_hooks_postinst}"
+
+  rm -rf "${yaml_file}"
+}
+
 test_can_parse_yaml_conf_cue() {
   local cue_backend_ece=http://ece.example.com
   local cue_backend_ece_local=http://localhost:8080
