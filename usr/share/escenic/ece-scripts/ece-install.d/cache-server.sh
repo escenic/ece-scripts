@@ -588,7 +588,7 @@ function create_varnish_conf() {
 
 function set_up_varnish() {
   print_and_log "Setting up Varnish to match your environment ..."
-  run service varnish stop
+  run systemctl stop varnish
   set_varnish_port
   create_varnish_conf
 
