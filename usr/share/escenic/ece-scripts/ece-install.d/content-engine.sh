@@ -670,8 +670,8 @@ EOF
   fi
 
   file=$common_nursery_dir/com/escenic/webstart/StudioConfig.properties
-
-  cat >> $file <<EOF
+  if [ -w "${file}" ]; then
+    cat >> "${file}" <<EOF
 # This font have been tested and works with (at least): English,
 # Norwegian & Tamil. The font comes with (at least) MS Office and OS X
 # 10.5 and up.
@@ -684,7 +684,7 @@ property.com.escenic.studio.font.windowsvista=Arial Unicode MS
 # We want to speed up downloading studio
 property.jnlp.packEnabled=true
 EOF
-
+  fi
   set_up_search_client_nursery_conf
 }
 
@@ -846,6 +846,8 @@ function is_using_conf_archive(){
 
 function _repackage_deploy_and_restart_type()
 {
+  print_and_log "Repacking, deploying and restarting ${instance_name} ..."
+
   if [ "$(is_using_conf_archive)" -eq 1 ]; then
     local ece_command="
       ece \
@@ -871,6 +873,10 @@ function _repackage_deploy_and_restart_type()
 
   su - "${ece_user}" -c "${ece_command}" &>> "${log}"
   exit_on_error "su - ${ece_user} -c ${ece_command}"
+
+  if [[ "${type}" == engine ]]; then
+    ensure_that_instance_is_running "${instance_name}"
+  fi
 }
 
 function assemble_deploy_and_restart_type()

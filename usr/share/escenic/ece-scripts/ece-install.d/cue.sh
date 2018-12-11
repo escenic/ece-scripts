@@ -22,8 +22,23 @@ _cue_setup_cors_nginx() {
 }
 
 _cue_setup_cors_nginx_redhat() {
-  local file=/etc/nginx/default.d/cue
+  local file=/etc/nginx/conf.d/cue.conf
+  # want ece-install to be idempotent
+  echo > "${file}"
   _cue_setup_cors_nginx_create_cors_setup_in_file "${file}"
+
+  cat >> "${file}" <<EOF
+  location ~ "/cue-web" {
+    root /usr/share/nginx/html;
+  }
+}
+EOF
+
+  # remove default route
+  file=/etc/nginx/nginx.conf
+  sed  -i '/^    server/,/^    }/ {
+    d
+  }' "${file}"
 }
 
 _cue_setup_cors_get_allowed_origins() {
@@ -110,6 +125,8 @@ EOF
 
 _cue_setup_cors_nginx_debian() {
   local file=/etc/nginx/sites-available/cue
+  # Want ece-install to be idempotent
+  echo > "${file}"
   _cue_setup_cors_nginx_create_cors_setup_in_file "${file}"
   cat >> "${file}" <<EOF
   location ~ "/cue-web" {
@@ -166,8 +183,38 @@ EOF
 
   if [ "${on_debian_or_derivative-0}" -eq 1 ]; then
     _cue_configure_debian
+  elif [ "${on_redhat_or_derivative-0}" -eq 1 ]; then
+    _cue_configure_redhat
+  fi
+}
+
+_cue_configure_redhat() {
+  # The cue-web with the highest version becomes the deployed
+  # host:80/cue-web
+  local cue_web_dir=
+  cue_web_dir=$(
+  find /usr/share/escenic -name "cue-web-*" -type d |
+    tail -n 1)
+  local link_target=/usr/share/nginx/html/cue-web
+  if [ -e "${link_target}" ]; then
+    run rm "${link_target}"
+  fi
+  run ln -sv "${cue_web_dir}"/www "${link_target}"
+
+  local conf_base=
+  conf_base=$(basename "${cue_web_dir}")
+
+  install_packages_if_missing python-yaml PyYAML
+  run "${cue_web_dir}"/bin/generate-config.py \
+      "/etc/escenic/${conf_base}/" \
+      "/etc/escenic/${conf_base}/"
+
+  link_target=${cue_web_dir}/www/Configuration/cue.config.js
+  if [ -h "${link_target}" ]; then
+    rm "${link_target}"
   fi
 
+  run ln -sv "/etc/escenic/${conf_base}/cue.config.js" "${link_target}"
 }
 
 _cue_configure_debian() {
