@@ -274,6 +274,8 @@ function install_packages_if_missing() {
       return
     fi
 
+    leave_trail trail_package_installed="$*"
+
     if [ $force_packages -eq 1 ]; then
       run apt-get install $apt_opts --assume-yes --force-yes $@
     else
@@ -286,6 +288,7 @@ function install_packages_if_missing() {
       return
     fi
     run yum install -y $@
+    leave_trail trail_package_installed="$*"
   fi
 }
 
@@ -304,6 +307,9 @@ function install_common_os_packages()
   elif [ $on_redhat_or_derivative -eq 1 ]; then
     packages="${packages} bind-utils"
   fi
+
+  # These packages may be removed after ece-install is finished
+  leave_trail trail_package_ok_to_remove_after_install="${packages} ${git_package}"
 
   install_packages_if_missing $packages $git_package
   assert_commands_available lsb_release curl host wget git unzip html2
@@ -671,6 +677,13 @@ function common_pre_install() {
     check_software_credentials
     assert_commands_available lsb_release
 
+    # Configuring SELinux and firewalld has so far only been tested on
+    # RedHat
+    if [ ${on_redhat_or_derivative-0} -eq 1 ]; then
+      security_configure_selinux
+      security_configure_firewalld
+    fi
+
     if [ $(lsb_release -i | grep Ubuntu | wc -l) -gt 0 ]; then
         on_ubuntu=1
     elif [ $(lsb_release -i | grep Debian | wc -l) -gt 0 ]; then
@@ -854,8 +867,8 @@ function common_post_install() {
   if [ ${fai_system_info_skip-0} -eq 1 ]; then
       install_system_info
   fi
-  set_correct_permissions
 
+  set_correct_permissions
   print_status_and_next_steps
 }
 
@@ -965,6 +978,7 @@ function main() {
     print_and_log "All user input will be read from $conf_file"
 
     common_pre_install
+    hooks_run_preinst
     perform_dry_run_if_applicable
 
     no_fai_profile=1
@@ -1124,6 +1138,7 @@ function main() {
     fi
 
     common_post_install
+    hooks_run_postinst
 }
 
 main "$@"

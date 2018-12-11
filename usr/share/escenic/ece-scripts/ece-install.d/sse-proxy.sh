@@ -16,7 +16,7 @@ _sse_configure_nginx() {
   if [ "${on_debian_or_derivative}" -eq 1 ]; then
     local file=/etc/nginx/sites-available/sse-proxy
   elif [ "${on_redhat_or_derivative}" -eq 1 ]; then
-    local file=/etc/nginx/default.d/sse-proxy
+    local file=/etc/nginx/conf.d/sse-proxy.conf
   else
     local file=/etc/nginx/nginx.conf.add
   fi

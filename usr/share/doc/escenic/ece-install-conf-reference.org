@@ -1,5 +1,5 @@
 Overview of =ece-install='s configuration options. Generated from the
-configuration file parser's unit tests @ Thu Aug 17 16:02:10 CST 2017.
+configuration file parser's unit tests @ Fri Dec  7 15:20:10 CET 2018.
 
 *** environment
 
@@ -56,6 +56,7 @@ profiles:
     shutdown: ${editor_shutdown}
     ear: ${editor_ear}
     deploy_white_list: ${editor_deploy_white_list}
+    heap_size: ${editor_heap_size}
 #+end_src
 =ece-install.conf= equivalent:
 #+begin_src: text
@@ -67,6 +68,7 @@ fai_editor_redirect=
 fai_editor_name=
 fai_editor_ear=
 fai_editor_deploy_white_list=
+fai_editor_heap_size=
 
 #+end_src
 
@@ -85,6 +87,7 @@ profiles:
     shutdown: ${presentation_shutdown}
     deploy_white_list: ${presentation_deploy_white_list}
     search_indexer_ws_uri: ${presentation_search_indexer_ws_uri}
+    heap_size: ${presentation_heap_size}
 #+end_src
 =ece-install.conf= equivalent:
 #+begin_src: text
@@ -98,6 +101,7 @@ fai_presentation_redirect=
 fai_presentation_shutdown=
 fai_presentation_deploy_white_list=
 fai_presentation_search_indexer_ws_uri=
+fai_presentation_heap_size=
 
 #+end_src
 
@@ -116,6 +120,7 @@ profiles:
     name: ${search_name}
     redirect: ${search_redirect}
     shutdown: ${search_shutdown}
+    heap_size: ${search_heap_size}
 #+end_src
 =ece-install.conf= equivalent:
 #+begin_src: text
@@ -130,6 +135,7 @@ fai_search_legacy=
 fai_search_for_editor=
 fai_search_ear=
 fai_search_indexer_ws_uri=
+fai_search_heap_size=
 
 #+end_src
 
@@ -187,6 +193,24 @@ fai_cache_backends=
 fai_cache_port=
 fai_cache_conf_dir=
 
+#+end_src
+
+*** hooks
+
+#+begin_src yaml
+hooks:
+  preinst:
+    - ${preinst_script1}
+    - ${preinst_script2}
+  postinst:
+    - ${postinst_script1}
+    - ${postinst_script2}
+#+end_src
+=ece-install.conf= equivalent:
+#+begin_src: text
+
+fai_hooks_preinst=
+fai_hooks_postinst=
 #+end_src
 
 *** cue
@@ -561,6 +585,25 @@ profiles:
     install: yes
   search:
     install: yes
+  db:
+    install: no
+#+end_src
+=ece-install.conf= equivalent:
+#+begin_src: text
+
+fai_editor_install=
+fai_search_install=
+fai_db_install=
+
+#+end_src
+
+*** editor_install_multi_profiles_1_instead_of_boolean
+#+begin_src yaml
+profiles:
+  editor:
+    install: 1
+  search:
+    install: 1
   db:
     install: no
 #+end_src

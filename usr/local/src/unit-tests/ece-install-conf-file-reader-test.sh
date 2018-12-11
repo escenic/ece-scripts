@@ -27,6 +27,9 @@ environment:
   skip_password_checks: true
   conf_url: ${conf_url}
   jdbc_url: ${jdbc_url}
+  security:
+    configure_firewall: true
+    configure_selinux: true
   apt:
     escenic:
       pool: ${apt_pool}
@@ -37,7 +40,6 @@ environment:
   rpm:
     escenic:
       base_url: ${rpm_base_url}
-
   maven:
     repositories:
       - ${mvn_repo1}
@@ -53,6 +55,8 @@ EOF
   unset fai_jdbc_url
   unset fai_package_rpm_base_url
   unset fai_package_deb_not_apt
+  unset fai_security_configure_selinux
+  unset fai_security_configure_firewall
 
   parse_yaml_conf_file_or_source_if_sh_conf "${yaml_file}"
 
@@ -64,6 +68,12 @@ EOF
   assertEquals "Should set fai_java_oracle_licence_accepted" \
                1 \
                "${fai_java_oracle_licence_accepted}"
+  assertEquals "Should set fai_security_configure_firewall" \
+               1 \
+               "${fai_security_configure_firewall}"
+  assertEquals "Should set fai_security_configure_selinux" \
+               1 \
+               "${fai_security_configure_selinux}"
   assertEquals "Should set fai_environment (type)" \
                "${environment_type}" \
                "${fai_environment}"
@@ -397,6 +407,43 @@ EOF
   assertEquals "fai_cache_backends" "${be1} ${be2}" "${fai_cache_backends}"
   assertEquals "fai_cache_conf_dir" "${conf_dir}" "${fai_cache_conf_dir}"
   assertEquals "fai_cache_port" "${port}" "${fai_cache_port}"
+
+  rm -rf "${yaml_file}"
+}
+
+test_can_parse_yaml_conf_hooks() {
+  local preinst_script1=/usr/local/sbin/add-apt-proxy-conf.sh
+  local preinst_script2=/usr/local/sbin/download-jdk-from-local-build-server.sh
+  local postinst_script1=/usr/local/sbin/patch-nginx-conf.sh
+  local postinst_script2=/root/import-users.sh
+
+  local yaml_file=
+  yaml_file=$(mktemp)
+  cat > "${yaml_file}" <<EOF
+---
+hooks:
+  preinst:
+    - ${preinst_script1}
+    - ${preinst_script2}
+  postinst:
+    - ${postinst_script1}
+    - ${postinst_script2}
+EOF
+
+  unset fai_hooks_preinst
+  unset fai_hooks_postinst
+  parse_yaml_conf_file_or_source_if_sh_conf "${yaml_file}"
+
+  assertNotNull "Should set fai_hooks_preinst" "${fai_hooks_preinst}"
+  assertNotNull "Should set fai_hooks_postinst" "${fai_hooks_postinst}"
+  assertEquals \
+    "fai_hooks_preinst" \
+    "${preinst_script1} ${preinst_script2}" \
+    "${fai_hooks_preinst}"
+  assertEquals \
+    "fai_hooks_postinst" \
+    "${postinst_script1} ${postinst_script2}" \
+    "${fai_hooks_postinst}"
 
   rm -rf "${yaml_file}"
 }

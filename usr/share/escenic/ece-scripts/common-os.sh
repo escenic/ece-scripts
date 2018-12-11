@@ -284,3 +284,19 @@ function is_rpm_already_installed_by_name() {
   local package_name=$1
   rpm -q "${package_name}" &> /dev/null
 }
+
+## Returns the secondary interfaces, if any. The loopback device is
+## ignored.
+##
+## If no secondary device could be found, nothing is returned from
+## this method.
+get_secondary_interfaces() {
+  local devices_except_loopback devices_except_loopback_no=
+  devices_except_loopback=$(ip link | grep -E '^[2-9]+:' | grep -w UP)
+
+  printf "%s\n" "${devices_except_loopback}" |
+    cut -d: -f2 |
+    grep -v docker |
+    awk '{print $1}' |
+    sed 1d
+}
