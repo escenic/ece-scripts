@@ -111,7 +111,7 @@ EOF
       add_header 'Access-Control-Allow-Credentials' 'true';
       add_header 'Access-Control-Max-Age' 1728000;
       add_header 'Access-Control-Allow-Methods' 'GET, POST, HEAD, OPTIONS, PUT, DELETE';
-      add_header 'Access-Control-Allow-Headers' 'Authorization,Content-Type,Accept,Origin,User-Agent,DNT,Cache-Control,X-Mx-ReqToken,Keep-Alive,X-Requested-With,If-Modified-Since,If-Match,If-None-Match,X-Escenic-Locks,X-Escenic-media-filename';
+      add_header 'Access-Control-Allow-Headers' 'Authorization,Content-Type,Accept,Origin,User-Agent,DNT,Cache-Control,X-Mx-ReqToken,Keep-Alive,X-Requested-With,If-Modified-Since,If-Match,If-None-Match,X-Escenic-Locks,X-Escenic-media-filename,X-Escenic-home-section-uri';
       add_header 'Content-Length' 0;
       add_header 'Content-Type' 'text/plain charset=UTF-8';
       return 204;
