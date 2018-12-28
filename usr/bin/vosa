@@ -1096,7 +1096,7 @@ function do_create() {
       if $USE_AWS_CLI ; then
 	json="[{\"DeviceName\":\"/dev/sda1\", \"Ebs\":{\"VolumeSize\":$amazon_config_initial_disk_size} } ]"
         opts=( "--image-id" ${amazon_config_image}
-               "count" "1:1"
+               "count" "1"
         ${amazon_config_availability_zone/#/--placement availability_zone=}  \
         ${amazon_config_type/#/--instance-type }  \
         ${amazon_config_ssh_keypair/#/--key-name }  \
