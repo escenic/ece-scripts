@@ -4,6 +4,7 @@
 test_can_parse_yaml_conf_environment() {
   local yaml_file=
   yaml_file=$(mktemp)
+  local foo_java_vendor=openjdk
   local foo_java_home=/usr/lib/jvm/foo-java-sdk
   local environment_type=production
   local foo_java_download_url=http://example.com/java-1.8.tar.gz
@@ -22,6 +23,7 @@ test_can_parse_yaml_conf_environment() {
 environment:
   type: ${environment_type}
   java_home: ${foo_java_home}
+  java_vendor: ${foo_java_vendor}
   java_download_url: ${foo_java_download_url}
   java_oracle_licence_accepted: true
   skip_password_checks: true
@@ -48,6 +50,7 @@ EOF
 
   unset java_home
   unset fai_environment
+  unset fai_java_vendor
   unset fai_java_download_url
   unset fai_java_oracle_licence_accepted
   unset fai_maven_repositories
@@ -62,6 +65,7 @@ EOF
 
   assertNotNull "Should set java_home" "${java_home}"
   assertEquals "Should set java_home" "${foo_java_home}" "${java_home}"
+  assertEquals "Should set java_vendor" "${foo_java_vendor}" "${fai_java_vendor}"
   assertEquals "Should set fai_java_download_url" \
                "${foo_java_download_url}" \
                "${fai_java_download_url}"

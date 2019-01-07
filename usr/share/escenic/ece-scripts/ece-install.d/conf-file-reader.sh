@@ -302,6 +302,12 @@ _parse_yaml_conf_file_environment() {
     export java_home=${configured_java_home}
   fi
 
+  local configured_java_vendor=
+  configured_java_vendor=$(_jq "${yaml_file}" .environment.java_vendor)
+  if [[ -n "${configured_java_vendor}" ]]; then
+    export fai_java_vendor=${configured_java_vendor}
+  fi
+
   local configured_java_oracle_licence_accepted=
   configured_java_oracle_licence_accepted=$(
     _jq "${yaml_file}" .environment.java_oracle_licence_accepted)
