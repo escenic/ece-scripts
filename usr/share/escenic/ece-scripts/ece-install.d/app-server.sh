@@ -12,7 +12,7 @@ function set_up_jdbc_library() {
       "${jdbc_jar}"
     run cp "${download_dir}/${jdbc_jar}" "${tomcat_base}/lib"
   else
-    make_ln /usr/share/java/mysql-connector-java.jar      
+    make_ln /usr/share/java/mysql-connector-java.jar
   fi
 }
 
@@ -145,7 +145,7 @@ function set_up_app_server() {
   if [ ! -z $db_vendor ] && [ $db_vendor = "mariadb" ]; then
     jdbc_package_name=org.mariadb.jdbc.Driver
   fi
-  
+
   cat > $tomcat_base/conf/server.xml <<EOF
 <?xml version='1.0' encoding='utf-8'?>
 <Server port="$shutdown_port" shutdown="SHUTDOWN">
@@ -444,7 +444,7 @@ EOF
        $tomcat_base/conf/context.xml
    print_and_log "Finished adding solr configuration for search"
    print_and_log "Started adding context configuration for indexer-webapp-presentation"
- 
+
    mkdir -p $tomcat_base/conf/Catalina/localhost/
 
    cat > $tomcat_base/conf/Catalina/localhost/indexer-webapp-presentation.xml <<EOF
@@ -474,8 +474,24 @@ EOF
        $tomcat_base/conf/context.xml
   fi
 
+  tomcat_disable_manifest_scanning_of_jars ${tomcat_base}/conf/context.xml
   pretty_print_xml $tomcat_base/conf/context.xml
   set_up_logging
+}
+
+## This applies to Tomcat 8.0.41 and up. Turn off scanning of
+## MANIFEST.MFs inside all deployed JARs as we only depend on the
+## classpath as defined in conf/catalina.properties
+## (i.e. <webapp>/WEB-INF/lib and escenic/lib)
+function tomcat_disable_manifest_scanning_of_jars() {
+  local file=$1
+
+  xmlstarlet \
+    ed -P --inplace \
+    --subnode /Context -t elem -n TMP -v '' \
+    --insert /Context/TMP -t attr -n scanManifest -v false \
+    --rename //TMP -v JarScanner \
+    "${file}"
 }
 
 function set_up_logging() {
