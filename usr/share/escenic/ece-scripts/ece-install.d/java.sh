@@ -126,9 +126,12 @@ function _java_is_sun_java_already_installed() {
 ## $1 :: dir of the JDK
 function _java_update_java_env_from_jdk_dir() {
   local dir=$1
-  update-alternatives --set java "${dir}/jre/bin/java"
-  for cmd in javac jar javap javah jstat; do
-    update-alternatives --set "${cmd}" "${dir}/bin/${cmd}"
+
+  for cmd in java javac jar javap javah jstat; do
+    if [ ! -x "${dir}/bin/${cmd}" ]; then
+      continue
+    fi
+    update-alternatives --set "${cmd}" "${dir}/bin/${cmd}" &>> "${log}" || true
   done
 
   export java_home=${dir}
