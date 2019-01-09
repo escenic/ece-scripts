@@ -5,10 +5,16 @@ credentials:
   - site: yum.escenic.com
     user: APT_ESCENIC_USER
     password: APT_ESCENIC_PASSWORD
+  - site: apt.escenic.com
+    user: APT_ESCENIC_USER
+    password: APT_ESCENIC_PASSWORD
 
 environment:
   java_oracle_licence_accepted: true
   java_apr_install: false
+  apt:
+    escenic:
+      pool: eyre
 
 profiles:
   editor:
