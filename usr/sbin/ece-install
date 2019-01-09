@@ -636,6 +636,7 @@ function common_pre_install() {
       $escenic_cache_dir
       $escenic_crash_dir
       $escenic_data_dir
+      $escenic_data_dir/engine
       $escenic_data_dir/solr/data
       $escenic_log_dir
       $escenic_run_dir
