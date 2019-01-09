@@ -303,7 +303,7 @@ function install_common_os_packages()
     if [ $on_ubuntu -eq 1 ]; then
       git_package=git-core
     fi
-    packages="${packages} bind9-host"
+    packages="${packages} bind9-host apt-transport-https"
   elif [ $on_redhat_or_derivative -eq 1 ]; then
     packages="${packages} bind-utils"
   fi
@@ -328,7 +328,8 @@ function install_common_os_packages()
       # not), there
       if ! grep -q apt.escenic.com /etc/apt/sources.list.d/escenic.list; then
         local package_pool=${fai_apt_vizrt_pool-stable}
-        add_apt_source "deb http://apt.escenic.com ${package_pool} main non-free"
+        add_apt_source "deb https://${fai_package_apt_user}:${fai_package_apt_password}@apt.escenic.com ${package_pool} main non-free"
+        curl --silent http://apt.escenic.com/repo.key | apt-key add - &>> "${log}"
         run apt-get update
       fi
     fi
