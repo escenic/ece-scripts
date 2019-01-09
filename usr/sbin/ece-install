@@ -654,7 +654,13 @@ function common_pre_install() {
         #
         # Same goes for json_xs and jq which are required for parsing
         # YAML conf files.
-        install_packages_if_missing "lsb-release libjson-xs-perl libyaml-perl jq"
+        install_packages_if_missing "
+          jq
+          libjson-xs-perl
+          libyaml-libyaml-perl
+          libyaml-perl
+          lsb-release
+        "
     fi
 
     if [ -e /etc/redhat-release ]; then
