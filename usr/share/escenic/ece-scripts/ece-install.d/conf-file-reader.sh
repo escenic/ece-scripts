@@ -317,6 +317,19 @@ _parse_yaml_conf_file_environment() {
     export fai_java_oracle_licence_accepted=1
   fi
 
+  local configured_java_apr_install=
+  configured_java_apr_install=$(
+    _jq "${yaml_file}" .environment.java_apr_install)
+  if [[ "${configured_java_apr_install}" == "yes" ||
+          "${configured_java_apr_install}" == "true" ||
+          "${configured_java_apr_install}" == 1 ]]; then
+    export fai_java_apr_install=1
+  elif [[ "${configured_java_apr_install}" == "no" ||
+          "${configured_java_apr_install}" == "false" ||
+          "${configured_java_apr_install}" == 0 ]]; then
+    export fai_java_apr_install=0
+  fi
+
   local configured_security_configure_firewall=
   configured_security_configure_firewall=$(
     _jq "${yaml_file}" .environment.security.configure_firewall)

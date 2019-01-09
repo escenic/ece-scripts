@@ -17,6 +17,11 @@ function set_up_jdbc_library() {
 }
 
 function set_apr_lib_dir_in_ece_instance_conf_if_needed() {
+  if [ ${fai_java_apr_install-1} -eq 0 ]; then
+    log "APR disabled, not configuring ECE to use it"
+    return
+  fi
+
   find /usr/lib* -maxdepth 3 -name libtcnative-1.so.0 |
     while read -r apr_lib; do
       set_ece_instance_conf apr_lib_dir "${apr_lib%/*}"

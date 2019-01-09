@@ -759,7 +759,6 @@ function install_ece_third_party_packages
       ant-optional
       libapr1
       libmysql-java
-      libtcnative-1
       libxml2-utils
       memcached
       procps
@@ -767,6 +766,9 @@ function install_ece_third_party_packages
       xml-twig-tools
       xmlstarlet
     "
+    if [ "${fai_java_apr_install-1}" -eq 0 ]; then
+      packages=${packages}" libtcnative-1"
+    fi
   elif [ $on_redhat_or_derivative -eq 1 ]; then
     packages="
       ant
@@ -777,10 +779,12 @@ function install_ece_third_party_packages
       memcached
       mysql-connector-java
       procps-ng
-      tomcat-native
       wget
       xmlstarlet
     "
+    if [ "${fai_java_apr_install-1}" -eq 0 ]; then
+      packages=${packages}" tomcat-native"
+    fi
 
     if ! has_java_installed; then
       install_java
