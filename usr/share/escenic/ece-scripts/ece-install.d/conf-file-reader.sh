@@ -74,7 +74,10 @@ _parse_yaml_conf_file_credentials() {
       export technet_user=${user}
       export technet_password=${password}
     fi
-    if [[ "${site}" == builder ]]; then
+    if [[ "${site}" == builder ||
+            "${site}" == *"builder.escenic.cue.cloud"* ||
+            "${site}" == *"builder.vizrtsaas.com"*
+        ]]; then
       export fai_builder_http_user=${user}
       export fai_builder_http_password=${password}
       export fai_conf_builder_http_user=${user}
