@@ -1,0 +1,94 @@
+#! /usr/bin/env bash
+
+# by torstein@escenic.com
+
+is_running() {
+  vboxmanage list runningvms | grep -q $1
+}
+
+create_clean_machine() {
+  local machine=$1
+
+  if is_running ${machine}; then
+    vboxmanage controlvm $1 poweroff
+  fi
+
+  local snapshot_id=
+  snapshot_id=$(
+    vboxmanage snapshot ${machine} list --machinereadable |
+      sed -r -n 's#^SnapshotUUID="(.*)"#\1#p')
+  vboxmanage snapshot ${machine} restore "${snapshot_id}"
+}
+
+start_machine() {
+  local machine=$1
+  vboxmanage startvm ${machine} --type headless
+}
+
+setup_ece_install_and_conf() {
+  local dir=
+  dir=$(dirname "$0")
+
+  export remote_ece_install_yaml=/etc/$(basename "${ece_install_yaml}")
+  scp -o StrictHostKeyChecking=no \
+      -o ConnectTimeout=60 \
+      "${ece_install_yaml}" \
+      "${user_at_host}":"${remote_ece_install_yaml}"
+  ssh "${user_at_host}" "yum install -y rsync || apt-get update && apt-get install -y rsync"
+  rsync -avz ~/src/ece-scripts/etc/ "${user_at_host}":/etc/
+  rsync -avz ~/src/ece-scripts/usr/ "${user_at_host}":/usr/
+
+  # speed up install
+  rsync -avz "${dir}"/var/cache/ "${user_at_host}":/var/cache/
+}
+
+read_conf_and_generate_ece_install_yaml() {
+  local orig=$1
+  local dir=
+  dir=$(dirname "$0")
+  export file=${dir}/ece-install.yaml
+  cp "${orig}" "${file}"
+
+  source "${dir}"/$(basename "$0").private
+  sed -i "s#APT_ESCENIC_USER#${apt_escenic_user}#g" "${file}"
+  sed -i "s#APT_ESCENIC_PASSWORD#${apt_escenic_password}#g" "${file}"
+  sed -i "s#MACHINE#${machine}#g" "${file}"
+  sed -i "s#PUBLICATION#${publication}#g" "${file}"
+
+  export ece_install_yaml=${file}
+}
+
+run_ece_install() {
+  ssh "${user_at_host}" bash -x ece-install -f "${remote_ece_install_yaml}"
+}
+
+main() {
+  local dir=
+  dir=$(dirname "$0")
+
+  local default_ece_install_yaml=
+  default_ece_install_yaml=${dir}/ece-install-debian.yaml
+
+  read_conf_and_generate_ece_install_yaml "${1-${default_ece_install_yaml}}"
+  local user=root
+  local user_at_host=${user}@${machine}
+
+  create_clean_machine "${machine}"
+  start_machine "${machine}"
+
+  printf "Waiting for %s to be up" "${machine}"
+  for el in {0..10}; do
+    ssh "${user_at_host}" uptime &> /dev/null && {
+      echo
+      break
+    }
+    echo '.'
+    sleep 1
+  done
+
+  setup_ece_install_and_conf
+  run_ece_install
+  "${0}.verify"
+}
+
+main "$@"

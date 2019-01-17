@@ -125,9 +125,9 @@ function set_search_host_and_ports() {
 
 ## $1=<default instance name>
 function install_ece_instance() {
+  ask_for_instance_name $1
   install_ece_third_party_packages
 
-  ask_for_instance_name $1
   set_up_engine_directories
 
   set_archive_files_depending_on_profile
@@ -749,8 +749,8 @@ function install_ece_third_party_packages
       local version=$(lsb_release -s -r | sed "s#\.##g")
     fi
 
-    if [ "$(has_oracle_java_installed)" -eq 0 ]; then
-      install_oracle_java
+    if ! has_java_installed; then
+      install_java
     fi
 
     local packages="
@@ -759,7 +759,6 @@ function install_ece_third_party_packages
       ant-optional
       libapr1
       libmysql-java
-      libtcnative-1
       libxml2-utils
       memcached
       procps
@@ -767,6 +766,9 @@ function install_ece_third_party_packages
       xml-twig-tools
       xmlstarlet
     "
+    if [ "${fai_java_apr_install-1}" -eq 0 ]; then
+      packages=${packages}" libtcnative-1"
+    fi
   elif [ $on_redhat_or_derivative -eq 1 ]; then
     packages="
       ant
@@ -777,12 +779,16 @@ function install_ece_third_party_packages
       memcached
       mysql-connector-java
       procps-ng
-      tomcat-native
       wget
       xmlstarlet
     "
+    if [ "${fai_java_apr_install-1}" -eq 0 ]; then
+      packages=${packages}" tomcat-native"
+    fi
 
-    install_oracle_java
+    if ! has_java_installed; then
+      install_java
+    fi
   fi
 
   install_packages_if_missing $packages

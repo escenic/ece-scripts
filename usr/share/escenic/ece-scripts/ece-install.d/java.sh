@@ -32,7 +32,61 @@ function _java_get_oracle_rpm_url() {
     sed -n -r  's#.*filepath":"(.*)",[ ]*"MD5".*#\1#p'
 }
 
+## Will check if the system has a Java version installed which has the
+## required language level.
+function has_java_installed() {
+  which javac 2>/dev/null |
+    _java_get_spec_version |
+    _java_is_spec_supported
+}
+
+function install_java() {
+  if [[ "${fai_java_vendor-openjdk}" == openjdk ]]; then
+    install_openjdk_java
+  else
+    install_oracle_java
+  fi
+}
+
+function java_find_latest_availale_openjdk_package() {
+  if [ ! -x /usr/bin/apt-cache ]; then
+    return
+  fi
+
+  apt-cache search openjdk headless |
+    egrep 'openjdk-[0-9]+-jdk-headless' |
+    cut -d' ' -f1 |
+    grep ^openjdk |
+    sed 's#-# #g' |
+    sort -n -k 2 |
+    sed 's# #-#g' |
+    tail -n 1
+}
+
+function install_openjdk_java() {
+  if is_on_debian_or_derivative; then
+    local openjdk_package=
+    openjdk_package=$(java_find_latest_availale_openjdk_package)
+    if [ -z "${openjdk_package}" ]; then
+      openjdk_package=openjdk-11-jdk-headless
+    fi
+
+    install_packages_if_missing "${openjdk_package}"
+  elif is_on_redhat_or_derivative; then
+    install_packages_if_missing java-11-openjdk-devel
+  fi
+
+  ## The java binaries of the package we've installed will always be
+  ## first in path, so we can just call
+  ## _java_update_java_env_from_java_bin here
+  _java_update_java_env_from_java_bin
+
+  set_ece_instance_conf java_vendor openjdk
+}
+
 function install_oracle_java() {
+  set_ece_instance_conf java_vendor oracle
+
   if _java_is_sun_java_already_installed; then
     print_and_log "Oracle Java is already installed on $HOSTNAME"
     _java_update_java_env_from_java_bin
@@ -72,9 +126,12 @@ function _java_is_sun_java_already_installed() {
 ## $1 :: dir of the JDK
 function _java_update_java_env_from_jdk_dir() {
   local dir=$1
-  update-alternatives --set java "${dir}/jre/bin/java"
-  for cmd in javac jar javap javah jstat; do
-    update-alternatives --set "${cmd}" "${dir}/bin/${cmd}"
+
+  for cmd in java javac jar javap javah jstat; do
+    if [ ! -x "${dir}/bin/${cmd}" ]; then
+      continue
+    fi
+    update-alternatives --set "${cmd}" "${dir}/bin/${cmd}" &>> "${log}" || true
   done
 
   export java_home=${dir}
@@ -196,4 +253,50 @@ function _install_oracle_java_redhat() {
 
   add_next_step "By using Oracle Java, you must accept this license: " \
                 "http://www.oracle.com/technetwork/java/javase/terms/license/"
+}
+
+## Returns the Java language specification version.
+##
+## It does this by creating a temporary java class which returns this
+## information from the JVM itself. The JDK is identified by the
+## passed javac binary. This method complets in 0-1 seconds on an
+## i7/16GB.
+##
+## $1 :: Path to javac, passed through a pipe
+function _java_get_spec_version() {
+  local javac java file tmp_dir
+  javac=$(cat -)
+
+  if [[ -z "${javac}" ]]; then
+    return 1
+  fi
+
+  java=$(dirname "${javac}")/java
+  tmp_dir=$(mktemp -d)
+
+  local class_name=GetSpecVersion
+  file=${tmp_dir}/${class_name}.java
+  cat > "${file}" <<EOF
+public class ${class_name} {
+  public static void main(String args[]) {
+    System.out.println(System.getProperty("java.specification.version"));
+  }
+}
+EOF
+
+  run cd "$(dirname "${file}")"
+  run "${javac}" "$(basename "${file}")"
+  run "${java}" "$(basename "${file}" .java)"
+  run rm -rf "${tmp_dir}"
+}
+
+## $1 :: Java spec version, piped to the function.
+function _java_is_spec_supported() {
+  local version=
+  version=$(cat -)
+
+  [[ "${version}" == 1.8 ||
+       "${version}" == 10 ||
+       "${version}" == 11
+   ]]
 }

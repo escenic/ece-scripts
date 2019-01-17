@@ -43,31 +43,20 @@ function get_user_home_directory() {
   fi
 }
 
-### has_oracle_java_installed
-## Will return 1 if the system has Sun/Oracle Java installed.
-function has_oracle_java_installed() {
-  local java_bin_list=$(
-    find /usr/lib/jvm \
-         -maxdepth 3 \
-         -name java \
-         -type f \
-         -executable \
-         2>/dev/null)
+function is_on_debian_or_derivative() {
+  [[ ${on_debian_or_derivative} -eq 1 ]]
+}
 
-  for java_bin in ${java_bin_list}; do
-    local hit=$(${java_bin} -version 2>&1 > /dev/null | grep HotSpot | wc -l)
-    if [ ${hit} -gt 0 ]; then
-        echo 1
-        return
-    fi
-  done
+function is_on_redhat_or_derivative() {
+  [[ ${on_redhat_or_derivative} -eq 1 ]]
+}
 
-  # fallback
-  if [[ $(java -version 2>&1 > /dev/null | grep HotSpot | wc -l) -gt 0 ]]; then
-    echo 1
-  else
-    echo 0
-  fi
+function is_java_vendor_oracle() {
+  [[ "${java_vendor-openjdk}" == oracle ]]
+}
+
+function is_java_vendor_openjdk() {
+  [[ "${java_vendor-openjdk}" == openjdk ]]
 }
 
 ### create_user_and_group_if_not_present

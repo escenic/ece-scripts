@@ -1,4 +1,8 @@
 *.dockerfile.test
-*.ignore
-usr/local/src/unit-tests/shunit2
 *.idea
+*.ignore
+*.private
+usr/local/src/integration-tests/virtual/ece-install.yaml
+usr/local/src/integration-tests/virtual/var
+usr/local/src/unit-tests/shunit2
+var/cache/escenic

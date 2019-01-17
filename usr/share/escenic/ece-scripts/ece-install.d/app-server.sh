@@ -17,6 +17,11 @@ function set_up_jdbc_library() {
 }
 
 function set_apr_lib_dir_in_ece_instance_conf_if_needed() {
+  if [ ${fai_java_apr_install-1} -eq 0 ]; then
+    log "APR disabled, not configuring ECE to use it"
+    return
+  fi
+
   find /usr/lib* -maxdepth 3 -name libtcnative-1.so.0 |
     while read -r apr_lib; do
       set_ece_instance_conf apr_lib_dir "${apr_lib%/*}"
@@ -474,8 +479,27 @@ EOF
        $tomcat_base/conf/context.xml
   fi
 
+  tomcat_disable_manifest_scanning_of_jars ${tomcat_base}/conf/context.xml
   pretty_print_xml $tomcat_base/conf/context.xml
   set_up_logging
+}
+
+## This applies to Tomcat 8.0.41 and up. Turn off scanning of
+## MANIFEST.MFs inside all deployed JARs as we only depend on the
+## classpath as defined in conf/catalina.properties
+## (i.e. <webapp>/WEB-INF/lib and escenic/lib)
+function tomcat_disable_manifest_scanning_of_jars() {
+  local file=$1
+
+  grep -q 'scanManifest="false"' "${file}" && return
+
+  print_and_log "Turning off scanning of manifests inside JARs ..."
+  run xmlstarlet \
+      ed -P --inplace \
+      --subnode /Context --type elem -n TMP -v '' \
+      --insert /Context/TMP --type attr -n scanManifest -v false \
+      --rename //TMP -v JarScanner \
+      "${file}"
 }
 
 function set_up_logging() {

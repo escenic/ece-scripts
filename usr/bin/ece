@@ -325,23 +325,35 @@ function set_instance_settings() {
       -Djava.security.auth.login.config=$ece_security_configuration_dir/jaas.config
       -Djava.security.policy=$ece_security_configuration_dir/java.policy
       -Dsolr.solr.home=$solr_home
-      -XX:+PrintGCDetails
-      -XX:+PrintGCTimeStamps
-      -Xloggc:${gc_log}
     "
 
     if [ "$jvm_gc_settings" ]; then
       ece_args=$ece_args" "$jvm_gc_settings
     fi
 
-    jvm_rolling_gc=${jvm_rolling_gc-1}
-    if [ "$jvm_rolling_gc" == 1 ]; then
-      gc_rolling_args="
-	-XX:+UseGCLogFileRotation
-	-XX:NumberOfGCLogFiles=${number_of_gc_log_files-5}
-	-XX:GCLogFileSize=${gc_log_file_size-5m}
+    if is_java_vendor_oracle; then
+      ece_args=${ece_args}"
+        -XX:+CMSClassUnloadingEnabled
+        -XX:+CMSIncrementalPacing
+        -XX:+CMSPermGenSweepingEnabled
+        -XX:+PrintGCDetails
+        -XX:+PrintGCTimeStamps
+        -XX:+UseConcMarkSweepGC
+        -Xloggc:${gc_log}
       "
-      ece_args=$ece_args" "$gc_rolling_args
+
+      if [ "${jvm_rolling_gc-1}" == 1 ]; then
+        gc_rolling_args="
+          -XX:+UseGCLogFileRotation
+          -XX:NumberOfGCLogFiles=${number_of_gc_log_files-5}
+          -XX:GCLogFileSize=${gc_log_file_size-5m}
+        "
+        ece_args=$ece_args" "$gc_rolling_args
+      fi
+    elif is_java_vendor_openjdk; then
+      ece_args=${ece_args}"
+        -Xlog:gc:${gc_log}
+      "
     fi
 
     if [ "$jvm_proxy_settings" ]; then
@@ -372,12 +384,13 @@ function set_instance_settings() {
         ece_args=$ece_args" -Xmx$max_heap_size"
     fi
 
-    if [ "$min_permgen_size" ]; then
+    if is_java_vendor_oracle; then
+      if [ "$min_permgen_size" ]; then
         ece_args=$ece_args" -XX:PermSize=$min_permgen_size"
-    fi
-
-    if [ "$max_permgen_size" ]; then
+      fi
+      if [ "$max_permgen_size" ]; then
         ece_args=$ece_args" -XX:MaxPermSize=$max_permgen_size"
+      fi
     fi
 
     if [ "$jvm_encoding" ]; then

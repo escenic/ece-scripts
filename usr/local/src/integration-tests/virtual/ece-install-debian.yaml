@@ -1,0 +1,52 @@
+credentials:
+  - site: maven.escenic.com
+    user: APT_ESCENIC_USER
+    password: APT_ESCENIC_PASSWORD
+  - site: yum.escenic.com
+    user: APT_ESCENIC_USER
+    password: APT_ESCENIC_PASSWORD
+  - site: apt.escenic.com
+    user: APT_ESCENIC_USER
+    password: APT_ESCENIC_PASSWORD
+
+environment:
+  java_oracle_licence_accepted: true
+  java_apr_install: false
+  apt:
+    escenic:
+      pool: eyre
+
+profiles:
+  editor:
+    install: yes
+    deploy_white_list: "escenic-admin escenic indexer-webservice webservice webservice-extensions"
+  search:
+    install: yes
+    port: 8180
+    redirect: 8133
+    shutdown: 8150
+    indexer_ws_uri: http://localhost:8080/indexer-webservice/index/
+    heap_size: 256
+  db:
+    install: yes
+  cue:
+    install: yes
+    cors_origins:
+      - editor.MACHINE
+  sse_proxy:
+    install: yes
+    exposed_host: proxy.MACHINE
+    backends:
+      - uri: http://localhost:8080/webservice/escenic/changelog/sse
+        user: leaf_admin
+        password: admin
+  publications:
+    - name: PUBLICATION
+      create: true
+      update_nursery_conf: true
+      domain: PUBLICATION.MACHINE
+
+packages:
+  - name: escenic-content-engine-7.1
+  - name: cue-web-3.1
+  - name: escenic-sse-proxy-1.0

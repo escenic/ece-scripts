@@ -252,9 +252,32 @@ function set_up_solr() {
   done
 
   run chown -R "${ece_user}:${ece_group}" "${escenic_data_dir}/solr"
+  _search_ensure_solr_works_with_java_version
   start_solr
   run_hook set_up_solr.postinst
 }
+
+function _search_ensure_solr_works_with_java_version() {
+  if is_java_vendor_openjdk; then
+    local file=/opt/solr/bin/solr
+    log "Ensuring ${file} can start using our version of Java"
+    sed -i 's#JAVA_VER_REQ="1.8"#JAVA_VER_REQ=9#' "${file}"
+    sed -i "s#JAVA_VER_NUM=.*#JAVA_VER_NUM=11#" "${file}"
+    sed -i 's#"$JAVA_VER_NUM" < "$JAVA_VER_REQ"#"$JAVA_VER_NUM" -lt "$JAVA_VER_REQ"#' \
+        "${file}"
+    sed -i '/UseParNewGC/d' "${file}"
+    sed -i "s#'-XX:+PrintGCApplicationStoppedTime'##" "${file}"
+    sed -i "s#'-XX:+PrintGCDateStamps'##" "${file}"
+    sed -i "s#'-XX:+PrintGCTimeStamps'##" "${file}"
+    sed -i "s#'-XX:+PrintHeapAtGC'##" "${file}"
+    sed -i "s#'-XX:+PrintTenuringDistribution'##" "${file}"
+    sed -i "s#'-XX:+UseGCLogFileRotation'##" "${file}"
+    sed -i "s#'-XX:GCLogFileSize=20M'##" "${file}"
+    sed -i "s#'-XX:NumberOfGCLogFiles=9'##" "${file}"
+    sed -i "s#'-XX:+PrintGCDateStamps'##" "${file}"
+  fi
+}
+
 
 ## $1 :: solr core name
 function create_solr_core_descriptor() {

@@ -1,0 +1,42 @@
+#! /usr/bin/env bash
+
+verify_system() {
+  local urls="
+    http://${machine}:8080/escenic-admin/
+    http://${machine}:8080/webservice/index.xml
+    http://${machine}/cue-web/
+    http://${machine}/webservice/index.xml
+    http://${machine}:8080/indexer-webservice/
+  "
+  for url in ${urls}; do
+    printf "Checking %s ... " "${url}"
+    curl --user "${publication}_admin:admin" \
+         --output /dev/null \
+         --silent \
+         --fail \
+         --head \
+         "${url}" || {
+      printf "%s" "NOT OK"
+    }
+    echo ''
+  done
+
+  sse_endpoints="
+    http://proxy.${machine}
+  "
+  for sse_endpoint in ${sse_endpoints}; do
+    printf "Checking %s ... " "${sse_endpoint}"
+    curl --max-time 1 -v "${sse_endpoint}" 2>&1 |
+      grep -q text/event-stream || {
+      printf "%s" "NOT OK"
+    }
+    echo ''
+  done
+}
+
+main() {
+  source $(dirname "$0")/clean-slate.private
+  verify_system
+}
+
+main "${@}"

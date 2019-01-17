@@ -305,6 +305,12 @@ _parse_yaml_conf_file_environment() {
     export java_home=${configured_java_home}
   fi
 
+  local configured_java_vendor=
+  configured_java_vendor=$(_jq "${yaml_file}" .environment.java_vendor)
+  if [[ -n "${configured_java_vendor}" ]]; then
+    export fai_java_vendor=${configured_java_vendor}
+  fi
+
   local configured_java_oracle_licence_accepted=
   configured_java_oracle_licence_accepted=$(
     _jq "${yaml_file}" .environment.java_oracle_licence_accepted)
@@ -312,6 +318,19 @@ _parse_yaml_conf_file_environment() {
           "${configured_java_oracle_licence_accepted}" == "true" ||
           "${configured_java_oracle_licence_accepted}" == 1 ]]; then
     export fai_java_oracle_licence_accepted=1
+  fi
+
+  local configured_java_apr_install=
+  configured_java_apr_install=$(
+    _jq "${yaml_file}" .environment.java_apr_install)
+  if [[ "${configured_java_apr_install}" == "yes" ||
+          "${configured_java_apr_install}" == "true" ||
+          "${configured_java_apr_install}" == 1 ]]; then
+    export fai_java_apr_install=1
+  elif [[ "${configured_java_apr_install}" == "no" ||
+          "${configured_java_apr_install}" == "false" ||
+          "${configured_java_apr_install}" == 0 ]]; then
+    export fai_java_apr_install=0
   fi
 
   local configured_security_configure_firewall=
