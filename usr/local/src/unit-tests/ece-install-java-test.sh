@@ -16,7 +16,7 @@ test_can_get_oracle_rpm_url() {
 }
 
 test_can_get_java_spec_version() {
-  javac=$(which javac)
+  javac=/usr/lib/jvm/oracle-java8-jdk-amd64/bin/javac
   expected=1.8
   actual=$(echo "${javac}" | _java_get_spec_version)
   assertNotNull "${actual}"
@@ -29,9 +29,15 @@ test_java_spec_1_8_is_ok() {
   assertEquals "Java spec 1.8 is ok" "${expected}" "${actual}"
 }
 
+test_java_spec_9_is_ok() {
+  local expected=0
+  echo 9 | _java_is_spec_supported && actual=$? || actual=$?
+  assertEquals "Java spec 9 is ok" "${expected}" "${actual}"
+}
+
 test_java_spec_10_is_ok() {
   local expected=0
-  echo 11 | _java_is_spec_supported && actual=$? || actual=$?
+  echo 10 | _java_is_spec_supported && actual=$? || actual=$?
   assertEquals "Java spec 10 is ok" "${expected}" "${actual}"
 }
 
@@ -50,6 +56,8 @@ test_has_java_installed() {
 ## @override shunit2
 setUp() {
   source "$(dirname "$0")/../../../share/escenic/ece-scripts/ece-install.d/java.sh"
+  source "$(dirname "$0")/../../../share/escenic/ece-scripts/common-bashing.sh"
+  log=/dev/null
 }
 
 main() {

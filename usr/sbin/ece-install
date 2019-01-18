@@ -324,10 +324,13 @@ function install_common_os_packages()
         apt-key add - 1>> $log 2>> $log
       run apt-get update
 
-      # Only add our repo if there's no other entry (from our pool or
-      # not), there
       local package_pool=${fai_apt_vizrt_pool-stable}
-      add_apt_source "deb https://${fai_package_apt_user}:${fai_package_apt_password}@apt.escenic.com ${package_pool} main non-free"
+      add_apt_source "deb https://apt.escenic.com ${package_pool} main non-free"
+      cat >> /etc/apt/auth.conf <<EOF
+
+# added by $(basename "$0") @ $(date)
+machine apt.escenic.com login "${fai_package_apt_user}" password "${fai_package_apt_password}"
+EOF
       curl --silent http://apt.escenic.com/repo.key | apt-key add - &>> "${log}"
       run apt-get update
     fi
