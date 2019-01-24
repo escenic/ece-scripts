@@ -138,6 +138,7 @@ function set_up_repository_if_possible() {
 
       if ! apt-cache > /dev/null show $mysql_server_packages; then
         print_and_log "Setting Up the $db_vendor Repository ..."
+        apt_wait_for_lock /var/lib/apt/lists/lock
         run apt-get update
       fi
     else
