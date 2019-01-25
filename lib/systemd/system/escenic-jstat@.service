@@ -1,0 +1,21 @@
+[Unit]
+Description=Jstat process for %i
+
+[Service]
+
+# 1. Check if the pidfile is a valid pid file, if not, do nothing.
+# 2. redirect output to a log-file (exec 2>&1), truncate it.
+# 3. Become the user that owns the pidfile (gosu)
+# 4. chain (exec) to the jstat process so that systemd can kill jstat
+# jstat will quit when the process in pidfile quits
+ExecStart=/bin/bash -c 'if pgrep &> /dev/null --pidfile /var/run/escenic/%i.pid; then echo found pid; exec 2>&1 > /var/log/escenic/%i-jstat.log; date --utc --iso=seconds; exec gosu $(stat -c %%U /var/run/escenic/%i.pid) jstat -gcutil $(cat /var/run/escenic/%i.pid) 1000; fi'
+
+# This service quits when the process being monitored dies, and then
+# it is respawned continuously until the pidfile lists a pid that can
+# be monitored again.
+Restart=always
+RestartSec=12
+
+[Install]
+WantedBy=multi-user.target
+
