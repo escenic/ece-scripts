@@ -86,7 +86,7 @@ function set_up_app_server() {
   if [ -n "$user_presentation_indexer_ws_uri" ]; then
     presentation_indexer_ws_uri=$user_presentation_indexer_ws_uri
   else
-    presentation_indexer_ws_uri=http://${HOSTNAME}:${appserver_port}/indexer-webservice/presentation-index/
+    presentation_indexer_ws_uri=http://${HOSTNAME}:${fai_editor_port-appserver_port}/indexer-webservice/presentation-index/
   fi
 
   leave_trail "trail_presentation_indexer_ws_uri=${presentation_indexer_ws_uri}"
