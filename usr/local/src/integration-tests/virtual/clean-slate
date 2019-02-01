@@ -83,7 +83,7 @@ main() {
       break
     }
     echo '.'
-    sleep 1
+    sleep "${el}"
   done
 
   setup_ece_install_and_conf

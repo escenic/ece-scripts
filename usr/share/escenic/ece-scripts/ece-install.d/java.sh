@@ -35,13 +35,22 @@ function _java_get_oracle_rpm_url() {
 ## Will check if the system has a Java version installed which has the
 ## required language level.
 function has_java_installed() {
+  # If the user has configured .environment.java_home in his/her yaml
+  # file, we don't do anything if that's a JDK.
+  if [[ -e "${java_home-/dev/null}/bin/javac" ]]; then
+    print_and_log "Not installing java, using configured java_home=${java_home}"
+    return 0
+  else
+    print_and_log "Configured java_home=${java_home} isn't a JDK, ignoring it."
+  fi
+
   which javac 2>/dev/null |
     _java_get_spec_version |
     _java_is_spec_supported
 }
 
 function install_java() {
-  if [[ "${fai_java_vendor-openjdk}" == openjdk ]]; then
+  if is_java_vendor_openjdk; then
     install_openjdk_java
   else
     install_oracle_java
@@ -68,7 +77,7 @@ function install_openjdk_java() {
     local openjdk_package=
     openjdk_package=$(java_find_latest_availale_openjdk_package)
     if [ -z "${openjdk_package}" ]; then
-      openjdk_package=openjdk-11-jdk-headless
+      openjdk_package=default-jdk-headless
     fi
 
     install_packages_if_missing "${openjdk_package}"
@@ -286,7 +295,7 @@ EOF
 
   run cd "$(dirname "${file}")"
   run "${javac}" "$(basename "${file}")"
-  run "${java}" "$(basename "${file}" .java)"
+  "${java}" "$(basename "${file}" .java)"
   run rm -rf "${tmp_dir}"
 }
 
@@ -296,6 +305,7 @@ function _java_is_spec_supported() {
   version=$(cat -)
 
   [[ "${version}" == 1.8 ||
+       "${version}" == 9 ||
        "${version}" == 10 ||
        "${version}" == 11
    ]]

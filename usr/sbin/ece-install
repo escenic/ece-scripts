@@ -259,14 +259,8 @@ function install_packages_if_missing() {
     if [ $some_are_missing -eq 0 ]; then
       return
     elif [ $one_time_apt_update_done -eq 0 ]; then
-      # Systemd may be running an update process on boot of new
-      # machines. Therefore, if there's a current apt-get process,
-      # don't do anything.
-      pgrep apt-get &> /dev/null || {
-        log "First running APT update to ensure fresh package list, " \
-            "then continuing the above"
-        run apt-get update
-      }
+      apt_wait_for_lock /var/lib/apt/lists/lock
+      run apt-get update
       one_time_apt_update_done=1
     fi
 
@@ -277,8 +271,10 @@ function install_packages_if_missing() {
     leave_trail trail_package_installed="$*"
 
     if [ $force_packages -eq 1 ]; then
+      apt_wait_for_lock /var/lib/dpkg/lock-frontend
       run apt-get install $apt_opts --assume-yes --force-yes $@
     else
+      apt_wait_for_lock /var/lib/dpkg/lock-frontend
       run apt-get install $apt_opts --assume-yes $@
     fi
   elif [ $on_redhat_or_derivative -eq 1 ]; then
@@ -322,13 +318,18 @@ function install_common_os_packages()
     if [ ${fai_offline_mode-0} -eq 0 ]; then
       curl -s http://apt.escenic.com/archive.key 2>> $log | \
         apt-key add - 1>> $log 2>> $log
+      apt_wait_for_lock /var/lib/apt/lists/lock
       run apt-get update
 
-      # Only add our repo if there's no other entry (from our pool or
-      # not), there
       local package_pool=${fai_apt_vizrt_pool-stable}
-      add_apt_source "deb https://${fai_package_apt_user}:${fai_package_apt_password}@apt.escenic.com ${package_pool} main non-free"
+      add_apt_source "deb https://apt.escenic.com ${package_pool} main non-free"
+      cat >> /etc/apt/auth.conf <<EOF
+
+# added by $(basename "$0") @ $(date)
+machine apt.escenic.com login ${fai_package_apt_user} password ${fai_package_apt_password}
+EOF
       curl --silent http://apt.escenic.com/repo.key | apt-key add - &>> "${log}"
+      apt_wait_for_lock /var/lib/apt/lists/lock
       run apt-get update
     fi
 
