@@ -56,7 +56,9 @@ these components for you.
 | Operating system            | Status                       |
 |-----------------------------+------------------------------|
 | Debian 8.7 (jessie)         | Everything is 100% automatic |
+| Debian 9 (stretch)          | Everything is 100% automatic |
 | Ubuntu LTS 16.04            | Everything is 100% automatic |
+| Ubuntu LTS 18.04            | Everything is 100% automatic |
 | RedHat Enterprise Linux 7.3 | Everything is 100% automatic |
 | CentOS 7.3                  | Everything is 100% automatic |
 
@@ -1402,7 +1404,8 @@ being used for full scale automatic integration tests, development
 machines, test servers and staging environments. *ece-install* is now
 the preferred way of installing new Escenic systems.
 
-From February 2013, it has been maintained by Erik Mogensen.
+Between February 2013 and May 2015, it was maintained by Erik
+Mogensen.
 
 * BUGS
 Report any bugs found on https://github.com/escenic/ece-scripts/issues.
