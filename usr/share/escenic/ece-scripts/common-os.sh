@@ -284,3 +284,23 @@ get_secondary_interfaces() {
     awk '{print $1}' |
     sed 1d
 }
+
+## Method which will wait for a certain amount of time to ensure
+## there's no other APT process running. Systemd may be running an
+## update process on boot of new machines or there may be a daemon
+## like unattended-upgrades running which also grabs the APT lock
+## file.
+##
+## Requires that lsof is installed.
+##
+## $1 :: optional path to the lock file to check, default is
+##       /var/lib/dpkg/lock if none is specified.
+apt_wait_for_lock() {
+  local file=${1-/var/lib/dpkg/lock}
+  if [[ -x /usr/bin/lsof && -e "${file}" ]]; then
+    for i in {0..20}; do
+      lsof "${file}" || break
+      sleep "${i}"
+    done
+  fi
+}

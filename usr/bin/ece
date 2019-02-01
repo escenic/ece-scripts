@@ -351,8 +351,10 @@ function set_instance_settings() {
         ece_args=$ece_args" "$gc_rolling_args
       fi
     elif is_java_vendor_openjdk; then
+      # Works on both OpenJDK 8 and 11, if we no longer need OpenJDK
+      # 8, this can be replaced with: -Xlog:gc
       ece_args=${ece_args}"
-        -Xlog:gc:${gc_log}
+        -Xloggc:${gc_log}
       "
     fi
 
