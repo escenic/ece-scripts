@@ -1,0 +1,9 @@
+{
+  "name": "ece-scripts",
+  "version": "5.0.0-SNAPSHOT",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "predist": "mkdir -p dist",
+    "dist": "./usr/share/escenic/package-scripts/create-zip-archives --dir $(pwd)/dist"
+  }
+}

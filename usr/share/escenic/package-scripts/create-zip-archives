@@ -1,0 +1,115 @@
+#! /usr/bin/env bash
+
+## Create zip arhives, corresponding to the DEB and RPM packages.  The
+## command intended to be run via 'npm run dist'
+
+## Assumes CWD is the directory of the create-package command.
+##
+## $1 :: DEB/RPM package name
+## $2 :: version of the package in zip archive
+## $3 :: build dir. If not passed, /tmp is used.
+_create_zip_archive() {
+  local name=$1
+  local version=$2
+  local build_dir=${3-/tmp}
+  local deb deb_dir=
+
+  deb=$(./create-packages -p "${name}" |
+          sed -n -r 's#.*(/tmp/.*.deb).*#\1#p')
+  deb_dir=$(dirname "${deb}")
+
+  local package_tmp_dir="${build_dir}/${name}-${version}"
+  local unix_dir="${package_tmp_dir}/contrib/unix"
+  mkdir -p "${unix_dir}"
+
+  for el in etc usr var lib; do
+    local dir="${deb_dir}/${el}"
+    if [ -d "${dir}" ]; then
+      cp -r "${dir}" "${unix_dir}/"
+    fi
+  done
+
+  local zip_fn="${build_dir}/${name}-${version}.zip"
+  if [ -r "${zip_fn}" ]; then
+    rm "${zip_fn}"
+  fi
+
+  (
+    cd "${build_dir}" || exit 1
+    zip \
+      --quiet \
+      --recurse-paths "${zip_fn}" "${package_tmp_dir#${build_dir}/}"
+    rm -rf "${package_tmp_dir}"
+  )
+
+  printf "%s\n" "${zip_fn}"
+}
+
+
+## $1 : Optional. If passed, is the version string used for the create
+##      zip archives.
+## $2 :
+show_help_and_exit() {
+  cat <<EOF
+Usage: ${BASH_SOURCE[0]} [OPTIONS]
+
+OPTIONS
+  -d, --dir             Output directory of zip archives
+  -r, --release-version Version string in release
+  -h, --help            Don't panic.
+EOF
+
+  exit 0
+}
+
+read_user_input() {
+  local OPTS=
+  OPTS=$(getopt \
+           -o hr:d: \
+           --long help \
+           --long release-version: \
+           --long dir: \
+           -n 'parse-options' \
+           -- "$@")
+  if [ $? != 0 ] ; then
+    echo "Failed parsing options." >&2
+    exit 1
+  fi
+  eval set -- "$OPTS"
+
+  while true; do
+    case "$1" in
+      -h | --help )
+        show_help_and_exit;
+        break;;
+      -r | --release-version )
+        version=$2
+        shift 2;;
+      -d | --dir )
+        build_dir=$2
+        shift 2;;
+      -- )
+        shift;
+        break ;;
+      * )
+        break ;;
+    esac
+  done
+
+  export rest_of_args=$*
+}
+
+main() {
+  # npm_package_version comes from package.json when invoked with 'npm
+  # run dist'
+  version=${npm_package_version}
+  build_dir=/tmp
+  read_user_input "$@"
+
+  cd "$(dirname "$0")" || exit 1
+  for package in $(./create-packages -l); do
+    _create_zip_archive "${package}" "${version}" "${build_dir}"
+  done
+}
+
+main "$@"
