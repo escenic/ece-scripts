@@ -160,6 +160,7 @@ function init() {
 function get_content_engine_dir() {
   if [ "${fai_package_enabled-0}" -eq 1 ]; then
     find "${escenic_root_dir}"/escenic-content-engine-* -maxdepth 0 |
+      grep -v escenic-content-engine-scripts |
       tail -n 1
   else
     printf "%s\n" "${escenic_root_dir}/engine"
