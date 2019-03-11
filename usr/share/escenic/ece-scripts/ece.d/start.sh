@@ -65,6 +65,27 @@ function start_type() {
       export CATALINA_OUT=$(get_catalina_out_file)
       if [ ${run_in_fg-0} -eq 0 ]; then
         run $tomcat_home/bin/catalina.sh start
+
+	# <workaround-tomcat-bug-63041>
+        # Working around Tomcat bug 63041.
+        #
+        # The workaround can co-exist with a patched version of
+	# Tomcat. Can be removed once the fix is in the Tomcat
+	# verion(s) used by ece-install.
+        #
+	# Tomcat bug report:
+	# https://bz.apache.org/bugzilla/show_bug.cgi?id=63041#c8
+	if [ ! -r "${pid_file}" ]; then
+          # Can take a wee bit for catalina.sh to spawn the java
+          # process.
+          sleep 1
+
+          ps -ef |
+	    egrep 'java .*escenic.server' |
+	    grep "${tomcat_base}" |
+	    awk '{print $2}' > "${pid_file}"
+	fi
+	# </workaround-tomcat-bug-63041>
       else
         exec ${tomcat_home}/bin/catalina.sh run
       fi
