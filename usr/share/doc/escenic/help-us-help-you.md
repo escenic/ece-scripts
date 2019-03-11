@@ -57,6 +57,10 @@ default):
 /var/log/escenic/engine1-messages
 ```
 
+## 5 - If you're using Docker
+
+Send us your `Dockerfile` and `docker-compose.yaml` file(s) too.
+
 ## I don't want to think!
 
 > "I just want to copy and paste a bunch of commands and send them to
