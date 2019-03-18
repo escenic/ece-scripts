@@ -290,14 +290,14 @@ EOF
 
   <Service name="Catalina">
     <Connector port="${appserver_port}"
-               protocol="HTTP/1.1"
+               protocol="org.apache.coyote.http11.Http11NioProtocol"
                connectionTimeout="20000"
                URIEncoding="UTF-8"
                compression="off"
                redirectPort="${redirect_port}"
     />
     <Connector port="${redirect_port}"
-               protocol="HTTP/1.1"
+               protocol="org.apache.coyote.http11.Http11NioProtocol"
                connectionTimeout="20000"
                URIEncoding="UTF-8"
                proxyPort="443"
@@ -309,7 +309,7 @@ EOF
         ${fai_presentation_install-0} -eq 1 ]]; then
     cat >> $tomcat_base/conf/server.xml <<EOF
     <Connector port="${fai_sse_proxy_ece_port-8083}"
-               protocol="HTTP/1.1"
+               protocol="org.apache.coyote.http11.Http11NioProtocol"
                connectionTimeout="20000"
                URIEncoding="UTF-8"
                compression="off"
@@ -344,7 +344,7 @@ EOF
   </Service>
   <Service name="Catalina">
     <Connector port="${default_app_server_publication_port}"
-               protocol="HTTP/1.1"
+               protocol="org.apache.coyote.http11.Http11NioProtocol"
                connectionTimeout="20000"
                URIEncoding="UTF-8"
                compression="off"
