@@ -482,6 +482,16 @@ EOF
   tomcat_disable_manifest_scanning_of_jars ${tomcat_base}/conf/context.xml
   pretty_print_xml $tomcat_base/conf/context.xml
   set_up_logging
+  tomcat_speedup_remove_websockets
+}
+
+function tomcat_speedup_remove_websockets() {
+  for el in websocket-api.jar tomcat-websocket.jar; do
+    if [ -e "${tomcat_home}/lib/${el}" ]; then
+      log "Optimising Tomcat, removing ${el} ..."
+      run rm "${tomcat_home}/lib/${el}"
+    fi
+  done
 }
 
 ## This applies to Tomcat 8.0.41 and up. Turn off scanning of
