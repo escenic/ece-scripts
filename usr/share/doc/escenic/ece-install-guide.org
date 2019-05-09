@@ -988,53 +988,53 @@ profiles:
     install:
 #+end_src
 
-|---------------------------------------------+--------------------------------------------------------+------------------------------------------------------|
-| ece-install.yaml setting                    | Example                                                | Comments                                             |
-|---------------------------------------------+--------------------------------------------------------+------------------------------------------------------|
-| credentials[].password                      | bar                                                    | Password, as obtained from Escenic Support           |
-| credentials[].site                          | maven.escenic.com                                      | Website for which the credentials apply              |
-| credentials[].user                          | foo                                                    | User name, as obtained from Escenic Support          |
-| environment.apt.escenic.pool                | eyre                                                   | The APT code name/pool to use.                       |
-| environment.java_home                       | /usr/lib/jvm/java-8-openjdk-amd64                      | If machine already has a JDK, will skip Java install |
-| environment.java_oracle_licence_accepted    | true                                                   | You must accept this to install Oracle JDK           |
-| environment.java_vendor                     | oracle                                                 | The Java vendor. Default is 'openjdk'                |
-| profiles.cue.backend_bridge                 | http://bridge.example.com                              | Bridge URL                                           |
-| profiles.cue.backend_ece                    | http://ece.example.com                                 | Not needed if ECE & CUE are on the same machine      |
-| profiles.cue.backend_ece_local              | http://localhost:8080                                  | Not needed if ECE & CUE are on the same machine      |
-| profiles.cue.backend_ng                     | http://ng.example.com                                  | Newsgate URL                                         |
-| profiles.cue.cors_origins[]                 | edit.example.com                                       | Allowed CORS origins                                 |
-| profiles.cue.install                        | true                                                   | Web server with CORS & CUE web                       |
-| profiles.db.install                         | true                                                   | Database + ECE schema. Fails if schema exists        |
-| profiles.db.host                            | Database server hostname                               | Useful if DB is running on a different machine       |
-| profiles.db.port                            | Database server port                                   | Useful if DB is running on a different machine       |
-| profiles.editor.deploy_white_list           | "webservice indexer-webservice"                        | The webapps to deploy                                |
-| profiles.editor.install                     | yes                                                    | Will install an editorial ECE instance               |
-| profiles.editor.host                        | editor1.example.com                                    | Default is =localhost=                               |
-| profiles.editor.port                        | 8180                                                   | Overrides the port number                            |
-| profiles.presentation.install               | yes                                                    | Only interesting if using JSPs/Widget Framework      |
-| profiles.presentation.host                  | pres1.example.com                                      | Default is =localhost=                               |
-| profiles.presentation.port                  | 8180                                                   | Overrides the port number                            |
-| profiles.publications[].create              | true                                                   | Will create the publication                          |
-| profiles.publications[].domain              | tomorrow-online.example.com                            | How the world will access the publication web site   |
-| profiles.publications[].name                | tomorrow-online                                        | Publication name                                     |
-| profiles.publications[].update_nursery_conf | true                                                   | Update Nursery with publiation URL                   |
-| packages[].arch                             | i386                                                   | Architecture, only needed for RPM installs           |
-| packages[].name                             | escenic-content-engine-7.1                             | Name of the RPM or DEB package to install            |
-| packages[].version                          | 7.1.0-5                                                | Package version, only needed for RPM installs        |
-| profiles.search.heap_size                   | 256                                                    | JVM heap size                                        |
-| profiles.search.host                        | search1.example.com                                    | Default is =localhost=                               |
-| profiles.search.indexer_ws_uri              | http://localhost:8080/indexer-webservice/index/        | Where to find the =indexer-webservice=               |
-| profiles.search.install                     | yes                                                    | Will install both an indexer and Solr                |
-| profiles.search.port                        | 8180                                                   | Overrides the port number                            |
-| profiles.search.redirect                    | 8133                                                   | Overrides the redirect port number                   |
-| profiles.search.shutdown                    | 8150                                                   | Overrides the shutdown port number                   |
-| profiles.sse_proxy.backends[].password      | foo                                                    | Password for that the ECE user                       |
-| profiles.sse_proxy.backends[].uri           | http://localhost:8080/webservice/escenic/changelog/sse | Content Store's SSE endpoint                         |
-| profiles.sse_proxy.backends[].user          | sse-proxy-user                                         | ECE user to access the sse endpoint                  |
-| profiles.sse_proxy.exposed_host             | proxy.example.com                                      | How the browser will access the proxy                |
-| profiles.sse_proxy.exposed_port             | 80                                                     | Port on which the browser will access the proxy      |
-| profiles.sse_proxy.install                  | yes                                                    | SSE proxy micro service                              |
-|                                             |                                                        |                                                      |
+|---------------------------------------------+--------------------------------------------------------+---------------------------------------------------------------------|
+| ece-install.yaml setting                    | Example                                                | Comments                                                            |
+|---------------------------------------------+--------------------------------------------------------+---------------------------------------------------------------------|
+| credentials[].password                      | bar                                                    | Password, as obtained from Escenic Support                          |
+| credentials[].site                          | maven.escenic.com                                      | Website for which the credentials apply                             |
+| credentials[].user                          | foo                                                    | User name, as obtained from Escenic Support                         |
+| environment.apt.escenic.pool                | eyre                                                   | The APT code name/pool to use.                                      |
+| environment.java_home                       | /usr/lib/jvm/java-8-openjdk-amd64                      | If machine already has a JDK, will skip Java install                |
+| environment.java_oracle_licence_accepted    | true                                                   | You must accept this to install Oracle JDK                          |
+| environment.java_vendor                     | oracle                                                 | The Java vendor. Default is 'openjdk'                               |
+| packages[].arch                             | i386                                                   | Architecture, only needed for RPM installs                          |
+| packages[].name                             | escenic-content-engine-7.1                             | Name of the RPM or DEB package to install                           |
+| packages[].version                          | 7.1.0-5                                                | Package version, only needed for RPM installs                       |
+| profiles.cue.backend_bridge                 | http://bridge.example.com                              | Bridge URL                                                          |
+| profiles.cue.backend_ece                    | http://ece.example.com                                 | How CUE (the browser) finds ECE. Optional on single machine systems |
+| profiles.cue.backend_ece_local              | http://localhost:8080                                  | How the web server finds ECE. Optional on single machine systems    |
+| profiles.cue.backend_ng                     | http://ng.example.com                                  | Newsgate URL                                                        |
+| profiles.cue.cors_origins[]                 | edit.example.com                                       | Allowed CORS origins                                                |
+| profiles.cue.install                        | true                                                   | Web server with CORS & CUE web                                      |
+| profiles.db.host                            | Database server hostname                               | Useful if DB is running on a different machine                      |
+| profiles.db.install                         | true                                                   | Database + ECE schema. Fails if schema exists                       |
+| profiles.db.port                            | Database server port                                   | Useful if DB is running on a different machine                      |
+| profiles.editor.deploy_white_list           | "webservice indexer-webservice"                        | Space separated list of webapps to deploy.                          |
+| profiles.editor.host                        | editor1.example.com                                    | Default is =localhost=                                              |
+| profiles.editor.install                     | yes                                                    | Will install an editorial ECE instance                              |
+| profiles.editor.port                        | 8180                                                   | Overrides the port number                                           |
+| profiles.presentation.host                  | pres1.example.com                                      | Default is =localhost=                                              |
+| profiles.presentation.install               | yes                                                    | Only interesting if using JSPs/Widget Framework                     |
+| profiles.presentation.port                  | 8180                                                   | Overrides the port number                                           |
+| profiles.publications[].create              | true                                                   | Will create the publication                                         |
+| profiles.publications[].domain              | tomorrow-online.example.com                            | How the world will access the publication web site                  |
+| profiles.publications[].name                | tomorrow-online                                        | Publication name                                                    |
+| profiles.publications[].update_nursery_conf | true                                                   | Update Nursery with publiation URL                                  |
+| profiles.search.heap_size                   | 256                                                    | JVM heap size                                                       |
+| profiles.search.host                        | search1.example.com                                    | Default is =localhost=                                              |
+| profiles.search.indexer_ws_uri              | http://localhost:8080/indexer-webservice/index/        | Where to find the =indexer-webservice=                              |
+| profiles.search.install                     | yes                                                    | Will install both an indexer and Solr                               |
+| profiles.search.port                        | 8180                                                   | Overrides the port number                                           |
+| profiles.search.redirect                    | 8133                                                   | Overrides the redirect port number                                  |
+| profiles.search.shutdown                    | 8150                                                   | Overrides the shutdown port number                                  |
+| profiles.sse_proxy.backends[].password      | foo                                                    | Password for that the ECE user                                      |
+| profiles.sse_proxy.backends[].uri           | http://localhost:8080/webservice/escenic/changelog/sse | Content Store's SSE endpoint                                        |
+| profiles.sse_proxy.backends[].user          | sse-proxy-user                                         | ECE user to access the sse endpoint                                 |
+| profiles.sse_proxy.exposed_host             | proxy.example.com                                      | How the browser will access the proxy                               |
+| profiles.sse_proxy.exposed_port             | 80                                                     | Port on which the browser will access the proxy                     |
+| profiles.sse_proxy.install                  | yes                                                    | SSE proxy micro service                                             |
+|                                             |                                                        |                                                                     |
 ** Example Configurations
 Here are a few simple example configurations, you can find more under
 */usr/share/doc/escenic/examples* if you've got the
