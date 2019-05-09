@@ -1001,14 +1001,24 @@ profiles:
 | profiles.cue.cors_origins                   | edit.example.com                                       | Allowed CORS origins                                 |
 | profiles.cue.install                        | true                                                   | Web server with CORS & CUE web                       |
 | profiles.db.install                         | true                                                   | Database + ECE schema. Fails if schema exists        |
+| profiles.db.host                            | Database server hostname                               | Useful if DB is running on a different machine       |
+| profiles.db.port                            | Database server port                                   | Useful if DB is running on a different machine       |
 | profiles.editor.deploy_white_list           | "webservice indexer-webservice"                        | The webapps to deploy                                |
 | profiles.editor.install                     | yes                                                    | Will install an editorial ECE instance               |
+| profiles.editor.host                        | editor1.example.com                                    | Default is =localhost=                               |
 | profiles.editor.port                        | 8180                                                   | Overrides the port number                            |
+| profiles.presentation.install               | yes                                                    | Only interesting if using JSPs/Widget Framework      |
+| profiles.presentation.host                  | pres1.example.com                                      | Default is =localhost=                               |
+| profiles.presentation.port                  | 8180                                                   | Overrides the port number                            |
 | profiles.publications[].create              | true                                                   | Will create the publication                          |
 | profiles.publications[].domain              | tomorrow-online.example.com                            | How the world will access the publication web site   |
 | profiles.publications[].name                | tomorrow-online                                        | Publication name                                     |
 | profiles.publications[].update_nursery_conf | true                                                   | Update Nursery with publiation URL                   |
+| packages[].arch                             | i386                                                   | Architecture, only needed for RPM installs           |
+| packages[].name                             | escenic-content-engine-7.1                             | Name of the RPM or DEB package to install            |
+| packages[].version                          | 7.1.0-5                                                | Package version, only needed for RPM installs        |
 | profiles.search.heap_size                   | 256                                                    | JVM heap size                                        |
+| profiles.search.host                        | search1.example.com                                    | Default is =localhost=                               |
 | profiles.search.indexer_ws_uri              | http://localhost:8080/indexer-webservice/index/        | Where to find the =indexer-webservice=               |
 | profiles.search.install                     | yes                                                    | Will install both an indexer and Solr                |
 | profiles.search.port                        | 8180                                                   | Overrides the port number                            |
@@ -1018,10 +1028,8 @@ profiles:
 | profiles.sse_proxy.backends[].uri           | http://localhost:8080/webservice/escenic/changelog/sse | Content Store's SSE endpoint                         |
 | profiles.sse_proxy.backends[].user          | sse-proxy-user                                         | ECE user to access the sse endpoint                  |
 | profiles.sse_proxy.exposed_host             | proxy.example.com                                      | How the browser will access the proxy                |
+| profiles.sse_proxy.exposed_port             | 80                                                     | Port on which the browser will access the proxy      |
 | profiles.sse_proxy.install                  | yes                                                    | SSE proxy micro service                              |
-| packages[].name                             | escenic-content-engine-7.1                             | Name of the RPM or DEB package to install            |
-| packages[].version                          | 7.1.0-5                                                | Package version, only needed for RPM installs        |
-| packages[].arch                             | i386                                                   | Architecture, only needed for RPM installs           |
 |                                             |                                                        |                                                      |
 ** Example Configurations
 Here are a few simple example configurations, you can find more under
