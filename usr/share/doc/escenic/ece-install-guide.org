@@ -998,7 +998,11 @@ profiles:
 | environment.java_home                       | /usr/lib/jvm/java-8-openjdk-amd64                      | If machine already has a JDK, will skip Java install |
 | environment.java_oracle_licence_accepted    | true                                                   | You must accept this to install Oracle JDK           |
 | environment.java_vendor                     | oracle                                                 | The Java vendor. Default is 'openjdk'                |
-| profiles.cue.cors_origins                   | edit.example.com                                       | Allowed CORS origins                                 |
+| profiles.cue.backend_bridge                 | http://bridge.example.com                              | Bridge URL                                           |
+| profiles.cue.backend_ece                    | http://ece.example.com                                 | Not needed if ECE & CUE are on the same machine      |
+| profiles.cue.backend_ece_local              | http://localhost:8080                                  | Not needed if ECE & CUE are on the same machine      |
+| profiles.cue.backend_ng                     | http://ng.example.com                                  | Newsgate URL                                         |
+| profiles.cue.cors_origins[]                 | edit.example.com                                       | Allowed CORS origins                                 |
 | profiles.cue.install                        | true                                                   | Web server with CORS & CUE web                       |
 | profiles.db.install                         | true                                                   | Database + ECE schema. Fails if schema exists        |
 | profiles.db.host                            | Database server hostname                               | Useful if DB is running on a different machine       |
