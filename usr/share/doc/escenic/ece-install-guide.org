@@ -1014,6 +1014,7 @@ profiles:
 | profiles.editor.host                        | editor1.example.com                                    | Default is =localhost=                                              |
 | profiles.editor.install                     | yes                                                    | Will install an editorial ECE instance                              |
 | profiles.editor.port                        | 8180                                                   | Overrides the port number                                           |
+| profiles.presentation.deploy_white_list     | "sports the-daily"                                     | Space separated list of webapps to deploy.                          |
 | profiles.presentation.host                  | pres1.example.com                                      | Default is =localhost=                                              |
 | profiles.presentation.install               | yes                                                    | Only interesting if using JSPs/Widget Framework                     |
 | profiles.presentation.port                  | 8180                                                   | Overrides the port number                                           |
