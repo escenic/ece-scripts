@@ -1449,7 +1449,6 @@ function _make_conf_package_rpm() {
     for el in "${remove_dir_list[@]}"; do
         sed -r -i "s#(%dir \"${el}\"\$)##" -- *.spec
     done
-    sed -i 's#^%config #%config(noreplace) #' -- *.spec
 
     file=$(
     LC_ALL=C fakeroot \
