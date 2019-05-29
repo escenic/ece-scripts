@@ -48,5 +48,11 @@ profiles:
 
 packages:
   - name: escenic-content-engine-7.1
+    version: 7.1.0-4
+    arch: x86_64
   - name: cue-web-3.1
+    version: 3.1.6-1
+    arch: x86_64
   - name: escenic-sse-proxy-1.0
+    version: 1.0.4-2
+    arch: x86_64

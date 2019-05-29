@@ -405,8 +405,9 @@ function set_instance_settings() {
     fi
 
     if [ "$enable_remote_debugging" -eq 1 ]; then
-        ece_args=$ece_args" -Xdebug -Xnoagent -Djava.compiler=NONE \
-                            -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=$remote_debugging_port"
+      ece_args=${ece_args}"
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=${remote_debugging_port}
+      "
     fi
 
     if [ "$enable_remote_monitoring" -eq 1 ]; then
