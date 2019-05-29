@@ -163,7 +163,7 @@ _cue_configure() {
     _cue_backend_ece=${_cue_backend_ece}/webservice/index.xml
   fi
 
-  find /etc/escenic/cue-web-* -maxdepth 0 -type d 2>/dev/null |
+  find /etc/escenic/cue-web* -maxdepth 0 -type d 2>/dev/null |
     while read -r d; do
       local file="${d}/backends.yml"
       cat > "${file}" <<EOF
