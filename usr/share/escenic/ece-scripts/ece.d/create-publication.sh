@@ -134,6 +134,65 @@ _create_publication_already_exists() {
     grep --silent --word-regexp "${publication_name}"
 }
 
+# grab all OUs in the form "id:uuid:name"
+# 1:abc-123-uuid-1:foo
+# 2:abc-123-uuid-2:bar
+function _create_publication_get_existing_organizational_units() {
+  local url="http://localhost:${appserver_port}/escenic-admin/pages/ou/list.jsp"
+  curl --silent --fail --show-error "$url" | 
+    sed -n /'data-ou='/s,".*data-ou=[\"']\\([^\"']*\\)[\"'].*",'\1',p
+}
+
+## grab OUs UUID by Publisher Name
+## $1 :: publisher name
+function _create_publication_get_ou_uuid_by_publisher_name() {
+  local publisher_name=$1
+  local ou_uuid=
+  _create_publication_get_existing_organizational_units |
+    while read -r ou ; do
+      local ou_name=$(cut -d : -f 3- <<< "$ou")
+      if [ "$ou_name" == "$publisher_name" ] ; then
+        ou_uuid=$(cut -d : -f 2 <<< "$ou")
+        echo "$ou_uuid"
+        break
+      fi
+    done
+}
+
+## Return publisher field name
+## by parsing publication creation form new.jsp
+## $1 :: ece_admin_uri
+## $2 :: cookie
+_create_publication_get_publisher_field_name() {
+  local ece_admin_uri=$1
+  local cookie=$2
+
+  curl --cookie JSESSIONID="${cookie}" \
+       "${ece_admin_uri}/pages/publication/new.jsp" |
+    grep  "publisher" |
+    sed -n /'name='/s,".*name=[\"']\\([^\"']*\\)[\"'].*",'\1',p
+}
+
+## Return publisher field value
+## $1 :: publisher field name
+## $2 :: publisher name
+_create_publication_get_publisher_field_value() {
+  local publisher_field_name=$1
+  local publisher_name=$2
+  local publisher_field_value=
+
+  if [[ "$publisher_field_name" == "publisherUUID" ]]; then
+    publisher_field_value=$(_create_publication_get_ou_uuid_by_publisher_name "${publisher_name}")
+    if [ -z "$publisher_field_value" ] ; then
+      print_and_log "Unable to find OU with name '$publisher_name'."
+      exit 1
+    fi
+  elif [[ "$publisher_field_name" == "publisherName" ]]; then
+    publisher_field_value="${publisher_name}"
+  fi
+
+  echo "${publisher_field_value}"
+}
 
 ## Uses /escenic-admin of a running ECE instance to create the
 ## publication. If the publication already exists, this method will do
@@ -147,11 +206,13 @@ _create_publication_already_exists() {
 ## $2 :: publication war
 ## $3 :: instance type
 ## $4 :: instance name
+## $5 :: publisher name
 _create_publication_create_publication_in_db() {
   local publication_name=$1
   local publication_war=$2
   local publication_type=$3
   local instance_name=$4
+  local publisher_name=$5
 
   if _create_publication_already_exists "${publication_name}" "${instance_name}"; then
     return
@@ -191,16 +252,37 @@ _create_publication_create_publication_in_db() {
       -F "resourceFile=@${publication_war}" \
       --cookie JSESSIONID="${cookie}" \
       "${ece_admin_uri}/do/publication/resource"
+  
 
-  run curl  \
+  local publisher_field_name=
+  local publisher_field_value=
+  publisher_field_name=$(_create_publication_get_publisher_field_name \
+    "${ece_admin_uri}" \
+    "${cookie}")
+
+  if [ -n "${publisher_field_name}" ]; then
+    publisher_field_value=$(_create_publication_get_publisher_field_value \
+      "${publisher_field_name}" \
+      "${publisher_name}")
+    run curl  \
       "${curl_appserver_auth}" \
       -F "name=${publication_name}" \
-      -F "publisherName=Escenic" \
+      -F "${publisher_field_name}=${publisher_field_value}" \
       -F "publicationType=${publication_type}" \
       -F "adminPassword=admin" \
       -F "adminPasswordConfirm=admin" \
       --cookie JSESSIONID="${cookie}" \
       "${ece_admin_uri}/do/publication/insert"
+  else
+    run curl  \
+      "${curl_appserver_auth}" \
+      -F "name=${publication_name}" \
+      -F "publicationType=${publication_type}" \
+      -F "adminPassword=admin" \
+      -F "adminPasswordConfirm=admin" \
+      --cookie JSESSIONID="${cookie}" \
+      "${ece_admin_uri}/do/publication/insert"
+  fi
 }
 
 ## Returns the index (1 based, XPATH likes it this way) of the
@@ -335,7 +417,8 @@ cmd_create_publication() {
     "${publication}" \
     "${publication_war}" \
     "${publication_type-default}" \
-    "${instance}"
+    "${instance}" \
+    "${publisher_name-Escenic}"
 
   if [ ${update_app_server_conf-0} -eq 1 ]; then
     _create_publication_update_app_server_conf
