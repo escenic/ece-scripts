@@ -302,6 +302,23 @@ EOF
 
 
 
+test_apply_conf_can_relativize_relative_file_name() {
+  local expected=/path/to/full/file-name.txt
+  local actual=
+  local _apply_conf_config_file=/path/to/config.ini
+  actual=$(_apply_conf_relativize full/file-name.txt)
+  assertEquals "${expected}" "${actual}"
+}
+
+test_apply_conf_can_relativize_leave_absolute_file_name() {
+  local expected=/full/file-name.txt
+  local actual=
+  local _apply_conf_config_file=/path/to/config.ini
+  actual=$(_apply_conf_relativize /full/file-name.txt)
+  assertEquals "${expected}" "${actual}"
+}
+
+
 
 ## @override shunit2
 setUp() {

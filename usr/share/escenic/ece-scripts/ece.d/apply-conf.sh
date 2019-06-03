@@ -379,7 +379,11 @@ function _apply_conf_uncomma() {
 function _apply_conf_relativize () {
   local a=
   for a in "${@}" ; do
-    echo "$(dirname "$_apply_conf_config_file")/$a"
+    if [ "${a:0:1}" == "/" ] ; then
+      echo "$a"
+    else
+      echo "$(dirname "$_apply_conf_config_file")/$a"
+    fi
   done
 }
 

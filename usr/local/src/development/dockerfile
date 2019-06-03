@@ -34,7 +34,12 @@ COPY . .
 # Simulate npm rather than installing nodejs to run "npm run dist"  Hardcode it to "docker"
 ENV npm_package_version=docker
 
+ARG TEST
+
 RUN mkdir $(pwd)/dist && \
+    if ${TEST:-false} ; then \
+      usr/local/src/unit-tests/run-tests.sh || exit $?; \
+    fi && \
     usr/share/escenic/package-scripts/create-zip-archives --dir $(pwd)/dist
 
 ARG PACKAGES
