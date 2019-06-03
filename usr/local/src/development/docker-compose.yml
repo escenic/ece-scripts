@@ -1,0 +1,12 @@
+version: '2.1'
+
+services:
+  ece-scripts:
+    build:
+      context: ../../../..
+      dockerfile: usr/local/src/development/dockerfile
+      args:
+        BASE_IMAGE: "${BASE_IMAGE:-ubuntu:latest}"
+        MIRROR: "${DEB_MIRROR:-}"
+        PACKAGES: "${PACKAGES:-escenic-common-scripts}"
+    

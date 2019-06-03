@@ -1,0 +1,67 @@
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+ARG MIRROR
+
+# Alien and fakeroot are important dependencies for building the packages.
+RUN if [ ! -z "$MIRROR" ] ; then sed -i /'^deb '/s,'deb [^:]*:[^ ]* ',"deb ${MIRROR} ", /etc/apt/sources.list ; fi &&\
+    DEBIAN_FRONTEND=noninteractive apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        alien \
+        apt-transport-https \
+        bash-completion \
+        curl \
+        default-jdk-headless \
+        fakeroot \
+        git \
+        gnupg \
+        jq \
+        libjson-xs-perl \
+        libyaml-perl \
+        make \
+        unzip \
+        xmlstarlet \
+        xsltproc \
+        zip \
+        && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+
+# Copy the entire repo into ece-scripts source
+WORKDIR /usr/src/ece-scripts
+COPY . .
+
+# Simulate npm rather than installing nodejs to run "npm run dist"  Hardcode it to "docker"
+ENV npm_package_version=docker
+
+ARG TEST
+
+RUN mkdir $(pwd)/dist && \
+    if ${TEST:-false} ; then \
+      usr/local/src/unit-tests/run-tests.sh || exit $?; \
+    fi && \
+    usr/share/escenic/package-scripts/create-zip-archives --dir $(pwd)/dist
+
+ARG PACKAGES
+
+RUN if ! getent passwd escenic >/dev/null; then \
+	    useradd --create-home --shell /bin/bash escenic; \
+    fi && \
+    cd dist && \
+    for file in ${PACKAGES} ; do \
+      ( \
+        unzip -q $file-docker.zip && \
+        cd $(basename $file)-docker && \
+        cp -rp contrib/unix/* / \
+      ) || exit $?; \
+    done && \
+    for a in cache backups crash log lib run; do \
+      mkdir -p /var/$a/escenic && \
+      chown escenic: /var/$a/escenic ; \
+    done && \
+    mkdir -p /etc/escenic/ && \
+    touch /etc/escenic/ece-engine1.conf
+
+
+USER escenic
+
