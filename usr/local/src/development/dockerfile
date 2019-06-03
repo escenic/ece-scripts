@@ -13,7 +13,9 @@ RUN if [ ! -z "$MIRROR" ] ; then sed -i /'^deb '/s,'deb [^:]*:[^ ]* ',"deb ${MIR
         curl \
         default-jdk-headless \
         fakeroot \
+        git \
         gnupg \
+        jq \
         libjson-xs-perl \
         libyaml-perl \
         make \

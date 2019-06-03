@@ -514,17 +514,17 @@ function _apply_conf_create_tag_structure() {
 function _apply_conf_create_organizational_unit() {
   local name=$1
 
-  local create_OU_url=${_apply_conf_engine_url}/escenic-admin/do/ou/store
+  local create_ou_url=${_apply_conf_engine_url}/escenic-admin/do/ou/store
 
   # scope these variables :)
-  local OU_OU_description=
-  _apply_conf_parse_ini_file "$_apply_conf_config_file" OU OU "name=$name"  || exit $?
+  local ou_ou_description=
+  _apply_conf_parse_ini_file "$_apply_conf_config_file" ou ou "name=$name"  || exit $?
 
   if ${_apply_conf_dry_run} ; then
     print_and_log "Dry run: Creating the organizational unit '${name}'."
   else
     _apply_conf_debug "Creating the organizational unit '${name}'."
-    curl --silent --fail --show-error "$create_OU_url" --data-urlencode "name=$name" --data-urlencode "information=$OU_OU_description" > /dev/null
+    curl --silent --fail --show-error "$create_ou_url" --data-urlencode "name=$name" --data-urlencode "information=$ou_ou_description" > /dev/null
   fi
 }
 
@@ -617,7 +617,7 @@ function _apply_conf_read_publication_config() {
     return 1;
   }
 
-  [ -n "$publication_publication_OU" ] || {
+  [ -n "$publication_publication_ou" ] || {
     handle_error "Please include a OU= in the [publication name=$name]."
     return 1;
   }
@@ -639,7 +639,7 @@ function _apply_conf_update_publication_resources() {
   local name=$1
   local admin_url=${_apply_conf_engine_url}/escenic-admin
   local publication_publication_type=
-  local publication_publication_OU=
+  local publication_publication_ou=
   local publication_publication_content=
   local publication_publication_content_type=
   local publication_publication_layout=
@@ -690,7 +690,7 @@ EOF
 
   # type
   local publication_publication_type=
-  local publication_publication_OU=
+  local publication_publication_ou=
   local publication_publication_content=
   local publication_publication_content_type=
   local publication_publication_layout=
@@ -712,13 +712,13 @@ EOF
   existing_ous=$(_apply_conf_get_existing_organizational_units)
   while read -r ou ; do
     local ou_name=$(cut -d : -f 3- <<< "$ou")
-    if [ "$ou_name" == "$publication_publication_OU" ] ; then
+    if [ "$ou_name" == "$publication_publication_ou" ] ; then
       ou_uuid=$(cut -d : -f 2 <<< "$ou")
     fi
   done <<< "$existing_ous"
 
   if [ -z "$ou_uuid" ] ; then
-    false || handle_error "Unable to find OU with name '$publication_publication_OU'."
+    false || handle_error "Unable to find OU with name '$publication_publication_ou'."
   fi
 
   if ! "$_apply_conf_dry_run" ; then
@@ -785,9 +785,9 @@ EOF
 
 
   if "$_apply_conf_dry_run" ; then
-    print_and_log "Dry run: Creating publication $name in OU $publication_publication_OU ($ou_uuid)"
+    print_and_log "Dry run: Creating publication $name in OU $publication_publication_ou ($ou_uuid)"
   else
-    _apply_conf_debug "Creating publication $name in OU $publication_publication_OU ($ou_uuid)."
+    _apply_conf_debug "Creating publication $name in OU $publication_publication_ou ($ou_uuid)."
     local html=
     html=$(
       curl --silent --fail --show-error "${create_publication_url}" \
@@ -982,7 +982,7 @@ function _apply_conf_get_keys_from_ini_file
               /^[[:space:]]*[-a-z0-9/@:\\.]*[[:space:]]*=[[:space:]]*/Is/[[:space:]]*=.*//p
             }" "$1" | sort | uniq)
   fi
-  echo "$result"
+  echo "${result,,}"
 }
 
 
@@ -992,8 +992,7 @@ function _apply_conf_get_sections_from_ini_file
 {
   local file=$1
   local name=$2
-# sed -n "/^[[:space:]]*\[[[:space:]]*$name[[:space:]]*\(.*\)\][[:space:]]*$/s/^[[:space:]]*\[[[:space:]]*$name[[:space:]]*\(.*\)\][[:space:]]*$/\1/p" "$file" | sort | uniq
-  sed -n "/^[[:space:]]*\\[[[:space:]]*${name} [[:space:]]*\\(.*\\)[[:space:]]*\\][[:space:]]*$/s/^[[:space:]]*\\[[[:space:]]*${name}[[:space:]]*\\(.*\\)[[:space:]]*\\][[:space:]]*$/\\1/p" "$file"
+  sed -n "/^[[:space:]]*\\[[[:space:]]*${name} [[:space:]]*\\(.*\\)[[:space:]]*\\][[:space:]]*$/Is/^[[:space:]]*\\[[[:space:]]*${name}[[:space:]]*\\(.*\\)[[:space:]]*\\][[:space:]]*$/\\1/Ip" "$file"
 }
 
 
