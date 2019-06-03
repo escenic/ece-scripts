@@ -34,7 +34,7 @@ updating the shared and publication resources.
 
 Usage:
 
-  $(basename "$0") apply-conf [<options>]
+  $(basename "$0") apply-conf <options>
 
 Options:
   -c, --config <file name>: The name of the .ini file which describes
@@ -134,7 +134,7 @@ function _apply_conf_debug_debug() {
 function _apply_conf_parse_opts() {
   if [ $# -eq 0 ]; then
     _apply_conf_usage;
-    exit 0;
+    exit 1;
   fi
 
   local shortopts="c:qnv";
