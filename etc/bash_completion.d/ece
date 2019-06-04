@@ -3,6 +3,7 @@
 _get_sub_commands_for_ece() {
   cat <<EOF
       applog
+      apply-conf
       assemble
       backup
       clean
@@ -66,6 +67,16 @@ _get_completions_for_ece_command()
     completions=$commands" "$options
 
     case "$prev" in
+        apply-conf)
+            completions="
+              --conf       -c
+              --dry-run    -n
+              --help
+              --password
+              --verbose    -v
+              --quiet      -q
+            "
+            ;;
         backup)
             exclude_list="
               --exclude-binaries
