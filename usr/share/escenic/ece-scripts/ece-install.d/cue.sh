@@ -188,6 +188,27 @@ EOF
   fi
 }
 
+## Returns the conf dir (under /etc) for the passed CUE version,
+## identified by its /usr dir.
+##
+## $1 :: the corresponding /usr directory of cue (there can be
+##       different versions of cue-web* installed.)
+## $2 :: conf base dir. Optional, the default is /etc/escenic
+_cue_get_conf_dir() {
+  local dir=$1
+  local conf_base_dir=${2-/etc/escenic}
+
+  local result=
+  result=${conf_base_dir}/$(basename "$dir")
+  if [ ! -d "${result}" ]; then
+    # The newer (from 2019-06) cue-web-* packages have just
+    # /etc/escenic/cue-web
+    result=${conf_base_dir}/cue-web
+  fi
+
+  printf "%s\n" "${result}"
+}
+
 _cue_configure_redhat() {
   # The cue-web with the highest version becomes the deployed
   # host:80/cue-web
@@ -201,20 +222,20 @@ _cue_configure_redhat() {
   fi
   run ln -sv "${cue_web_dir}"/www "${link_target}"
 
-  local conf_base=
-  conf_base=$(basename "${cue_web_dir}")
+  local conf_dir=
+  conf_dir=$(_cue_get_conf_dir "${cue_web_dir}")
 
   install_packages_if_missing python-yaml PyYAML
   run "${cue_web_dir}"/bin/generate-config.py \
-      "/etc/escenic/${conf_base}/" \
-      "/etc/escenic/${conf_base}/"
+      "${conf_dir}/" \
+      "${conf_dir}/"
 
   link_target=${cue_web_dir}/www/Configuration/cue.config.js
   if [ -h "${link_target}" ]; then
     rm "${link_target}"
   fi
 
-  run ln -sv "/etc/escenic/${conf_base}/cue.config.js" "${link_target}"
+  run ln -sv "${conf_dir}/cue.config.js" "${link_target}"
 }
 
 _cue_configure_debian() {
