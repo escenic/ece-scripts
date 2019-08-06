@@ -387,13 +387,32 @@ function _apply_conf_relativize () {
   done
 }
 
+# Helper function to handle any errors in the previously executed
+# command.  Terminates the process and returns the currently active
+# $?, or 1 if $? is 0.
+#
+# Invoke using the || operator:
+#
+#   some_command || handle_error "some command failed"
+#
+# or stand-alone:
+#
+#   if [ -z "$something" ] ; then
+#     handle_error "Something cannot be empty"
+#   fi
+#
 function handle_error() {
   local rc=$?
   print_and_log "$@"
   if $_apply_conf_exit_on_error ; then
     print_and_log "Use --no-fail to ignore these errors."
     remove_pid_and_exit_in_error
-    exit $rc
+    # rc can be 0 if handle_error is invoked without a failing command.
+    if [ $rc == 0 ] ; then
+      exit 1
+    else
+      exit $rc
+    fi
   fi
 }
 
@@ -418,7 +437,7 @@ function _apply_conf_upload_shared_resources() {
     if [ -f "$a" ] ; then
       _apply_conf_upload_publication_type "$a" || handle_error "An error occurred while processing publication type $a"
     else
-      false || handle_error "The publication type '$a' could not be found."
+      handle_error "The publication type '$a' could not be found."
     fi
   done
 
@@ -426,7 +445,7 @@ function _apply_conf_upload_shared_resources() {
     if [ -f "$a" ] ; then
       _apply_conf_upload_story_element_type "$a" || handle_error "An error occurred while processing story element type $a"
     else
-      false || handle_error "The story element type '$a' could not be found."
+      handle_error "The story element type '$a' could not be found."
     fi
   done
 
@@ -434,7 +453,7 @@ function _apply_conf_upload_shared_resources() {
     if [ -f "$a" ] ; then
       _apply_conf_upload_storyline_template "$a" || handle_error "An error occurred while processing storyline template $a"
     else
-      false || handle_error "The storyline template '$a' could not be found."
+      handle_error "The storyline template '$a' could not be found."
     fi
   done
 
@@ -442,7 +461,7 @@ function _apply_conf_upload_shared_resources() {
     if [ -f "$a" ] ; then
       _apply_conf_upload_search_filter "$a" || handle_error "An error occurred while processing search filter $a"
     else
-      false || handle_error "The search filter '$a' could not be found."
+      handle_error "The search filter '$a' could not be found."
     fi
   done
 
@@ -450,7 +469,7 @@ function _apply_conf_upload_shared_resources() {
     if [ -f "$a" ] ; then
       _apply_conf_upload_source_monitor "$a" || handle_error "An error occurred while processing source monitor $a"
     else
-      false || handle_error "The source monitor '$a' could not be found."
+      handle_error "The source monitor '$a' could not be found."
     fi
   done
 }
@@ -463,7 +482,7 @@ function _apply_conf_upload_shared_resources_after_creating_publications() {
     if [ -f "$a" ] ; then
       _apply_conf_upload_container_type "$a" || handle_error "An error occurred while processing container type $a"
     else
-      false || handle_error "The container type '$a' could not be found."
+      handle_error "The container type '$a' could not be found."
     fi
   done
 }
@@ -595,7 +614,7 @@ function _apply_conf_upload_resource_file() {
   local name=$2
   local file=$3
   if [ ! -f "$file" ] ; then
-    false || handle_error "The resource $name ($file) was not available."
+    handle_error "The resource $name ($file) was not available."
   fi
   log "Uploading $file to $name using session $cookie."
   if ${_apply_conf_dry_run} ; then
@@ -722,7 +741,7 @@ EOF
   done <<< "$existing_ous"
 
   if [ -z "$ou_uuid" ] ; then
-    false || handle_error "Unable to find OU with name '$publication_publication_ou'."
+    handle_error "Unable to find OU with name '$publication_publication_ou'."
   fi
 
   if ! "$_apply_conf_dry_run" ; then
