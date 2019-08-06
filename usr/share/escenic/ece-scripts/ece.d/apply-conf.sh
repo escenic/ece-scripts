@@ -657,6 +657,28 @@ function _apply_conf_read_publication_config() {
 }
 
 
+function _apply_conf_get_additional_resources() {
+  local resource_type
+  for resource_type in $(compgen -v publication_publication_additional_resource_) ; do
+    # resource_type contains "publication_publication_additional_resource_foo_bar"
+    local resource=( ${!resource_type} )
+    # resource contains ( "/path/to/resource"    "path/to/file"  )
+    if [ ${#resource[@]} == 2 ]; then
+      local file_name=
+      file_name=$(_apply_conf_relativize "${resource[1]}")
+      if [ -f "${file_name}" ]; then
+        echo "${resource[0]}=${file_name}"
+      else
+        _apply_conf_debug "Unable to find file \"${file_name}\" for additional resource \"${resource[0]}\"."
+      fi
+    else
+      # TODO: Make the resource fail if it doesn't have exactly two words.
+      _apply_conf_debug "${resource[0]} must have the format \"/resource-path file-name\""
+    fi
+  done
+}
+
+
 # Publication does not exist.  Create it, or (with dry run) show what it would do.
 function _apply_conf_update_publication_resources() {
   local name=$1
@@ -673,13 +695,15 @@ function _apply_conf_update_publication_resources() {
   fi
 
   local index=0
+  local resource=
+  local resource_name=
   for resource in $(_apply_conf_relativize $(_apply_conf_uncomma "$publication_publication_content_type")) ; do
     if [ $index -eq 0 ] ; then
-      resourceName=/escenic/content-type
+      resource_name=/escenic/content-type
     else
-      resourceName=/escenic/content-type/$(basename "$resource" .xml)
+      resource_name=/escenic/content-type/$(basename "$resource" .xml)
     fi
-    _apply_conf_put "${resource}" "publication-resources/${name}${resourceName}"
+    _apply_conf_put "${resource}" "publication-resources/${name}${resource_name}"
     index=$(( index + 1 ))
   done
 
@@ -692,6 +716,13 @@ function _apply_conf_update_publication_resources() {
   if [ -f "$resource" ] ; then
     _apply_conf_put "${resource}" "publication-resources/${name}/escenic/layout"
   fi
+
+  # Upload "additional resources" like plugin.xml, menu.xml etc
+  for resource in $(_apply_conf_get_additional_resources); do
+    local resource_file=${resource/*=}
+    resource_name=${resource/=*}
+    _apply_conf_put "${resource_name}" "${resource_file}"
+  done
 }
 
 # Publication does not exist.  Create it, or (with dry run) show what it would do.
@@ -709,6 +740,9 @@ source-monitors = tomorrow-facebook/common/some-editors-workspace.xml
 content-type = tomorrow-facebook/publication/content-types/facebook_post.xml
 content = some.xml
 layout-group = some.xml
+additional-resource-menu = /escenic/plugin/menu            /path/to/menu.xml
+additional-resource-feed = /escenic/plugin/section-feed    /common/section-feed.xml
+additional-resource-live = /escenic/plugin/live/entry-type /common/entry-types.xml
 EOF
 
   # type
@@ -751,7 +785,7 @@ EOF
     cookie=DRY_RUN
   fi
 
-  if [ -z "$cookie" ] ; then
+  if [ -z "${cookie}" ] ; then
     print_and_log "Unable to get a session cookie."
     remove_pid_and_exit_in_error
     exit 123
@@ -760,25 +794,32 @@ EOF
   local resource=
   local resource_data=
   local index=0
-  local resourceName=
+  local resource_name=
   for resource in $(_apply_conf_relativize $(_apply_conf_uncomma "$publication_publication_content_type")) ; do
     if [ $index -eq 0 ] ; then
-      resourceName=/escenic/content-type
+      resource_name=/escenic/content-type
     else
-      resourceName=/escenic/content-type/$(basename "$resource" .xml)
+      resource_name=/escenic/content-type/$(basename "$resource" .xml)
     fi
-    _apply_conf_upload_resource_file $cookie $resourceName "${resource}"
+    _apply_conf_upload_resource_file "${cookie}" $resource_name "${resource}"
     index=$(( index + 1 ))
   done
 
   resource=$(_apply_conf_relativize "$publication_publication_layout_group")
   if [ -f "$resource" ] ; then
-    _apply_conf_upload_resource_file $cookie /escenic/layout-group "${resource}"
+    _apply_conf_upload_resource_file "${cookie}" /escenic/layout-group "${resource}"
   fi
+
+  # Upload "additional resources" like plugin.xml, menu.xml etc
+  for resource in $(_apply_conf_get_additional_resources); do
+    local resource_file=${resource/*=}
+    resource_name=${resource/=*}
+    _apply_conf_upload_resource_file "${cookie}" "${resource_name}" "${resource_file}"
+  done
 
   resource=$(_apply_conf_relativize $(_apply_conf_uncomma "$publication_publication_layout"))
   # throw an error if more than one layout file is specified?!
-  _apply_conf_upload_resource_file $cookie /escenic/layout "${resource}"
+  _apply_conf_upload_resource_file "${cookie}" /escenic/layout "${resource}"
 
   resource=()
   for a in $(_apply_conf_relativize $(_apply_conf_uncomma "$publication_publication_content")) ; do
@@ -801,9 +842,9 @@ EOF
   fi
 
   if [ -n "$resource" ] ; then
-    _apply_conf_upload_resource_file $cookie /escenic/content "${resource}"
+    _apply_conf_upload_resource_file "${cookie}" /escenic/content "${resource}"
   elif [ -n "$resource_data" ] ; then
-    _apply_conf_upload_resource_file $cookie /escenic/content <(echo "${resource_data}")
+    _apply_conf_upload_resource_file "${cookie}" /escenic/content <(echo "${resource_data}")
   fi
 
 
